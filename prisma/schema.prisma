@@ -1,9 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// ---------- PRISMA CONFIG ----------
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,28 +8,34 @@ datasource db {
   provider = "postgresql"
 }
 
+// -----------------------------------
+// USERS & AUTH
+// -----------------------------------
+
 model User {
-  id            String      @id @default(cuid())
-  name          String?
-  email         String?     @unique
-  passwords     UserPassword?
-  image         String?
-  role          UserRole    @default(USER)
+  id              String           @id @default(cuid())
+  name            String?
+  email           String?          @unique
+  passwords       UserPassword?
+  image           String?
+  role            UserRole         @default(USER)
 
-  accounts      Account[]
-  sessions      Session[]
-  enrollments   Enrollment[]
-  forumThreads  ForumThread[]
-  forumReplies  ForumReply[]
+  accounts        Account[]
+  sessions        Session[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
+  enrollments     Enrollment[]
   lessonProgresses LessonProgress[]
 
-  coursePosts CoursePost[]
+  coursePosts     CoursePost[]
+  forumPosts      ForumPost[]
+  forumComments   ForumComment[]
 
-  payments Payment[]
+  payments        Payment[]
+
+  coursesOwned    Course[]         @relation("CourseInstructor")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model UserPassword {
@@ -61,7 +62,6 @@ model RoleEmail {
   createdAt DateTime @default(now())
 }
 
-// NextAuth
 model Account {
   id                 String  @id @default(cuid())
   userId             String
@@ -89,26 +89,29 @@ model Session {
   createdAt    DateTime @default(now())
 }
 
-// ------------------------
-// LMS STRUCTURE (MVP)
-// ------------------------
+// -----------------------------------
+// COURSES (SEM TURMAS)
+// -----------------------------------
 
 model Course {
-  id            String     @id @default(cuid())
+  id            String       @id @default(cuid())
   title         String
   description   String
   imageUrl      String?
-  price         Int         // em centavos
+  price         Int?
 
   modules       Module[]
-  cohorts       CourseCohort[]
   posts         CoursePost[]
-  forumThreads  ForumThread[]
+  forumPosts    ForumPost[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  payments Payment[]
+  instructorId  String?
+  instructor    User?     @relation("CourseInstructor", fields: [instructorId], references: [id])
+
+  enrollments   Enrollment[]
+  payments      Payment[]
 }
 
 model Module {
@@ -126,40 +129,10 @@ model Lesson {
   moduleId  String
   module    Module   @relation(fields: [moduleId], references: [id])
   title     String
-  content   Json     // << rich text aqui
+  content   Json
   order     Int
 
   progress  LessonProgress[]
-}
-
-model CourseCohort {
-  id            String    @id @default(cuid())
-  courseId      String
-  course        Course    @relation(fields: [courseId], references: [id])
-  name          String
-  maxStudents   Int?
-  startDate     DateTime?
-  endDate       DateTime?
-
-  enrollments   Enrollment[]
-  forumThreads  ForumThread[]
-
-  createdAt     DateTime @default(now())
-
-  coursePosts CoursePost[]
-
-  payments Payment[]
-}
-
-model Enrollment {
-  id        String    @id @default(cuid())
-  userId    String
-  cohortId  String
-
-  user      User        @relation(fields: [userId], references: [id])
-  cohort    CourseCohort @relation(fields: [cohortId], references: [id])
-
-  createdAt DateTime @default(now())
 }
 
 model LessonProgress {
@@ -176,74 +149,154 @@ model LessonProgress {
   @@unique([userId, lessonId])
 }
 
-// ------------------------
+// -----------------------------------
+// ENROLLMENTS (CURSO → VITALÍCIO / JORNADA → EXPIRAÇÃO)
+// -----------------------------------
+
+model Enrollment {
+  id          String     @id @default(cuid())
+  userId      String
+  courseId    String?
+  journeyId   String?
+  startDate   DateTime    @default(now())
+  endDate     DateTime?
+
+  user        User        @relation(fields: [userId], references: [id])
+  course      Course?     @relation(fields: [courseId], references: [id])
+  journey     Journey?    @relation(fields: [journeyId], references: [id])
+
+  createdAt   DateTime    @default(now())
+
+  @@unique([userId, courseId])
+  @@unique([userId, journeyId])
+}
+
+// -----------------------------------
 // CONTENT POSTS
-// ------------------------
+// -----------------------------------
 
 model CoursePost {
   id        String   @id @default(cuid())
   courseId  String
-  cohortId  String?  // opcional
   authorId  String
   content   Json
   isPinned  Boolean @default(false)
 
-  course    Course        @relation(fields: [courseId], references: [id])
-  cohort    CourseCohort? @relation(fields: [cohortId], references: [id])
-  author    User          @relation(fields: [authorId], references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
+  author    User   @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
-// ------------------------
+// -----------------------------------
+// JOURNEYS
+// -----------------------------------
+
+model Journey {
+  id          String         @id @default(cuid())
+  title       String
+  description String
+  price       Int?
+
+  modules     JourneyModule[]
+  forumPosts  ForumPost[]
+  enrollments Enrollment[]
+
+  payments Payment[]
+}
+
+model JourneyModule {
+  id         String        @id @default(cuid())
+  journeyId  String
+  journey    Journey       @relation(fields: [journeyId], references: [id])
+  title      String
+  order      Int
+
+  lessons    JourneyLesson[]
+}
+
+model JourneyLesson {
+  id         String        @id @default(cuid())
+  moduleId   String
+  module     JourneyModule @relation(fields: [moduleId], references: [id])
+  title      String
+  content    Json
+  order      Int
+}
+
+// -----------------------------------
 // FORUM
-// ------------------------
+// -----------------------------------
 
-model ForumThread {
+model ForumPost {
+  id          String    @id @default(cuid())
+  authorId    String
+  title       String
+  content     Json
+
+  cursoId     String?
+  jornadaId   String?
+
+  author      User       @relation(fields: [authorId], references: [id])
+  curso       Course?    @relation(fields: [cursoId], references: [id])
+  jornada     Journey?   @relation(fields: [jornadaId], references: [id])
+
+  comments    ForumComment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ForumComment {
   id        String   @id @default(cuid())
-  courseId  String?
-  cohortId  String?
+  postId    String
   authorId  String
-  title     String
   content   Json
 
-  course    Course?        @relation(fields: [courseId], references: [id])
-  cohort    CourseCohort?  @relation(fields: [cohortId], references: [id])
-  author    User           @relation(fields: [authorId], references: [id])
-  replies   ForumReply[]
+  post      ForumPost @relation(fields: [postId], references: [id])
+  author    User      @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
 }
 
-model ForumReply {
-  id        String   @id @default(cuid())
-  threadId  String
-  authorId  String
-  content   Json
-
-  thread    ForumThread @relation(fields: [threadId], references: [id])
-  author    User        @relation(fields: [authorId], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
-// ------------------------
-// PAYMENTS MVP
-// ------------------------
+// -----------------------------------
+// PAYMENTS (AGORA ITEM GENÉRICO)
+// -----------------------------------
 
 model Payment {
-  id             String   @id @default(cuid())
-  userId         String
-  courseId       String
-  cohortId       String?
-  mpPaymentId    String   @unique
-  status         String   // approved, rejected, pending...
-  amount         Int
+  id           String   @id @default(cuid())
+  userId       String
+  itemType     PaymentItemType
+  courseId     String?
+  journeyId    String?
+  mpPaymentId  String   @unique
+  status       String
+  amount       Int
 
-  user           User     @relation(fields: [userId], references: [id])
-  course         Course   @relation(fields: [courseId], references: [id])
-  cohort         CourseCohort? @relation(fields: [cohortId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+  course       Course?  @relation(fields: [courseId], references: [id])
+  journey      Journey? @relation(fields: [journeyId], references: [id])
 
-  createdAt      DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([itemType])
+  refunds Refund[]
 }
 
+enum PaymentItemType {
+  COURSE
+  JOURNEY
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  paymentId   String
+  mpRefundId  String?  // id do reembolso no MP
+  status      String   // pending, approved, rejected
+  amount      Int
+  createdAt   DateTime @default(now())
+
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+}
