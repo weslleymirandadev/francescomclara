@@ -30,11 +30,23 @@ export async function POST(req: Request) {
     const status = payment.status;                // approved, refunded, cancelled...
     const metadata = payment.metadata || {};
     const userId = metadata.userId;
-    const itemType = metadata.type;               // "course" | "journey"
-    const itemId = metadata.id;                   // ID do curso ou jornada
+    const items = metadata.items || [];           // Array de itens do pagamento
+    
+    // Suporte para formato antigo (um único item)
+    const itemType = metadata.type;
+    const itemId = metadata.id;
     const durationMonths = metadata.durationMonths ?? 12;
 
-    if (!userId || !itemType || !itemId) {
+    if (!userId) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Se não houver items no formato novo, usar formato antigo
+    const itemsToProcess = items.length > 0 
+      ? items 
+      : (itemType && itemId ? [{ id: itemId, type: itemType, quantity: 1 }] : []);
+
+    if (itemsToProcess.length === 0) {
       return NextResponse.json({ ok: true });
     }
 
@@ -47,17 +59,19 @@ export async function POST(req: Request) {
         data: { status: status.toUpperCase() },
       });
 
-      // Remove acesso do usuário
-      if (itemType === "course") {
-        await prisma.enrollment.deleteMany({
-          where: { userId, courseId: itemId },
-        });
-      }
+      // Remove acesso do usuário para todos os itens
+      for (const item of itemsToProcess) {
+        if (item.type === "course") {
+          await prisma.enrollment.deleteMany({
+            where: { userId, courseId: item.id },
+          });
+        }
 
-      if (itemType === "journey") {
-        await prisma.enrollment.deleteMany({
-          where: { userId, journeyId: itemId },
-        });
+        if (item.type === "journey") {
+          await prisma.enrollment.deleteMany({
+            where: { userId, journeyId: item.id },
+          });
+        }
       }
 
       return NextResponse.json({ ok: true });
@@ -71,63 +85,72 @@ export async function POST(req: Request) {
     }
 
     // =====================================================================
-    // 3. Idempotência — evitar processar duas vezes
+    // 3. Buscar ou criar registro de pagamento
     // =====================================================================
-    const exists = await prisma.payment.findUnique({
+    const existingPayment = await prisma.payment.findUnique({
       where: { mpPaymentId: mpPaymentId.toString() },
     });
 
-    if (exists) {
-      return NextResponse.json({ ok: true });
-    }
-
-    // =====================================================================
-    // 4. Registrar pagamento
-    // =====================================================================
-    const newPayment = await prisma.payment.create({
-      data: {
-        userId,
-        mpPaymentId: mpPaymentId.toString(),
-        status: "APPROVED",
-        amount: payment.transaction_amount!,
-        itemType: itemType === "journey" ? "JOURNEY" : "COURSE",
-        courseId: itemType === "course" ? itemId : null,
-        journeyId: itemType === "journey" ? itemId : null,
-      },
-    });
-
-    if (itemType === "course") {
-      await prisma.enrollment.upsert({
-        where: {
-          userId_courseId: { userId, courseId: itemId },
-        },
-        create: {
+    if (!existingPayment) {
+      // Se não existir, criar (caso o webhook seja chamado antes do retorno da API)
+      await prisma.payment.create({
+        data: {
           userId,
-          courseId: itemId,
-          endDate: null,  // Vitalício
+          mpPaymentId: mpPaymentId.toString(),
+          status: "APPROVED",
+          amount: Math.round(payment.transaction_amount! * 100), // Converter para centavos
+          itemType: itemsToProcess.length === 1 
+            ? (itemsToProcess[0].type === "journey" ? "JOURNEY" : "COURSE")
+            : "MULTIPLE",
+          courseId: itemsToProcess.length === 1 && itemsToProcess[0].type === "course" 
+            ? itemsToProcess[0].id 
+            : null,
+          journeyId: itemsToProcess.length === 1 && itemsToProcess[0].type === "journey" 
+            ? itemsToProcess[0].id 
+            : null,
         },
-        update: {},
+      });
+    } else if (existingPayment.status !== "APPROVED") {
+      // Atualizar status se ainda não estiver aprovado
+      await prisma.payment.update({
+        where: { id: existingPayment.id },
+        data: { status: "APPROVED" },
       });
     }
+    // Se já está aprovado, continuar para processar enrollments (idempotente)
 
-    //
-    // JORNADA: prazo definido
-    //
-    if (itemType === "journey") {
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + durationMonths);
+    // Processar enrollments para todos os itens
+    for (const item of itemsToProcess) {
+      if (item.type === "course") {
+        await prisma.enrollment.upsert({
+          where: {
+            userId_courseId: { userId, courseId: item.id },
+          },
+          create: {
+            userId,
+            courseId: item.id,
+            endDate: null,  // Vitalício
+          },
+          update: {},
+        });
+      }
 
-      await prisma.enrollment.upsert({
-        where: {
-          userId_journeyId: { userId, journeyId: itemId },
-        },
-        create: {
-          userId,
-          journeyId: itemId,
-          endDate,
-        },
-        update: {},
-      });
+      if (item.type === "journey") {
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + durationMonths);
+
+        await prisma.enrollment.upsert({
+          where: {
+            userId_journeyId: { userId, journeyId: item.id },
+          },
+          create: {
+            userId,
+            journeyId: item.id,
+            endDate,
+          },
+          update: {},
+        });
+      }
     }
 
     return NextResponse.json({ ok: true });
