@@ -2,180 +2,203 @@
 
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { formatPrice } from "@/lib/price";
 
 type Course = {
-  slug: string;
+  id: string;
   title: string;
   description: string;
-  level: "Iniciante" | "Intermediário" | "Avançado";
-  price: number;
+  imageUrl: string | null;
+  price: number | null;
+  discountPrice: number;
+  discountEnabled: boolean;
+  level: string;
+  public: boolean;
 };
 
 type Journey = {
-  slug: string;
+  id: string;
   title: string;
   description: string;
-  coursesIncluded: number;
-  price: number;
+  imageUrl: string | null;
+  price: number | null;
+  public: boolean;
+  courses: { id: string }[];
 };
 
-const courses: Course[] = [
-  {
-    slug: "typescript-fundamentos",
-    title: "TypeScript Fundamentos",
-    description: "Aprenda os fundamentos de TypeScript para projetos modernos.",
-    level: "Iniciante",
-    price: 97,
-  },
-  {
-    slug: "nextjs-pratico",
-    title: "Next.js na Prática",
-    description: "Construa aplicações fullstack com o App Router do Next.js.",
-    level: "Intermediário",
-    price: 147,
-  },
-];
-
-const journeys: Journey[] = [
-  {
-    slug: "jornada-fullstack",
-    title: "Jornada Fullstack",
-    description: "Pacote com os principais cursos para desenvolver aplicações completas.",
-    coursesIncluded: 5,
-    price: 297,
-  },
-];
-
-function formatPrice(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
 export default function Home() {
+  const { data: session, status } = useSession();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [journeys, setJourneys] = useState<Journey[]>([]);
+  const [loading, setLoading] = useState(true);
   const { addItem, items } = useCart();
 
-  const hasItems = items.length > 0;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch public courses
+        const coursesRes = await fetch('/api/courses?public=true');
+        if (!coursesRes.ok) throw new Error('Failed to fetch courses');
+        const coursesData = await coursesRes.json();
+        
+        // Fetch public journeys with their courses
+        const journeysRes = await fetch('/api/journeys?public=true');
+        if (!journeysRes.ok) throw new Error('Failed to fetch journeys');
+        const journeysData = await journeysRes.json();
+
+        setCourses(coursesData);
+        setJourneys(journeysData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Erro ao carregar os dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleAddToCart = (item: { id: string; title: string; price: number | null; type: 'course' | 'journey' }) => {
+    if (!item.price) {
+      toast.error('Este item não pode ser adicionado ao carrinho');
+      return;
+    }
+    
+    // Price is already in cents from the database
+    addItem({
+      id: item.id,
+      title: item.title,
+      price: item.price, // Store in cents
+      type: item.type,
+    });
+    toast.success(`${item.type === 'course' ? 'Curso' : 'Jornada'} adicionado ao carrinho`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-10">
-      <div className="mx-auto flex max-w-5xl flex-col gap-10">
-        <header className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Cursos e Jornadas
-          </h1>
-          <p className="text-sm text-gray-500">
-            Escolha um curso individual ou uma jornada completa e finalize seu
-            acesso na próxima etapa.
-          </p>
-        </header>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Cursos</h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {courses.map((course) => (
-              <article
-                key={course.slug}
-                className="flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {course.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {course.description}
-                  </p>
-                  <p className="text-xs font-medium uppercase text-gray-400">
-                    {course.level}
-                  </p>
+    <main className="container mx-auto px-4 py-8">
+      <section className="mb-16">
+        <h1 className="text-4xl font-bold mb-6">Cursos Disponíveis</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => (
+            <div key={course.id} className="border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+              {course.imageUrl && (
+                <img 
+                  src={course.imageUrl} 
+                  alt={course.title}
+                  className="w-full h-48 object-cover"
+                />
+              )}
+              <div className="p-4">
+                <h2 className="text-xl font-semibold mb-2">{course.title}</h2>
+                <p className="text-gray-600 mb-3 line-clamp-2 h-12">{course.description}</p>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm text-gray-500">{course.level}</span>
+                  <div className="text-right">
+                    {course.discountEnabled && course.discountPrice > 0 ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs line-through text-gray-400">
+                          {formatPrice(course.price!)}
+                        </span>
+                        <span className="font-bold text-red-600">
+                          {formatPrice(course.discountPrice)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold">{formatPrice(course.price!)}</span>
+                    )}
+                  </div>
                 </div>
-
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <span className="text-base font-semibold text-gray-900">
-                    {formatPrice(course.price)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem({
-                        id: course.slug,
-                        title: course.title,
-                        price: course.price,
-                        type: "course",
-                      })
-                    }
-                    className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+                <div className="flex flex-col gap-2">
+                  <Link 
+                    href={`/cursos/${course.id}`}
+                    className="text-center bg-primary text-white py-2 rounded hover:bg-primary/90 transition-colors"
                   >
-                    Adicionar ao carrinho
-                  </button>
+                    Ver Curso
+                  </Link>
+                  {(course.price !== null && course.price > 0) || (course.discountEnabled && course.discountPrice > 0) ? (
+                    <button
+                      onClick={() => handleAddToCart({
+                        id: course.id,
+                        title: course.title,
+                        price: course.discountEnabled && course.discountPrice > 0 ? course.discountPrice : course.price,
+                        type: 'course'
+                      })}
+                      className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded transition-colors"
+                    >
+                      Adicionar ao Carrinho
+                    </button>
+                  ) : null}
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Jornadas</h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {journeys.map((journey) => (
-              <article
-                key={journey.slug}
-                className="flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-              >
-                <div className="space-y-1">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {journey.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {journey.description}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Inclui aproximadamente {journey.coursesIncluded} cursos
-                  </p>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between gap-2">
-                  <span className="text-base font-semibold text-gray-900">
-                    {formatPrice(journey.price)}
+      <section>
+        <h1 className="text-4xl font-bold mb-6">Jornadas de Aprendizado</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {journeys.map((journey) => (
+            <div key={journey.id} className="border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
+              {journey.imageUrl && (
+                <img 
+                  src={journey.imageUrl} 
+                  alt={journey.title}
+                  className="w-full h-48 object-cover"
+                />
+              )}
+              <div className="p-4">
+                <h2 className="text-xl font-semibold mb-2">{journey.title}</h2>
+                <p className="text-gray-600 mb-3 line-clamp-2 h-12">{journey.description}</p>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm text-gray-500">
+                    {journey.courses.length} {journey.courses.length === 1 ? 'curso' : 'cursos'} incluídos
                   </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      addItem({
-                        id: journey.slug,
+                  <span className="font-bold">{formatPrice(journey.price!)}</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Link 
+                    href={`/jornadas/${journey.id}`}
+                    className="text-center bg-primary text-white py-2 rounded hover:bg-primary/90 transition-colors"
+                  >
+                    Ver Jornada
+                  </Link>
+                  {journey.price !== null && journey.price > 0 && (
+                    <button
+                      onClick={() => handleAddToCart({
+                        id: journey.id,
                         title: journey.title,
                         price: journey.price,
-                        type: "journey",
-                      })
-                    }
-                    className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
-                  >
-                    Adicionar ao carrinho
-                  </button>
+                        type: 'journey'
+                      })}
+                      className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded transition-colors"
+                    >
+                      Adicionar ao Carrinho
+                    </button>
+                  )}
                 </div>
-              </article>
-            ))}
-          </div>
-        </section>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        {hasItems && (
-          <div className="flex justify-end">
-            <Link
-              href="/checkout"
-              className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-            >
-              Ir para checkout
-            </Link>
-          </div>
-        )}
-      </div>
+      {status === "authenticated" && (
+        <button onClick={() => signOut()}>Log out</button>
+      )}
     </main>
   );
 }
