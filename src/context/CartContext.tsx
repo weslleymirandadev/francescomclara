@@ -23,6 +23,9 @@ export interface CartItem {
 interface CartContextValue {
   items: CartItem[];
   total: number;
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
@@ -36,9 +39,13 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const { status } = useSession();
   const initializedRef = useRef(false);
   const hasSyncedWithServerRef = useRef(false);
+  
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
 
   const STORAGE_KEY = "cart:guest";
 
@@ -52,7 +59,12 @@ export function CartProvider({ children }: CartProviderProps) {
       if (stored) {
         const parsed = JSON.parse(stored) as CartItem[];
         if (Array.isArray(parsed)) {
-          setItems(parsed);
+          // Ensure all prices are stored in cents
+          const normalizedItems = parsed.map(item => ({
+            ...item,
+            price: item.price // Keep in cents
+          }));
+          setItems(normalizedItems);
         }
       }
     } catch {
@@ -76,8 +88,10 @@ export function CartProvider({ children }: CartProviderProps) {
     setItems((prev) => {
       const exists = prev.some((i) => i.id === item.id && i.type === item.type);
       if (exists) return prev;
-      return [...prev, item];
+      // Ensure we're storing the price in cents
+      return [...prev, { ...item, price: item.price }];
     });
+    openCart(); // Abre o carrinho quando um item é adicionado
   }
 
   function removeItem(id: string) {
@@ -178,14 +192,24 @@ export function CartProvider({ children }: CartProviderProps) {
     void syncWithServer();
   }, [status, items]);
 
-  const total = useMemo(
+  // Total is kept in cents for internal calculations
+  const totalInCents = useMemo(
     () => items.reduce((acc, item) => acc + item.price, 0),
     [items]
   );
 
-  const value = useMemo(
-    () => ({ items, total, addItem, removeItem, clearCart }),
-    [items, total]
+  const value = useMemo<CartContextValue>(
+    () => ({
+      items,
+      total: totalInCents, // Expose total in cents
+      isCartOpen,
+      openCart,
+      closeCart,
+      addItem,
+      removeItem,
+      clearCart,
+    }),
+    [items, isCartOpen, openCart, closeCart, addItem, removeItem, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
