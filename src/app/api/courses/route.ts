@@ -5,11 +5,8 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const isPublic = searchParams.get("public") === "true";
-
     const courses = await prisma.course.findMany({
-      where: isPublic ? { public: true } : undefined,
+      where: { public: true },
       select: {
         id: true,
         title: true,
