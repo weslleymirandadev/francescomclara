@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'react-hot-toast';
-import { parsePriceToCents } from '@/lib/price';
 
 interface Journey {
   id: string;
