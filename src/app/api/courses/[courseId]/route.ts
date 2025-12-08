@@ -8,11 +8,6 @@ export async function GET(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { courseId: id } = await params;
     console.log('Course ID from params:', id);
 
