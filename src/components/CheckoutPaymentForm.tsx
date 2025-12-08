@@ -9,6 +9,7 @@ import { FaPix } from "react-icons/fa6";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { formatPrice } from "@/lib/price";
 
 function isValidCpf(value: string) {
   const digits = value.replace(/\D/g, "");
@@ -174,118 +175,6 @@ interface CheckoutPaymentFormProps {
 export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps) {
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  type FormData = {
-    method: 'credit_card' | 'debit_card' | 'pix';
-    installments: number;
-    cardNumber: string;
-    cardHolderName: string;
-    cardExpiration: string;
-    cardCvv: string;
-    cpf: string;
-    email: string;
-    name: string;
-  };
-
-  const onSubmit = async (formData: FormData) => {
-    if (!session?.user?.id) {
-      toast.error("Você precisa estar logado para finalizar a compra");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Formatar os dados para o formato esperado pela API
-      const paymentData = {
-        method: formData.method,
-        installments: formData.installments,
-        token: formData.method.includes('card') ? 'CARD_TOKEN' : undefined, // Você precisará implementar a geração do token do cartão
-        payer: {
-          email: formData.email,
-          firstName: formData.name.split(' ')[0],
-          lastName: formData.name.split(' ').slice(1).join(' '),
-          identification: {
-            type: 'CPF',
-            number: formData.cpf.replace(/\D/g, '')
-          }
-        },
-        // Adicionar os itens do carrinho
-        items: items.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.type === 'course' ? 'Curso' : 'Jornada',
-          quantity: 1,
-          unit_price: item.price,
-          currency_id: 'BRL'
-        })),
-        // Adicionar informações adicionais
-        additional_info: {
-          items: items.map(item => ({
-            id: item.id,
-            title: item.title,
-            description: item.type === 'course' ? 'Curso' : 'Jornada',
-            quantity: 1,
-            unit_price: item.price,
-            category_id: item.type.toUpperCase()
-          })),
-          payer: {
-            first_name: formData.name.split(' ')[0],
-            last_name: formData.name.split(' ').slice(1).join(' '),
-            phone: {
-              area_code: '', // Adicione o DDD se disponível
-              number: '' // Adicione o número do telefone se disponível
-            },
-            address: {
-              zip_code: '', // Adicione o CEP se disponível
-              street_name: '', // Adicione o endereço se disponível
-              street_number: '' // Adicione o número se disponível
-            }
-          }
-        },
-        // Configurações adicionais
-        auto_return: 'approved',
-        notification_url: `${window.location.origin}/api/mercado-pago/webhook`,
-        statement_descriptor: 'PROGRAMACAO.DEV',
-        external_reference: `ORDER-${Date.now()}`,
-        binary_mode: true
-      };
-
-      const response = await fetch("/api/mercado-pago/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...paymentData,
-          userId: session.user.id,
-          total: amount,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Erro ao processar pagamento");
-      }
-
-      if (formData.method === "pix") {
-        // Redireciona para a página de sucesso com os dados do PIX
-        router.push(`/checkout/success?payment_id=${result.id}&pix=true`);
-      } else if (result.init_point) {
-        // Redireciona para o checkout do Mercado Pago
-        window.location.href = result.init_point;
-      } else {
-        // Se não houver init_point, redireciona para a página de sucesso
-        router.push('/checkout/success');
-      }
-    } catch (error: any) {
-      console.error('Erro no pagamento:', error);
-      toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   const [method, setMethod] = useState<"card" | "pix" | null>(null);
   const [processing, setProcessing] = useState(false);
   
@@ -299,7 +188,11 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
   } = useForm<z.infer<typeof cardSchema>>({
     resolver: zodResolver(cardSchema),
     mode: "onChange",
-    defaultValues: { documentType: "CPF" },
+    defaultValues: { 
+      documentType: "CPF",
+      email: session?.user?.email || "",
+      holderName: session?.user?.name || "",
+    },
   });
   
   const documentType = watch("documentType");
@@ -385,22 +278,179 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
   }
 
   async function onSubmitCard(data: z.infer<typeof cardSchema>) {
+    if (!session?.user?.id) {
+      toast.error("Você precisa estar logado para finalizar a compra");
+      return;
+    }
+
     setProcessing(true);
     try {
-      const totalWithFee = getInstallmentTotal(amount, data.installments);
-      // Aqui você integra com seu backend/gateway de pagamento
-      // Ex.: await fetch("/api/payments/checkout", { method: "POST", body: JSON.stringify({ ... }) })
-      console.log("card payment", { baseAmount: amount, totalWithFee, data });
+      // Parse da data de validade (MM/AA)
+      const [expiryMonth, expiryYear] = data.expiry.split('/');
+      const expiryYearFull = `20${expiryYear}`;
+
+      // Gerar token do cartão
+      const tokenResponse = await fetch("/api/mercado-pago/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cardNumber: data.cardNumber.replace(/\s/g, ''),
+          cardholderName: data.holderName,
+          cardExpirationMonth: expiryMonth,
+          cardExpirationYear: expiryYearFull,
+          securityCode: data.cvv,
+          identificationType: data.documentType,
+          identificationNumber: data.document.replace(/\D/g, ''),
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const tokenError = await tokenResponse.json();
+        throw new Error(tokenError.error || "Erro ao gerar token do cartão");
+      }
+
+      const { token } = await tokenResponse.json();
+
+      // Determinar o método de pagamento baseado no número do cartão
+      // Primeiro dígito: 4 = Visa, 5 = Mastercard (ambos credit_card)
+      // Para simplificar, vamos usar credit_card por padrão
+      const cardNumber = data.cardNumber.replace(/\s/g, '');
+      const paymentMethod = cardNumber.startsWith('4') || cardNumber.startsWith('5') 
+        ? 'credit_card' 
+        : 'credit_card';
+
+      // Preparar dados do pagador
+      const payerName = session.user.name || data.holderName;
+      const payerEmail = session.user.email || data.email;
+
+      if (!payerEmail) {
+        throw new Error("E-mail é obrigatório para o pagamento");
+      }
+
+      // Fazer o pagamento
+      const paymentResponse = await fetch("/api/mercado-pago/pay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          method: paymentMethod,
+          installments: data.installments,
+          token: token,
+          payer: {
+            email: payerEmail,
+            firstName: payerName.split(' ')[0] || '',
+            lastName: payerName.split(' ').slice(1).join(' ') || '',
+            cpf: data.document.replace(/\D/g, ''),
+          },
+          userId: session.user.id,
+          items: items.map(item => ({
+            id: item.id,
+            type: item.type,
+            title: item.title,
+            price: item.price, // já está em centavos
+            quantity: 1,
+          })),
+          total: amount, // já está em centavos
+        }),
+      });
+
+      const paymentResult = await paymentResponse.json();
+
+      if (!paymentResponse.ok) {
+        throw new Error(paymentResult.error || "Erro ao processar pagamento");
+      }
+
+      // Verificar status do pagamento
+      if (paymentResult.status === 'approved') {
+        toast.success("Pagamento aprovado com sucesso!");
+        router.push(`/checkout/success?payment_id=${paymentResult.id}`);
+      } else if (paymentResult.status === 'pending') {
+        toast.success("Pagamento pendente. Aguardando confirmação.");
+        router.push(`/checkout/success?payment_id=${paymentResult.id}`);
+      } else {
+        throw new Error(paymentResult.status_detail || "Pagamento não foi aprovado");
+      }
+    } catch (error: any) {
+      console.error('Erro no pagamento:', error);
+      toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
     } finally {
       setProcessing(false);
     }
   }
 
   async function onSubmitPix(data: z.infer<typeof pixSchema>) {
+    if (!session?.user?.id) {
+      toast.error("Você precisa estar logado para finalizar a compra");
+      return;
+    }
+
     setProcessing(true);
     try {
-      // Integração PIX com backend
-      console.log("pix payment", { amount, data });
+      // Preparar dados do pagador
+      const payerName = session.user.name || '';
+      const payerEmail = session.user.email;
+
+      if (!payerEmail) {
+        throw new Error("E-mail é obrigatório para o pagamento");
+      }
+
+      // Fazer o pagamento PIX
+      const paymentResponse = await fetch("/api/mercado-pago/pay", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          method: 'pix',
+          installments: 1,
+          payer: {
+            email: payerEmail,
+            firstName: payerName.split(' ')[0] || '',
+            lastName: payerName.split(' ').slice(1).join(' ') || '',
+            cpf: data.cpf.replace(/\D/g, ''),
+          },
+          userId: session.user.id,
+          items: items.map(item => ({
+            id: item.id,
+            type: item.type,
+            title: item.title,
+            price: item.price, // já está em centavos
+            quantity: 1,
+          })),
+          total: amount, // já está em centavos
+        }),
+      });
+
+      const paymentResult = await paymentResponse.json();
+
+      if (!paymentResponse.ok) {
+        throw new Error(paymentResult.error || "Erro ao processar pagamento");
+      }
+
+      // Verificar se há QR Code do PIX
+      if (paymentResult.point_of_interaction?.transaction_data) {
+        const pixData = paymentResult.point_of_interaction.transaction_data;
+        
+        // Redirecionar para página de sucesso com dados do PIX
+        const params = new URLSearchParams({
+          payment_id: paymentResult.id?.toString() || '',
+          pix: 'true',
+          qr_code: pixData.qr_code || '',
+          qr_code_base64: pixData.qr_code_base64 || '',
+          ticket_url: pixData.ticket_url || '',
+        });
+        
+        router.push(`/checkout/success?${params.toString()}`);
+      } else {
+        toast.success("PIX gerado com sucesso!");
+        router.push(`/checkout/success?payment_id=${paymentResult.id}&pix=true`);
+      }
+    } catch (error: any) {
+      console.error('Erro no pagamento PIX:', error);
+      toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
     } finally {
       setProcessing(false);
     }
@@ -445,7 +495,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
           className="space-y-4 rounded-md border border-gray-200 p-4"
         >
           <p className="text-xs text-gray-500">
-            Seus dados bancários não serão armazenados. Valor total: <span className="font-semibold">R${" "}{amount.toFixed(2)}</span>
+            Valor total: <span className="font-semibold">{formatPrice(amount)}</span>
           </p>
 
           <div className="relative w-full">
@@ -547,6 +597,24 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             )}
           </div>
 
+          <div className="relative w-full">
+            <input
+              type="email"
+              onKeyDown={handleKeyDown}
+              {...register("email")}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.email ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.email ? "text-red-400" : "text-gray-300"}`}
+            >
+              E-mail
+            </label>
+            {errors.email && (
+              <span className="text-xs text-red-500">{errors.email.message}</span>
+            )}
+          </div>
+
           <div className="flex gap-3">
             <div className="relative w-1/3">
               <select
@@ -619,9 +687,10 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
               </option>
               {Array.from({ length: 5 }).map((_, index) => {
                 const qty = index + 1;
-                const perInstallment = getInstallmentPerPayment(amount, qty);
+                const amountInReais = amount / 100; // Converter de centavos para reais
+                const perInstallment = getInstallmentPerPayment(amountInReais, qty);
                 if (perInstallment < 5) return null;
-                const total = getInstallmentTotal(amount, qty);
+                const total = getInstallmentTotal(amountInReais, qty);
                 return (
                   <option key={qty} value={qty} className="text-black">
                     {`${qty}x de R$${perInstallment
@@ -636,7 +705,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-black">
               {installments
                 ? `${installments}x de R$${getInstallmentPerPayment(
-                  amount,
+                  amount / 100, // Converter de centavos para reais
                   installments,
                 )
                   .toFixed(2)
@@ -672,7 +741,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
           <p className="text-xs text-gray-500">
             Você receberá um QR Code ou chave PIX para pagar o valor de
             {" "}
-            <span className="font-semibold">R$ {amount.toFixed(2)}</span>.
+            <span className="font-semibold">{formatPrice(amount)}</span>.
           </p>
 
           <div className="relative w-full">
