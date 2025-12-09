@@ -14,7 +14,7 @@ const signInSchema = z.object({
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
-function SignIn() {
+export default function SignIn() {
   return (
     <Suspense fallback={<div>Carregando...</div>}>
       <SignInForm />

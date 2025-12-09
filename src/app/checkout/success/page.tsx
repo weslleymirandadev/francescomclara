@@ -1,29 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
-
-// Ícone de check em SVG
-const CheckIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-10 w-10 text-green-600"
-  >
-    <path d="M20 6L9 17l-5-5" />
-  </svg>
-);
+import { FaCheckCircle } from "react-icons/fa";
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <SuccessContent />
+    </Suspense>
+  );
+}
+
+function SuccessContent() {
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("payment_id");
   const isPix = searchParams.get("pix") === "true";
@@ -41,7 +32,7 @@ export default function SuccessPage() {
     <main className="min-h-screen bg-gray-50 px-4 py-10">
       <div className="mx-auto max-w-lg space-y-6 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-          <CheckIcon />
+          <FaCheckCircle />
         </div>
         
         <h1 className="text-2xl font-semibold text-gray-900">
