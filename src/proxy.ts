@@ -2,13 +2,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export async function proxy(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+// Rotas que devem ser ignoradas completamente pelo middleware
+const IGNORED_ROUTES = [
+  "/api/mercado-pago/webhook",
+  "/api/mercado-pago", // segurança extra
+  "/api/webhook",      // segurança extra
+];
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Rotas de API públicas para GET (cursos e jornadas públicos)
-  const isPublicApiRoute = 
-    (pathname === "/api/courses" || pathname === "/api/journeys") && 
+  // 1. Ignorar webhooks e toda API (PROTEGE 100%)
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // 2. Ignorar arquivos estáticos
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/assets") ||
+    pathname.includes(".") // imagens, svg, etc
+  ) {
+    return NextResponse.next();
+  }
+
+  // 3. Ignorar webhooks explicitamente
+  if (IGNORED_ROUTES.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // 4. Autenticação
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  const isPublicApiRoute =
+    (pathname === "/api/courses" || pathname === "/api/journeys") &&
     req.method === "GET";
 
   const isPublicRoute =
@@ -16,29 +43,27 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/curso/") ||           // páginas públicas de curso
-    pathname.startsWith("/jornada/") ||         // páginas públicas de jornada
+    pathname.startsWith("/curso/") ||
+    pathname.startsWith("/jornada/") ||
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/assets") ||
-    pathname.startsWith("/favicon") ||
     isPublicApiRoute;
 
+  // 5. Proteger rotas autenticadas
   if (!isPublicRoute && !token) {
     const url = new URL("/signin", req.url);
     url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
 
-  // Somente admin / moderator acessa /admin
+  // 6. Permissões para /admin
   if (pathname.startsWith("/admin")) {
     if (!token || !["ADMIN", "MODERATOR"].includes(token.role as string)) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
 
-  // Users logados não podem ir para /signin /register
+  // 7. Redirecionar usuário logado que tenta ir para signin/register
   if (token && (pathname === "/signin" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
