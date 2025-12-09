@@ -1,17 +1,14 @@
-"use client";
+'use client';
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useCart } from "@/context/CartContext";
-import Link from "next/link";
-import { FaCheckCircle, FaExclamationTriangle, FaSpinner, FaCopy } from "react-icons/fa";
-import { toast } from "react-hot-toast";
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { FaCheckCircle, FaCopy, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
-type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED' | 'IN_PROCESS';
-
-interface PaymentData {
+interface Payment {
   id: string;
-  status: PaymentStatus;
+  status: string;
   metadata: {
     method: string;
     items: Array<{
@@ -28,41 +25,26 @@ interface PaymentData {
 }
 
 export default function SuccessPage() {
-  return (
-    <Suspense fallback={<div>Carregando...</div>}>
-      <SuccessContent />
-    </Suspense>
-  );
-}
-
-function SuccessContent() {
   const searchParams = useSearchParams();
-  const paymentId = searchParams.get("payment_id");
-  const [payment, setPayment] = useState<PaymentData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const [payment, setPayment] = useState<Payment | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { clearCart } = useCart();
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Código copiado!', { position: 'top-center' });
-  };
+  const paymentId = searchParams.get('payment_id');
 
   useEffect(() => {
-    if (!paymentId) {
-      setError("ID de pagamento não encontrado");
-      setIsLoading(false);
-      return;
-    }
-
-    // Limpa o carrinho quando a página é carregada
-    clearCart();
-
     const fetchPayment = async () => {
+      if (!paymentId) {
+        setError('ID do pagamento não encontrado');
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch(`/api/payments/${paymentId}`);
         if (!response.ok) {
-          throw new Error('Falha ao buscar informações do pagamento');
+          throw new Error('Erro ao buscar informações do pagamento');
         }
         const data = await response.json();
         setPayment(data);
@@ -70,24 +52,29 @@ function SuccessContent() {
         console.error('Erro ao buscar pagamento:', err);
         setError('Não foi possível carregar as informações do pagamento');
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchPayment();
 
-    // Configura o polling para verificar o status a cada 5 segundos
-    const intervalId = setInterval(fetchPayment, 5000);
+    // Set up polling to check payment status
+    const intervalId = setInterval(fetchPayment, 10000); // Check every 10 seconds
 
     return () => clearInterval(intervalId);
-  }, [paymentId, clearCart]);
+  }, [paymentId]);
 
-  if (isLoading) {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Código copiado para a área de transferência!');
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-lg">Carregando informações do pagamento...</p>
+          <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
+          <p className="text-gray-600">Carregando informações do pagamento...</p>
         </div>
       </div>
     );
@@ -213,7 +200,7 @@ function SuccessContent() {
                             {item.quantity}x {item.title}
                           </span>
                         </div>
-                        <div className="ml-4 flex-shrink-0">
+                        <div className="ml-4 shrink-0">
                           <span className="font-medium text-gray-900">
                             R$ {(item.price * item.quantity / 100).toFixed(2).replace('.', ',')}
                           </span>
@@ -236,7 +223,10 @@ function SuccessContent() {
               </Link>
             ) : (
               <div className="text-sm text-gray-500">
-                Atualizando automaticamente... 
+                <div className="flex items-center">
+                  <FaSpinner className="animate-spin h-4 w-4 mr-2" />
+                  Atualizando automaticamente... 
+                </div>
               </div>
             )}
           </div>
