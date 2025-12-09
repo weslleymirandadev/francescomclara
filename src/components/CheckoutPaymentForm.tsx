@@ -75,13 +75,13 @@ const VALIDATION_RULES = {
 const isValidExpiry = (expiry: string): boolean => {
   const [monthStr, yearStr] = expiry.split('/');
   if (!monthStr || !yearStr) return false;
-  
+
   const month = parseInt(monthStr, 10);
   const year = 2000 + parseInt(yearStr, 10);
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  
+
   if (month < 1 || month > 12) return false;
   if (year < currentYear) return false;
   if (year === currentYear && month < currentMonth) return false;
@@ -94,11 +94,11 @@ const cardSchema = z.object({
   cardNumber: z.string()
     .min(VALIDATION_RULES.cardNumber.min, VALIDATION_RULES.cardNumber.error.min)
     .max(VALIDATION_RULES.cardNumber.max, VALIDATION_RULES.cardNumber.error.max)
-    .refine(val => /^\d{4} \d{4} \d{4} \d{4}$/.test(val), 
+    .refine(val => /^\d{4} \d{4} \d{4} \d{4}$/.test(val),
       VALIDATION_RULES.cardNumber.error.invalid),
   expiry: z.string()
     .length(VALIDATION_RULES.expiry.min, VALIDATION_RULES.expiry.error)
-    .refine(val => /^\d{2}\/\d{2}$/.test(val) && isValidExpiry(val), 
+    .refine(val => /^\d{2}\/\d{2}$/.test(val) && isValidExpiry(val),
       "Data de validade inválida ou expirada"),
   cvv: z.string()
     .min(VALIDATION_RULES.cvv.min, VALIDATION_RULES.cvv.error)
@@ -108,7 +108,7 @@ const cardSchema = z.object({
   document: z.string().superRefine((val, ctx) => {
     // @ts-ignore - parent exists at runtime but not in type definition
     const documentType = ctx.parent?.documentType;
-    
+
     if (documentType === "CPF") {
       if (val.length < VALIDATION_RULES.cpf.min) {
         ctx.addIssue({
@@ -177,7 +177,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
   const router = useRouter();
   const [method, setMethod] = useState<"card" | "pix" | null>(null);
   const [processing, setProcessing] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -188,21 +188,21 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
   } = useForm<z.infer<typeof cardSchema>>({
     resolver: zodResolver(cardSchema),
     mode: "onChange",
-    defaultValues: { 
+    defaultValues: {
       documentType: "CPF",
       email: session?.user?.email || "",
       holderName: session?.user?.name || "",
     },
   });
-  
+
   const documentType = watch("documentType");
   const installments = watch("installments");
-  
+
   const pixForm = useForm<z.infer<typeof pixSchema>>({
     resolver: zodResolver(pixSchema),
     mode: "onChange",
   });
-  
+
   const { register: registerPix, handleSubmit: handleSubmitPix, formState: { errors: pixErrors } } = pixForm;
 
   function maskCpf(value: string) {
@@ -285,43 +285,67 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
 
     setProcessing(true);
     try {
+      // @ts-ignore
+      if (!window.MercadoPago) {
+        throw new Error("SDK do Mercado Pago não carregado. Por favor, recarregue a página.");
+      }
+
+      // --- 1. OBTENÇÃO DOS IDs DE PAGAMENTO (BANDERA E EMISSOR) ---
+      const cardNumberClean = data.cardNumber.replace(/\s/g, '');
+      const bin = cardNumberClean.substring(0, 6);
+
+      // Busca o ID do meio de pagamento (payment_method_id)
+      // @ts-ignore
+      const paymentMethods = await window.MercadoPago.getPaymentMethods({
+        bin: bin,
+      });
+
+      if (!paymentMethods || paymentMethods.length === 0) {
+        throw new Error("Bandeira do cartão não identificada. Verifique os dados.");
+      }
+
+      const paymentMethodId = paymentMethods[0].id; // Ex: 'visa', 'mastercard'
+
+      // Busca o ID do emissor (issuer_id) para a transação
+      const amountInReais = amount / 100; // Total em R$
+      // @ts-ignore
+      const installmentInfo = await window.MercadoPago.getInstallments({
+        amount: amountInReais,
+        bin: bin,
+        payment_method_id: paymentMethodId,
+      });
+
+      // Verifica se há informação de emissor e pega o ID
+      const issuerId = installmentInfo.length > 0 && installmentInfo[0].issuer
+        ? installmentInfo[0].issuer.id
+        : null;
+
+      // --- 2. CRIAÇÃO DO TOKEN NO FRONTEND (DIRETO PARA O MP) ---
+
       // Parse da data de validade (MM/AA)
       const [expiryMonth, expiryYear] = data.expiry.split('/');
       const expiryYearFull = `20${expiryYear}`;
 
-      // Gerar token do cartão
-      const tokenResponse = await fetch("/api/mercado-pago/token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cardNumber: data.cardNumber.replace(/\s/g, ''),
-          cardholderName: data.holderName,
-          cardExpirationMonth: expiryMonth,
-          cardExpirationYear: expiryYearFull,
-          securityCode: data.cvv,
-          identificationType: data.documentType,
-          identificationNumber: data.document.replace(/\D/g, ''),
-        }),
-      });
+      const cardData = {
+        cardNumber: cardNumberClean,
+        cardholderName: data.holderName,
+        cardExpirationMonth: expiryMonth,
+        cardExpirationYear: expiryYearFull,
+        securityCode: data.cvv,
+        identificationType: data.documentType,
+        identificationNumber: data.document.replace(/\D/g, ''),
+      };
 
-      if (!tokenResponse.ok) {
-        const tokenError = await tokenResponse.json();
-        throw new Error(tokenError.error || "Erro ao gerar token do cartão");
+      // @ts-ignore
+      const tokenResponse = await window.MercadoPago.createCardToken(cardData);
+      const token = tokenResponse.id;
+
+      if (!token) {
+        throw new Error("Erro ao gerar o token do cartão. Verifique os dados inseridos.");
       }
 
-      const { token } = await tokenResponse.json();
+      // --- 3. ENVIO PARA O BACKEND (AGORA COM TODOS OS PARÂMETROS CORRETOS) ---
 
-      // Determinar o método de pagamento baseado no número do cartão
-      // Primeiro dígito: 4 = Visa, 5 = Mastercard (ambos credit_card)
-      // Para simplificar, vamos usar credit_card por padrão
-      const cardNumber = data.cardNumber.replace(/\s/g, '');
-      const paymentMethod = cardNumber.startsWith('4') || cardNumber.startsWith('5') 
-        ? 'credit_card' 
-        : 'credit_card';
-
-      // Preparar dados do pagador
       const payerName = session.user.name || data.holderName;
       const payerEmail = session.user.email || data.email;
 
@@ -337,48 +361,56 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-meli-session-id": deviceId
+          "X-meli-session-id": deviceId, // Device ID para Antifraude
         },
         body: JSON.stringify({
-          method: paymentMethod,
+          method: paymentMethodId, // AGORA É O ID DA BANDEIRA (Ex: 'visa')
+          issuer_id: issuerId,     // ID do Emissor/Banco
           installments: data.installments,
           token: token,
           payer: {
             email: payerEmail,
             firstName: payerName.split(' ')[0] || '',
             lastName: payerName.split(' ').slice(1).join(' ') || '',
-            cpf: data.document.replace(/\D/g, ''),
+            // Aqui você pode querer usar o CPF do documento do formulário (data.document)
+            identification: {
+              type: data.documentType,
+              number: data.document.replace(/\D/g, ''),
+            }
           },
           userId: session.user.id,
           items: items.map(item => ({
             id: item.id,
             type: item.type,
             title: item.title,
-            price: item.price, // já está em centavos
+            price: item.price,
             quantity: 1,
           })),
-          total: amount, // já está em centavos
+          total: amount,
         }),
       });
 
       const paymentResult = await paymentResponse.json();
 
-      if (!paymentResponse.ok) {
-        throw new Error(paymentResult.error || "Erro ao processar pagamento");
+      if (!paymentResponse.ok || paymentResult.status === 'rejected' || paymentResult.status === 'cancelled') {
+        throw new Error(paymentResult.status_detail || paymentResult.error || "Pagamento não foi aprovado");
       }
 
       // Verificar status do pagamento
       if (paymentResult.status === 'approved') {
         toast.success("Pagamento aprovado com sucesso!");
         router.push(`/checkout/success?payment_id=${paymentResult.id}`);
-      } else if (paymentResult.status === 'pending') {
-        toast.success("Pagamento pendente. Aguardando confirmação.");
+      } else if (paymentResult.status === 'pending' || paymentResult.status === 'in_process') {
+        // Pagamentos com Cartão são geralmente 'approved' ou 'rejected'. 'Pending' é raro.
+        toast.success("Pagamento em processamento. Aguardando confirmação.");
         router.push(`/checkout/success?payment_id=${paymentResult.id}`);
       } else {
-        throw new Error(paymentResult.status_detail || "Pagamento não foi aprovado");
+        // Qualquer outro status não tratado (e não rejected/cancelled)
+        throw new Error(`Status de pagamento inesperado: ${paymentResult.status}`);
       }
     } catch (error: any) {
       console.error('Erro no pagamento:', error);
+      // Exibe a mensagem de erro específica, se disponível
       toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
     } finally {
       setProcessing(false);
@@ -461,8 +493,8 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             type="button"
             onClick={() => setMethod("card")}
             className={`flex items-center rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition hover:scale-105 ${method === "card"
-                ? "border-green-600 bg-green-50 text-green-700"
-                : "border-gray-200 bg-white text-gray-700"
+              ? "border-green-600 bg-green-50 text-green-700"
+              : "border-gray-200 bg-white text-gray-700"
               }`}
           >
             <FaCreditCard className="mr-2" /> Cartão
@@ -471,8 +503,8 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             type="button"
             onClick={() => setMethod("pix")}
             className={`flex items-center rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition hover:scale-105 ${method === "pix"
-                ? "border-green-600 bg-green-50 text-green-700"
-                : "border-gray-200 bg-white text-gray-700"
+              ? "border-green-600 bg-green-50 text-green-700"
+              : "border-gray-200 bg-white text-gray-700"
               }`}
           >
             <FaPix className="mr-2" /> Pix
@@ -670,7 +702,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             <select
               onKeyDown={handleKeyDown}
               {...register("installments", { valueAsNumber: true })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.installments ? "border-red-400" : "" }`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.installments ? "border-red-400" : ""}`}
             >
               <option value="" className="text-black">
                 Selecionar

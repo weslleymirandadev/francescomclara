@@ -6,7 +6,7 @@ const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
   options: {
     timeout: 10000,
-    idempotencyKey: 'mp-payment'
+    idempotencyKey: crypto.randomUUID()
   }
 });
 
@@ -130,6 +130,7 @@ export async function POST(req: Request) {
         })),
       },
       additional_info: {
+        device_session_id: req.headers.get('X-meli-session-id')!,
         items: enrichedItems.map(item => ({
           id: item.id,
           title: item.title,
