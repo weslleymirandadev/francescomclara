@@ -169,6 +169,7 @@ export async function POST(req: Request) {
         ? enrichedItems[0].id
         : null,
       metadata: {
+        userId,
         method,
         installments,
         items: enrichedItems,

@@ -5,6 +5,18 @@ import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
 type PaymentItemType = 'COURSE' | 'JOURNEY' | 'MULTIPLE';
 
+interface PaymentMetadata {
+  userId?: string;
+  items?: Array<{id: string; type: string; quantity?: number}>;
+  [key: string]: any;
+}
+
+interface PaymentItem {
+  id: string;
+  type: string;
+  quantity?: number;
+}
+
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
@@ -20,11 +32,6 @@ const paymentStatusMap: Record<string, PaymentStatus> = {
   'charged_back': 'FAILED'
 };
 
-interface PaymentItem {
-  id: string;
-  type: string;
-  quantity?: number;
-}
 
 async function sendOK(obj: any = { ok: true }) {
   return new NextResponse(JSON.stringify(obj), {
@@ -33,6 +40,35 @@ async function sendOK(obj: any = { ok: true }) {
       "Content-Type": "application/json",
     },
   });
+}
+
+async function getPaymentWithFallback(mpPaymentId: string) {
+  try {
+    const payment = await new MPPayment(client).get({ id: mpPaymentId });
+    
+    // Se não tiver userId no metadata, tenta buscar do banco de dados
+    if (!payment.metadata?.userId) {
+      console.log('Buscando userId do banco de dados para o pagamento:', mpPaymentId);
+      const dbPayment = await prisma.payment.findUnique({
+        where: { mpPaymentId: mpPaymentId.toString() },
+        select: { userId: true, metadata: true }
+      });
+      
+      if (dbPayment?.userId) {
+        console.log('UserId encontrado no banco de dados:', dbPayment.userId);
+        payment.metadata = {
+          ...(payment.metadata || {}),
+          ...(dbPayment.metadata as any || {}),
+          userId: dbPayment.userId
+        };
+      }
+    }
+    
+    return payment;
+  } catch (err) {
+    console.error("Erro ao buscar pagamento:", err);
+    throw err;
+  }
 }
 
 async function handlePaymentStatusUpdate(
@@ -138,24 +174,48 @@ export async function POST(req: Request) {
       return sendOK({ error: "missing_payment_id" });
     }
 
+    console.log('Processando webhook para pagamento ID:', mpPaymentId);
+    
     let payment;
     try {
-      payment = await new MPPayment(client).get({ id: mpPaymentId });
+      payment = await getPaymentWithFallback(mpPaymentId);
     } catch (err) {
-      console.error("Erro MP.get:", err);
+      console.error("Erro ao buscar pagamento:", err);
       return sendOK({ error: "payment_fetch_failed" });
     }
 
-    console.log("Detalhes pagamento:", JSON.stringify(payment, null, 2));
+    console.log("Detalhes do pagamento:", {
+      paymentId: payment.id,
+      status: payment.status,
+      hasMetadata: !!payment.metadata,
+      metadataKeys: payment.metadata ? Object.keys(payment.metadata) : []
+    });
 
     const status = String(payment.status || "").toLowerCase();
-    const metadata = payment.metadata || {};
-    const userId = metadata.userId;
+    const metadata: PaymentMetadata = payment.metadata || {};
+    
+    // Tenta obter o userId de várias fontes
+    const userId = metadata.userId || 
+                  (payment as any)?.external_reference || 
+                  (payment as any)?.metadata?.user_id;
+
+    console.log('Dados do usuário encontrados:', {
+      fromMetadata: metadata.userId ? 'metadata' : 'not_found',
+      fromExternalRef: (payment as any)?.external_reference ? 'external_reference' : 'not_found',
+      fromNestedMetadata: (payment as any)?.metadata?.user_id ? 'nested_metadata' : 'not_found',
+      userId
+    });
 
     if (!userId) {
-      console.error("Pagamento sem userId");
-      return sendOK({ error: "missing_userId" });
+      console.error('Pagamento sem userId:', {
+        mpPaymentId,
+        metadata: payment.metadata,
+        external_reference: (payment as any)?.external_reference,
+        rawPayment: JSON.stringify(payment, null, 2)
+      });
+      return sendOK({ error: "missing_user_id", details: "Nenhum userId encontrado no pagamento" });
     }
+
 
     const items: PaymentItem[] =
       Array.isArray(metadata.items) && metadata.items.length > 0
