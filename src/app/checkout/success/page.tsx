@@ -50,15 +50,24 @@ function SuccessPageContent() {
       }
 
       try {
-        const response = await fetch(`/api/payments/${paymentId}`);
+        const response = await fetch(`/api/payments/${paymentId}`, {
+          credentials: 'include', // Important for sending cookies
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
-          throw new Error('Erro ao buscar informações do pagamento');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erro ao buscar informações do pagamento');
         }
+
         const data = await response.json();
         setPayment(data);
-      } catch (err) {
+        setError(null);
+      } catch (err: any) {
         console.error('Erro ao buscar pagamento:', err);
-        setError('Não foi possível carregar as informações do pagamento');
+        setError(err.message || 'Não foi possível carregar as informações do pagamento');
       } finally {
         setLoading(false);
       }
@@ -123,29 +132,29 @@ function SuccessPageContent() {
               {isApproved ? 'Pagamento Aprovado!' : 'Aguardando Confirmação do Pagamento'}
             </h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              {isApproved 
+              {isApproved
                 ? 'Seu pagamento foi aprovado com sucesso!'
                 : 'Estamos aguardando a confirmação do seu pagamento.'}
             </p>
           </div>
-          
+
           <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
             <dl className="sm:divide-y sm:divide-gray-200">
               <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Status</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${isApproved ? 'bg-green-100 text-green-800' : 
-                      isPending ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-red-100 text-red-800'}`}>
-                    {payment.status === 'APPROVED' ? 'Aprovado' : 
-                     payment.status === 'PENDING' ? 'Pendente' :
-                     payment.status === 'IN_PROCESS' ? 'Processando' : 
-                     payment.status}
+                    ${isApproved ? 'bg-green-100 text-green-800' :
+                      isPending ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'}`}>
+                    {payment.status === 'APPROVED' ? 'Aprovado' :
+                      payment.status === 'PENDING' ? 'Pendente' :
+                        payment.status === 'IN_PROCESS' ? 'Processando' :
+                          payment.status}
                   </span>
                 </dd>
               </div>
-              
+
               {isPix && isPending && payment.metadata.qr_code && (
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt className="text-sm font-medium text-gray-500">PIX</dt>
@@ -153,14 +162,14 @@ function SuccessPageContent() {
                     <div className="flex flex-col items-center space-y-4">
                       {payment.metadata.qr_code_base64 && (
                         <div className="p-4 bg-white rounded-lg border border-gray-200">
-                          <img 
-                            src={`data:image/png;base64,${payment.metadata.qr_code_base64}`} 
-                            alt="QR Code PIX" 
+                          <img
+                            src={`data:image/png;base64,${payment.metadata.qr_code_base64}`}
+                            alt="QR Code PIX"
                             className="w-64 h-64"
                           />
                         </div>
                       )}
-                      
+
                       {payment.metadata.qr_code && (
                         <div className="w-full">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -189,14 +198,14 @@ function SuccessPageContent() {
                   </dd>
                 </div>
               )}
-              
+
               <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Método de pagamento</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                   {isPix ? 'PIX' : 'Cartão de Crédito'}
                 </dd>
               </div>
-              
+
               <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Itens</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
@@ -220,7 +229,7 @@ function SuccessPageContent() {
               </div>
             </dl>
           </div>
-          
+
           <div className="bg-gray-50 px-4 py-4 sm:px-6 flex justify-end">
             {isApproved ? (
               <Link
@@ -233,7 +242,7 @@ function SuccessPageContent() {
               <div className="text-sm text-gray-500">
                 <div className="flex items-center">
                   <FaSpinner className="animate-spin h-4 w-4 mr-2" />
-                  Atualizando automaticamente... 
+                  Atualizando automaticamente...
                 </div>
               </div>
             )}
