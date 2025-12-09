@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaCopy, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
@@ -90,9 +90,13 @@ function SuccessPageContent() {
     toast.success('Código copiado para a área de transferência!');
   };
 
+  const cartClearedRef = useRef(false);
+  
   useEffect(() => {
     // Limpar carrinho quando o pagamento for aprovado (verificar tanto 'approved' quanto 'APPROVED')
-    if (payment?.status === "approved" || payment?.status === "APPROVED") {
+    // Usar ref para evitar múltiplas chamadas
+    if ((payment?.status === "approved" || payment?.status === "APPROVED") && !cartClearedRef.current) {
+      cartClearedRef.current = true;
       clearCart();
     }
   }, [payment?.status, clearCart]);
