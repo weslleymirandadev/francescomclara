@@ -20,6 +20,34 @@ interface Item {
   imageUrl?: string;
 }
 
+async function validateCartItems(userId: string, items: Array<{ type: string; id: string }>) {
+  const validationResults = await Promise.all(
+    items.map(async (item) => {
+      if (item.type === 'course') {
+        const enrollment = await prisma.enrollment.findFirst({
+          where: {
+            userId,
+            courseId: item.id,
+          },
+        });
+        return !enrollment; // Valid if no enrollment exists
+      } else if (item.type === 'journey') {
+        const enrollment = await prisma.enrollment.findFirst({
+          where: {
+            userId,
+            journeyId: item.id,
+          },
+        });
+        return !enrollment; // Valid if no enrollment exists
+      }
+      return false;
+    })
+  );
+
+  return validationResults.every(Boolean);
+}
+
+
 export async function POST(req: Request) {
   try {
     const {
@@ -46,6 +74,16 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const isValidCart = await validateCartItems(userId, items);
+
+    if (!isValidCart) {
+      return NextResponse.json(
+        { error: "Alguns itens do seu carrinho já foram adquiridos. Atualize seu carrinho e tente novamente." },
+        { status: 400 }
+      );
+    }
+
 
     // Buscar informações adicionais dos itens no banco de dados
     const enrichedItems = await Promise.all(
