@@ -22,7 +22,7 @@ export async function GET(
       );
     }
 
-    const payment = await prisma.payment.findUnique({
+    const payment = await prisma.payment.findFirst({
       where: {
         id: (await params).id,
         userId: session.user.id,
