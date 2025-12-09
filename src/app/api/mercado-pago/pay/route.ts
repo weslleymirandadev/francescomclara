@@ -118,7 +118,7 @@ export async function POST(req: Request) {
       },
       description,
       external_reference: `order-${Date.now()}`,
-      notification_url: `${process.env.NEXT_PUBLIC_URL}/api/mercado-pago/webhook`,
+      notificaction_url: `${process.env.NEXT_PUBLIC_URL}/api/mercado-pago/webhook`,
       metadata: {
         userId,
         items: enrichedItems.map(item => ({
