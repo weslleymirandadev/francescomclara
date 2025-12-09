@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaCheckCircle, FaCopy, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { FaCopy, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
 interface Payment {
@@ -25,6 +25,14 @@ interface Payment {
 }
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <SuccessPageContent />
+    </Suspense>
+  );
+}
+
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [payment, setPayment] = useState<Payment | null>(null);
