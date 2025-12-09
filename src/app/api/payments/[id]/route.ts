@@ -27,6 +27,10 @@ export async function GET(
         mpPaymentId: (await params).id,
         userId: session.user.id,
       },
+      include: {
+        refunds: true,
+        items: true
+      },
     });
 
     if (!payment) {
