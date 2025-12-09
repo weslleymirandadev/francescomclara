@@ -179,6 +179,29 @@ async function processApprovedPayment(
 
     const totalAmount = validatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
 
+    // Buscar metadata existente para preservar o método
+    const existingPayment = await prisma.payment.findUnique({
+      where: { mpPaymentId: paymentId },
+      select: { metadata: true }
+    });
+
+    const existingMetadata = existingPayment?.metadata as any || {};
+    
+    // Preservar método e outros campos do metadata existente
+    const updatedMetadata = {
+      ...existingMetadata,
+      items: validatedItems,
+      durationMonths,
+      // Preservar método se existir
+      ...(existingMetadata.method && { method: existingMetadata.method }),
+      // Preservar installments se existir
+      ...(existingMetadata.installments && { installments: existingMetadata.installments }),
+      // Preservar QR code se existir
+      ...(existingMetadata.qr_code && { qr_code: existingMetadata.qr_code }),
+      ...(existingMetadata.qr_code_base64 && { qr_code_base64: existingMetadata.qr_code_base64 }),
+      ...(existingMetadata.ticket_url && { ticket_url: existingMetadata.ticket_url }),
+    };
+
     // Create or update payment
     const payment = await prisma.payment.upsert({
       where: { mpPaymentId: paymentId },
@@ -208,10 +231,7 @@ async function processApprovedPayment(
       update: {
         status: 'APPROVED',
         amount: totalAmount,
-        metadata: { 
-          items: validatedItems,
-          durationMonths 
-        }
+        metadata: updatedMetadata
       },
       include: { 
         items: true 
@@ -412,6 +432,28 @@ export async function POST(req: Request) {
         title: item.title || (item.type === 'course' ? 'Curso' : 'Jornada')
       }));
 
+      // Buscar metadata existente para preservar o método
+      const existingPayment = await prisma.payment.findUnique({
+        where: { mpPaymentId: mpPaymentId.toString() },
+        select: { metadata: true }
+      });
+
+      const existingMetadata = existingPayment?.metadata as any || {};
+      
+      // Preservar método e outros campos do metadata existente
+      const updatedMetadata = {
+        ...existingMetadata,
+        items: itemsData,
+        // Preservar método se existir
+        ...(existingMetadata.method && { method: existingMetadata.method }),
+        // Preservar installments se existir
+        ...(existingMetadata.installments && { installments: existingMetadata.installments }),
+        // Preservar QR code se existir
+        ...(existingMetadata.qr_code && { qr_code: existingMetadata.qr_code }),
+        ...(existingMetadata.qr_code_base64 && { qr_code_base64: existingMetadata.qr_code_base64 }),
+        ...(existingMetadata.ticket_url && { ticket_url: existingMetadata.ticket_url }),
+      };
+
       // Create or update payment with items
       await prisma.payment.upsert({
         where: { mpPaymentId: mpPaymentId.toString() },
@@ -438,7 +480,7 @@ export async function POST(req: Request) {
         update: {
           status: mappedStatus,
           amount,
-          metadata: { items: itemsData }
+          metadata: updatedMetadata
         },
         include: { items: true }
       });

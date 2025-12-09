@@ -135,7 +135,11 @@ function SuccessPageContent() {
     ? JSON.parse(payment.metadata) 
     : (payment.metadata || {});
   
-  const isPix = metadata?.method === 'pix' || metadata?.method === 'PIX';
+  // Verificar se é PIX: pelo método no metadata OU pela presença de QR code
+  const isPix = metadata?.method === 'pix' || 
+                metadata?.method === 'PIX' || 
+                !!(metadata?.qr_code || metadata?.qr_code_base64);
+  
   const isPending = payment.status === 'PENDING' || payment.status === 'IN_PROCESS';
   const isApproved = payment.status === 'APPROVED';
   
@@ -145,7 +149,8 @@ function SuccessPageContent() {
     method: metadata?.method,
     isPix,
     hasQrCode: !!metadata?.qr_code,
-    hasQrCodeBase64: !!metadata?.qr_code_base64
+    hasQrCodeBase64: !!metadata?.qr_code_base64,
+    detectedByQrCode: !!(metadata?.qr_code || metadata?.qr_code_base64) && !metadata?.method
   });
 
   return (

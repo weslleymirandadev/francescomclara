@@ -9,9 +9,7 @@
  * @returns Formatted price string (e.g., "R$ 1,00")
  */
 export function formatPrice(cents: number): string {
-  console.log(cents);
   const reais = cents / 100;
-  console.log(reais);
   return reais.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
