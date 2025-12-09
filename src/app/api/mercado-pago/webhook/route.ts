@@ -90,6 +90,26 @@ async function getPaymentWithFallback(mpPaymentId: string) {
   }
 }
 
+async function revokeUserAccess(userId: string, items: PaymentItem[]) {
+  for (const item of items) {
+    if (item.type === 'course') {
+      await prisma.enrollment.deleteMany({
+        where: {
+          userId,
+          courseId: item.id
+        }
+      });
+    } else if (item.type === 'journey') {
+      await prisma.enrollment.deleteMany({
+        where: {
+          userId,
+          journeyId: item.id
+        }
+      });
+    }
+  }
+}
+
 async function handlePaymentStatusUpdate(
   paymentId: string,
   status: PaymentStatus,
@@ -317,12 +337,18 @@ export async function POST(req: Request) {
     // REFUNDED / CANCELLED / FAILED
     if (["refunded", "cancelled", "rejected", "charged_back"].includes(status)) {
       console.log(`Processando status negativo: ${status}`);
-      await handlePaymentStatusUpdate(
-        mpPaymentId.toString(),
-        mappedStatus,
-        userId,
-        items
-      );
+      
+      // Update payment status
+      await prisma.payment.update({
+        where: { mpPaymentId: mpPaymentId.toString() },
+        data: { status: mappedStatus }
+      });
+      
+      // Revoke user access for refunded items
+      if (status === 'refunded') {
+        await revokeUserAccess(userId, items);
+      }
+      
       return sendOK();
     }
 
