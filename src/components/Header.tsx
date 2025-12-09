@@ -75,7 +75,7 @@ export function Header() {
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-gray-900">{item.title}</p>
                           <p className="text-[11px] uppercase text-gray-400">
-                            {item.type === "journey" ? "Jornada" : "Curso"}
+                            {item.type === "jornada" ? "Jornada" : "Curso"}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -84,7 +84,7 @@ export function Header() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.id, item.type)}
                             className="text-[11px] font-medium text-red-500 hover:text-red-600"
                           >
                             Remover

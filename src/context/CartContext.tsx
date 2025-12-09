@@ -10,8 +10,9 @@ import {
   useState,
 } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from 'react-hot-toast';
 
-export type CartItemType = "course" | "journey";
+export type CartItemType = "curso" | "jornada";
 
 export interface CartItem {
   id: string; // slug
@@ -27,7 +28,7 @@ interface CartContextValue {
   openCart: () => void;
   closeCart: () => void;
   addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
+  removeItem: (id: string, type: CartItemType) => void;
   clearCart: () => void;
 }
 
@@ -43,7 +44,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const { status } = useSession();
   const initializedRef = useRef(false);
   const hasSyncedWithServerRef = useRef(false);
-  
+
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
 
@@ -84,22 +85,67 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, [items]);
 
-  function addItem(item: CartItem) {
+  async function addItem(item: CartItem) {
+    // Check if user already has access to this item
+    if (status === "authenticated") {
+      try {
+        const response = await fetch(`/api/user/has-access?type=${item.type}&id=${item.id}`);
+        const { hasAccess } = await response.json();
+
+        if (hasAccess) {
+          toast.error(`Você já tem acesso a este ${item.type}`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking access:", error);
+        // Continue with adding to cart if there's an error checking access
+      }
+    }
+
     setItems((prev) => {
       const exists = prev.some((i) => i.id === item.id && i.type === item.type);
       if (exists) return prev;
-      // Ensure we're storing the price in cents
       return [...prev, { ...item, price: item.price }];
     });
-    openCart(); // Abre o carrinho quando um item é adicionado
+    openCart();
   }
 
-  function removeItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+
+  function removeItem(id: string, type: CartItemType) {
+    setItems((prev) => {
+      const newItems = prev.filter((i) => i.id !== id || i.type !== type);
+
+      // Se o usuário estiver autenticado, remove do servidor também
+      if (status === "authenticated") {
+        fetch("/api/cart", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            itemId: id,
+            itemType: type === "jornada" ? "JOURNEY" : "COURSE",
+          }),
+        }).catch(console.error);
+      }
+
+      return newItems;
+    });
   }
 
   function clearCart() {
     setItems([]);
+
+    // Se o usuário estiver autenticado, limpa o carrinho no servidor também
+    if (status === "authenticated") {
+      fetch("/api/cart", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ clear: true }),
+      }).catch(console.error);
+    }
   }
 
   // 3) Quando autenticar pela primeira vez, mescla carrinho guest com o do servidor
@@ -175,9 +221,9 @@ export function CartProvider({ children }: CartProviderProps) {
           },
           body: JSON.stringify({
             items: merged.map((item) => ({
-              itemType: item.type === "journey" ? "JOURNEY" : "COURSE",
-              courseId: item.type === "course" ? item.id : null,
-              journeyId: item.type === "journey" ? item.id : null,
+              itemType: item.type === "jornada" ? "JOURNEY" : "COURSE",
+              courseId: item.type === "curso" ? item.id : null,
+              journeyId: item.type === "jornada" ? item.id : null,
               quantity: 1,
             })),
           }),
