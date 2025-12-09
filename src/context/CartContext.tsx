@@ -111,26 +111,59 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
 
-  function removeItem(id: string, type: CartItemType) {
-    setItems((prev) => {
-      const newItems = prev.filter((i) => i.id !== id || i.type !== type);
+  async function removeItem(id: string, type: CartItemType) {
+    const itemType = type === "jornada" ? "JOURNEY" : "COURSE";
+    
+    // Optimistically update the UI
+    setItems(prev => prev.filter((i) => i.id !== id || i.type !== type));
 
-      // Se o usuário estiver autenticado, remove do servidor também
-      if (status === "authenticated") {
-        fetch("/api/cart", {
+    // If user is authenticated, sync with server
+    if (status === "authenticated") {
+      try {
+        const response = await fetch("/api/cart", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             itemId: id,
-            itemType: type === "jornada" ? "JOURNEY" : "COURSE",
+            itemType,
           }),
-        }).catch(console.error);
-      }
+        });
 
-      return newItems;
-    });
+        if (!response.ok) {
+          throw new Error('Failed to remove item from server');
+        }
+
+        // Refresh cart from server to ensure consistency
+        const res = await fetch("/api/cart", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          const serverItems = Array.isArray(data.items) ? data.items : [];
+          
+          // Normalize server items to match CartItem format
+          const normalizedItems = serverItems
+            .map((item: any) => {
+              const itemId = item.courseId ?? item.journeyId;
+              if (!itemId || item.price == null || !item.title) return null;
+              
+              return {
+                id: itemId,
+                title: item.title,
+                price: item.price,
+                type: item.itemType === "JOURNEY" ? "jornada" as CartItemType : "curso" as CartItemType,
+              };
+            })
+            .filter(Boolean) as CartItem[];
+          
+          setItems(normalizedItems);
+        }
+      } catch (error) {
+        console.error("Error removing item:", error);
+        // If there's an error, we could show a toast or handle it in the UI
+        // For now, we'll just log it and let the optimistic update stand
+      }
+    }
   }
 
   function clearCart() {

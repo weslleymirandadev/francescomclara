@@ -168,3 +168,84 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const { itemId, itemType, clear } = body as {
+      itemId?: string;
+      itemType?: "COURSE" | "JOURNEY";
+      clear?: boolean;
+    };
+
+    // Find the user's cart
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: { items: true },
+    });
+
+    if (!cart) {
+      return NextResponse.json({ error: "Cart not found" }, { status: 404 });
+    }
+
+    if (clear) {
+      // Clear the entire cart
+      await prisma.cartItem.deleteMany({
+        where: { cartId: cart.id },
+      });
+    } else if (itemId && itemType) {
+      // Remove specific item from cart
+      await prisma.cartItem.deleteMany({
+        where: {
+          cartId: cart.id,
+          itemType,
+          OR: [
+            { courseId: itemType === "COURSE" ? itemId : null },
+            { journeyId: itemType === "JOURNEY" ? itemId : null },
+          ],
+        },
+      });
+    } else {
+      return NextResponse.json(
+        { error: "Missing required parameters" },
+        { status: 400 },
+      );
+    }
+
+    // Return the updated cart
+    const updatedCart = await prisma.cart.findUnique({
+      where: { id: cart.id },
+      include: {
+        items: {
+          include: {
+            course: true,
+            journey: true,
+          },
+        },
+      },
+    });
+
+    const items = updatedCart?.items.map((item) => ({
+      id: item.id,
+      itemType: item.itemType,
+      quantity: item.quantity,
+      courseId: item.courseId,
+      journeyId: item.journeyId,
+      title: item.course?.title ?? item.journey?.title ?? null,
+      price: item.course?.price ?? item.journey?.price ?? null,
+    })) || [];
+
+    return NextResponse.json({ items });
+  } catch (error: any) {
+    console.error("Error in cart DELETE:", error);
+    return NextResponse.json(
+      { error: "Failed to update cart" },
+      { status: 500 },
+    );
+  }
+}
