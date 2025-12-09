@@ -193,6 +193,15 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
     }
   };
 
+  // Add this effect after the existing useEffect
+  useEffect(() => {
+    // If we're done loading and there's no enrollment data, redirect to dashboard
+    if (!isLoading && status === 'authenticated' && !enrollment) {
+      toast.error('Você não tem acesso a este curso');
+      router.push('/dashboard');
+    }
+  }, [isLoading, status, enrollment, router]);
+
   const closeRefundModal = () => {
     setRefundModalOpen(false);
     setRefundConfirmationText('');
