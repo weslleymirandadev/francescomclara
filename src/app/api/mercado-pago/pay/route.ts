@@ -130,6 +130,7 @@ export async function POST(req: Request) {
         })),
       },
       additional_info: {
+        device_id: req.headers.get('x-device-id') || 'unknown',
         items: enrichedItems.map(item => ({
           id: item.id,
           title: item.title,
