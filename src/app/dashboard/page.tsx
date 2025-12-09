@@ -1,11 +1,26 @@
-// src/app/dashboard/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FaBook, FaBookOpen, FaGraduationCap, FaMapSigns, FaRegClock, FaSearch } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { prisma } from '@/lib/prisma';
+
+interface Lesson {
+  id: string;
+  title: string;
+  duration: number;
+  order: number;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  order: number;
+  lessons: Lesson[];
+}
 
 interface Course {
   id: string;
@@ -13,15 +28,12 @@ interface Course {
   description: string;
   imageUrl: string | null;
   level: string;
-  modules: Array<{
-    id: string;
-    title: string;
-    lessons: Array<{
-      id: string;
-      title: string;
-      duration: number;
-    }>;
-  }>;
+  modules: Module[];
+}
+
+interface JourneyCourse {
+  order: number;
+  course: Course;
 }
 
 interface Journey {
@@ -30,10 +42,7 @@ interface Journey {
   description: string;
   imageUrl: string | null;
   level: string;
-  courses: Array<{
-    order: number;
-    course: Course;
-  }>;
+  courses: JourneyCourse[];
 }
 
 interface DashboardData {
@@ -48,31 +57,55 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/api/dashboard');
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-        const data = await response.json();
-        setData(data);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Redirect to home if not authenticated
-        router.push('/');
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
+    }
 
-    fetchData();
-  }, [router]);
+    if (status === 'authenticated' && session?.user?.email) {
+      fetchDashboardData();
+    }
+  }, [status, session, router]);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/user/enrollments', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+
+      const { courses, journeys } = await response.json();
+
+      setData({
+        user: {
+          id: session?.user?.id || '',
+          name: session?.user?.name || null,
+          email: session?.user?.email || '',
+          image: session?.user?.image || null,
+        },
+        courses,
+        journeys,
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCourses = data?.courses.filter(course => 
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -160,7 +193,7 @@ export default function Dashboard() {
                           alt={course.title}
                         />
                       ) : (
-                        <div className="w-full h-full bg-linear-to-r from-blue-500 to-blue-700 flex items-center justify-center">
+                        <div className="w-full h-full bg-gradient-to-r from-blue-500 to-blue-700 flex items-center justify-center">
                           <FaGraduationCap className="h-16 w-16 text-white" />
                         </div>
                       )}
