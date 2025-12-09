@@ -2,9 +2,114 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 
+type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
+type PaymentItemType = 'COURSE' | 'JOURNEY' | 'MULTIPLE';
+
 const client = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
+
+// Map MercadoPago status to our internal status
+const paymentStatusMap: Record<string, PaymentStatus> = {
+  'pending': 'PENDING',
+  'approved': 'APPROVED',
+  'refunded': 'REFUNDED',
+  'cancelled': 'CANCELLED',
+  'rejected': 'FAILED',
+  'in_process': 'PENDING',
+  'in_mediation': 'PENDING',
+  'charged_back': 'FAILED'
+};
+
+interface PaymentItem {
+  id: string;
+  type: string;
+  quantity?: number;
+}
+
+async function handlePaymentStatusUpdate(
+  paymentId: string,
+  status: PaymentStatus,
+  userId: string,
+  items: PaymentItem[]
+) {
+  await prisma.payment.updateMany({
+    where: { mpPaymentId: paymentId },
+    data: { status },
+  });
+
+  if (['CANCELLED', 'REFUNDED', 'FAILED'].includes(status)) {
+    // Remove access for failed/refunded payments
+    for (const item of items) {
+      if (item.type === 'course') {
+        await prisma.enrollment.deleteMany({
+          where: { userId, courseId: item.id },
+        });
+      } else if (item.type === 'journey') {
+        await prisma.enrollment.deleteMany({
+          where: { userId, journeyId: item.id },
+        });
+      }
+    }
+  }
+}
+
+async function processApprovedPayment(
+  paymentId: string,
+  userId: string,
+  amount: number | undefined,
+  items: PaymentItem[],
+  durationMonths: number = 12
+) {
+  if (!amount) {
+    throw new Error('Amount is required for approved payment');
+  }
+
+  const paymentData = {
+    user: { connect: { id: userId } },
+    mpPaymentId: paymentId,
+    status: 'APPROVED' as const,
+    amount: Math.round(amount * 100), // Convert to cents
+    itemType: (items.length === 1
+      ? items[0].type === 'journey' ? 'JOURNEY' : 'COURSE'
+      : 'MULTIPLE') as PaymentItemType,
+    ...(items.length === 1 && items[0].type === 'course'
+      ? { course: { connect: { id: items[0].id } } }
+      : {}),
+    ...(items.length === 1 && items[0].type === 'journey'
+      ? { journey: { connect: { id: items[0].id } } }
+      : {}),
+  };
+
+  await prisma.payment.upsert({
+    where: { mpPaymentId: paymentId },
+    create: paymentData,
+    update: {
+      status: 'APPROVED',
+      amount: paymentData.amount,
+    },
+  });
+
+  // Process enrollments
+  for (const item of items) {
+    if (item.type === 'course') {
+      await prisma.enrollment.upsert({
+        where: { userId_courseId: { userId, courseId: item.id } },
+        create: { userId, courseId: item.id, endDate: null },
+        update: {},
+      });
+    } else if (item.type === 'journey') {
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + durationMonths);
+      
+      await prisma.enrollment.upsert({
+        where: { userId_journeyId: { userId, journeyId: item.id } },
+        create: { userId, journeyId: item.id, endDate },
+        update: { endDate },
+      });
+    }
+  }
+}
 
 /**
  * WEBHOOK – Mercado Pago
@@ -13,149 +118,117 @@ const client = new MercadoPagoConfig({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('Received webhook:', JSON.stringify(body, null, 2));
 
     const validTypes = ["payment", "refund", "chargeback", "merchant_order"];
 
     if (!validTypes.includes(body.type)) {
+      console.log('Ignoring webhook with invalid type:', body.type);
       return NextResponse.json({ ok: true });
     }
 
     const mpPaymentId = body?.data?.id;
     if (!mpPaymentId) {
+      console.error('No payment ID in webhook payload');
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    // Busca status completo SEMPRE
-    const payment = await new MPPayment(client).get({ id: mpPaymentId });
-    const status = payment.status;                // approved, refunded, cancelled...
-    const metadata = payment.metadata || {};
-    const userId = metadata.userId;
-    const items = metadata.items || [];           // Array de itens do pagamento
-    
-    // Suporte para formato antigo (um único item)
-    const itemType = metadata.type;
-    const itemId = metadata.id;
-    const durationMonths = metadata.durationMonths ?? 12;
+    try {
+      // Busca status completo SEMPRE
+      const payment = await new MPPayment(client).get({ id: mpPaymentId });
+      console.log('Payment details:', JSON.stringify(payment, null, 2));
+      
+      const status = payment.status?.toLowerCase() || '';
+      const metadata = payment.metadata || {};
+      const userId = metadata.userId;
+      const items = Array.isArray(metadata.items) ? metadata.items : [];
+      
+      // Suporte para formato antigo (um único item)
+      const itemType = metadata.type;
+      const itemId = metadata.id;
+      const durationMonths = metadata.durationMonths ? parseInt(metadata.durationMonths) : 12;
 
-    if (!userId) {
-      return NextResponse.json({ ok: true });
-    }
-
-    // Se não houver items no formato novo, usar formato antigo
-    const itemsToProcess = items.length > 0 
-      ? items 
-      : (itemType && itemId ? [{ id: itemId, type: itemType, quantity: 1 }] : []);
-
-    if (itemsToProcess.length === 0) {
-      return NextResponse.json({ ok: true });
-    }
-
-    // =====================================================================
-    // 1. SE STATUS = REFUNDED — CRIAR UMA LÓGICA DE REVERSÃO DE ACESSO
-    // =====================================================================
-    if (status === "refunded" || status === "cancelled") {
-      await prisma.payment.updateMany({
-        where: { mpPaymentId: mpPaymentId.toString() },
-        data: { status: status.toUpperCase() },
-      });
-
-      // Remove acesso do usuário para todos os itens
-      for (const item of itemsToProcess) {
-        if (item.type === "course") {
-          await prisma.enrollment.deleteMany({
-            where: { userId, courseId: item.id },
-          });
-        }
-
-        if (item.type === "journey") {
-          await prisma.enrollment.deleteMany({
-            where: { userId, journeyId: item.id },
-          });
-        }
+      if (!userId) {
+        console.error('No userId in payment metadata');
+        return NextResponse.json({ error: "Missing userId in metadata" }, { status: 400 });
       }
 
-      return NextResponse.json({ ok: true });
-    }
+      // Se não houver items no formato novo, usar formato antigo
+      const itemsToProcess: PaymentItem[] = items.length > 0 
+        ? items 
+        : (itemType && itemId ? [{ id: itemId, type: itemType, quantity: 1 }] : []);
 
-    // =====================================================================
-    // 2. PROCESSA SOMENTE PAGAMENTOS APROVADOS
-    // =====================================================================
-    if (status !== "approved") {
-      return NextResponse.json({ ok: true });
-    }
+      if (itemsToProcess.length === 0) {
+        console.error('No items to process in payment');
+        return NextResponse.json({ error: "No items to process" }, { status: 400 });
+      }
 
-    // =====================================================================
-    // 3. Buscar ou criar registro de pagamento
-    // =====================================================================
-    const existingPayment = await prisma.payment.findUnique({
-      where: { mpPaymentId: mpPaymentId.toString() },
-    });
+      // Get the mapped status or default to PENDING
+      const mappedStatus = paymentStatusMap[status] || 'PENDING';
+      console.log(`Processing payment ${mpPaymentId} with status: ${status} (mapped to: ${mappedStatus})`);
 
-    if (!existingPayment) {
-      // Se não existir, criar (caso o webhook seja chamado antes do retorno da API)
-      await prisma.payment.create({
-        data: {
+      // Handle different payment statuses
+      if (['refunded', 'cancelled', 'rejected', 'charged_back'].includes(status)) {
+        console.log(`Processing ${status} payment`);
+        await handlePaymentStatusUpdate(
+          mpPaymentId.toString(),
+          mappedStatus,
           userId,
-          mpPaymentId: mpPaymentId.toString(),
-          status: "APPROVED",
-          amount: Math.round(payment.transaction_amount! * 100), // Converter para centavos
-          itemType: itemsToProcess.length === 1 
-            ? (itemsToProcess[0].type === "journey" ? "JOURNEY" : "COURSE")
-            : "MULTIPLE",
-          courseId: itemsToProcess.length === 1 && itemsToProcess[0].type === "course" 
-            ? itemsToProcess[0].id 
-            : null,
-          journeyId: itemsToProcess.length === 1 && itemsToProcess[0].type === "journey" 
-            ? itemsToProcess[0].id 
-            : null,
-        },
-      });
-    } else if (existingPayment.status !== "APPROVED") {
-      // Atualizar status se ainda não estiver aprovado
-      await prisma.payment.update({
-        where: { id: existingPayment.id },
-        data: { status: "APPROVED" },
-      });
-    }
-    // Se já está aprovado, continuar para processar enrollments (idempotente)
+          itemsToProcess
+        );
+        return NextResponse.json({ ok: true });
+      }
 
-    // Processar enrollments para todos os itens
-    for (const item of itemsToProcess) {
-      if (item.type === "course") {
-        await prisma.enrollment.upsert({
-          where: {
-            userId_courseId: { userId, courseId: item.id },
-          },
+      // Process approved payments
+      if (status === 'approved') {
+        console.log('Processing approved payment');
+        await processApprovedPayment(
+          mpPaymentId.toString(),
+          userId,
+          payment.transaction_amount,
+          itemsToProcess,
+          durationMonths
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // For pending or other statuses, just update the status
+      if (['pending', 'in_process', 'in_mediation'].includes(status)) {
+        console.log(`Updating payment status to ${mappedStatus}`);
+        await prisma.payment.upsert({
+          where: { mpPaymentId: mpPaymentId.toString() },
           create: {
-            userId,
-            courseId: item.id,
-            endDate: null,  // Vitalício
+            user: { connect: { id: userId } },
+            mpPaymentId: mpPaymentId.toString(),
+            status: mappedStatus,
+            amount: payment.transaction_amount ? Math.round(payment.transaction_amount * 100) : 0,
+            itemType: itemsToProcess.length === 1
+              ? (itemsToProcess[0].type === 'journey' ? 'JOURNEY' : 'COURSE')
+              : 'MULTIPLE',
           },
-          update: {},
+          update: {
+            status: mappedStatus,
+          },
         });
       }
 
-      if (item.type === "journey") {
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + durationMonths);
-
-        await prisma.enrollment.upsert({
-          where: {
-            userId_journeyId: { userId, journeyId: item.id },
-          },
-          create: {
-            userId,
-            journeyId: item.id,
-            endDate,
-          },
-          update: {},
-        });
+      return NextResponse.json({ ok: true });
+    } catch (error: any) {
+      console.error('Error processing payment:', error);
+      
+      // If it's a duplicate key error, just log and continue
+      if (error.code === 'P2002') {
+        console.log(`Payment with mpPaymentId ${mpPaymentId} already exists, continuing...`);
+        return NextResponse.json({ ok: true });
       }
+      
+      throw error; // Re-throw other errors
     }
-
-    return NextResponse.json({ ok: true });
-
-  } catch (err) {
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  } catch (error) {
+    console.error("Error in webhook:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
