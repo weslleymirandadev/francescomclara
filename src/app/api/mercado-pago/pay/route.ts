@@ -40,19 +40,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify user exists before proceeding
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true, name: true }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
-
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "Nenhum item no carrinho" },
