@@ -33,6 +33,25 @@ const paymentStatusMap: Record<string, PaymentStatus> = {
 };
 
 
+async function ensureUserExists(userId: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true }
+    });
+
+    if (!user) {
+      const error = new Error(`Usuário com ID ${userId} não encontrado`);
+      console.error(error.message);
+      throw error;
+    }
+    return user;
+  } catch (error) {
+    console.error('Erro ao verificar usuário:', error);
+    throw error;
+  }
+}
+
 async function sendOK(obj: any = { ok: true }) {
   return new NextResponse(JSON.stringify(obj), {
     status: 200,
@@ -100,11 +119,12 @@ async function handlePaymentStatusUpdate(
 async function processApprovedPayment(
   paymentId: string,
   userId: string,
-  amount: number | undefined,
+  amount: number,
   items: PaymentItem[],
   durationMonths: number = 12
 ) {
-  if (!amount) amount = 0;
+  // Ensure user exists before proceeding
+  await ensureUserExists(userId);
 
   const paymentData = {
     user: { connect: { id: userId } },
@@ -248,7 +268,7 @@ export async function POST(req: Request) {
       await processApprovedPayment(
         mpPaymentId.toString(),
         userId,
-        payment.transaction_amount,
+        payment.transaction_amount!,
         items,
         metadata.durationMonths ? parseInt(metadata.durationMonths) : 12
       );
@@ -256,26 +276,37 @@ export async function POST(req: Request) {
     }
 
     // PENDING / IN_PROCESS / MEDIATION
-    await prisma.payment.upsert({
-      where: { mpPaymentId: mpPaymentId.toString() },
-      create: {
-        user: { connect: { id: userId } },
-        mpPaymentId: mpPaymentId.toString(),
-        status: mappedStatus,
-        amount: payment.transaction_amount
-          ? Math.round(payment.transaction_amount * 100)
-          : 0,
-        itemType:
-          items.length === 1
-            ? items[0].type === "journey"
-              ? "JOURNEY"
-              : "COURSE"
-            : "MULTIPLE",
-      },
-      update: {
-        status: mappedStatus,
-      },
-    });
+    try {
+      await ensureUserExists(userId);
+
+      await prisma.payment.upsert({
+        where: { mpPaymentId: mpPaymentId.toString() },
+        create: {
+          user: { connect: { id: userId } },
+          mpPaymentId: mpPaymentId.toString(),
+          status: mappedStatus,
+          amount: payment.transaction_amount
+            ? Math.round(payment.transaction_amount * 100)
+            : 0,
+          itemType:
+            items.length === 1
+              ? items[0].type === "journey"
+                ? "JOURNEY"
+                : "COURSE"
+              : "MULTIPLE",
+        },
+        update: {
+          status: mappedStatus,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      return sendOK({
+        error: 'user_not_found',
+        message: 'Falha ao processar pagamento: Usuário não encontrado',
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     return sendOK();
   } catch (err) {
