@@ -169,13 +169,35 @@ async function processApprovedPayment(
   try {
     await ensureUserExists(userId);
 
+    // Normalize item types to 'course'/'journey' format (metadata can have 'curso'/'jornada')
+    const normalizedItems = items.map(item => {
+      const itemTypeStr = String(item.type).toLowerCase();
+      let normalizedType: ItemType;
+      
+      if (itemTypeStr === 'curso' || itemTypeStr === 'course') {
+        normalizedType = 'course';
+      } else if (itemTypeStr === 'jornada' || itemTypeStr === 'journey') {
+        normalizedType = 'journey';
+      } else {
+        // Fallback: assume it's already in the correct format
+        normalizedType = item.type;
+      }
+      
+      return {
+        ...item,
+        type: normalizedType
+      };
+    });
+
     // Ensure items have required fields
-    const validatedItems = items.map(item => ({
+    const validatedItems = normalizedItems.map(item => ({
       ...item,
       quantity: item.quantity || 1,
       price: item.price || Math.round((amount * 100) / items.length),
       title: item.title || (item.type === 'course' ? 'Curso' : 'Jornada')
     }));
+
+    console.log('Items normalizados para enrollments:', JSON.stringify(validatedItems, null, 2));
 
     const totalAmount = validatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
 
@@ -239,9 +261,11 @@ async function processApprovedPayment(
     });
 
     // Create enrollments
+    console.log('Criando enrollments para:', validatedItems.length, 'itens');
     await Promise.all(
       validatedItems.map(async (item) => {
         if (item.type === 'course') {
+          console.log(`Criando enrollment para curso: ${item.id}`);
           await prisma.enrollment.upsert({
             where: { 
               userId_courseId: { 
@@ -256,10 +280,12 @@ async function processApprovedPayment(
             },
             update: {}
           });
+          console.log(`Enrollment criado para curso: ${item.id}`);
         } else if (item.type === 'journey') {
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + durationMonths);
-
+          
+          console.log(`Criando enrollment para jornada: ${item.id}, endDate: ${endDate.toISOString()}`);
           await prisma.enrollment.upsert({
             where: { 
               userId_journeyId: { 
@@ -274,34 +300,18 @@ async function processApprovedPayment(
             },
             update: { endDate }
           });
+          console.log(`Enrollment criado para jornada: ${item.id}`);
+        } else {
+          console.warn(`Tipo de item desconhecido: ${item.type} para item ${item.id}`);
         }
       })
     );
+    console.log('Todos os enrollments foram criados com sucesso');
 
     return payment;
   } catch (error) {
     console.error('Error in processApprovedPayment:', error);
     throw error;
-  }
-
-  // Criar matrículas
-  for (const item of items) {
-    if (item.type === 'course') {
-      await prisma.enrollment.upsert({
-        where: { userId_courseId: { userId, courseId: item.id } },
-        create: { userId, courseId: item.id, endDate: null },
-        update: {},
-      });
-    } else if (item.type === 'journey') {
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + durationMonths);
-
-      await prisma.enrollment.upsert({
-        where: { userId_journeyId: { userId, journeyId: item.id } },
-        create: { userId, journeyId: item.id, endDate },
-        update: { endDate },
-      });
-    }
   }
 }
 
@@ -371,17 +381,23 @@ export async function POST(req: Request) {
     }
 
 
-    const items: PaymentItem[] =
-      Array.isArray(metadata.items) && metadata.items.length > 0
-        ? metadata.items
-        : metadata.type && metadata.id
-        ? [{ id: metadata.id, type: metadata.type, quantity: 1 }]
-        : [];
+    // Normalize items from metadata (can be 'curso'/'jornada' or 'course'/'journey')
+    const rawItems = Array.isArray(metadata.items) && metadata.items.length > 0
+      ? metadata.items
+      : metadata.type && metadata.id
+      ? [{ id: metadata.id, type: metadata.type, quantity: 1 }]
+      : [];
 
-    if (items.length === 0) {
+    if (rawItems.length === 0) {
       console.error("Pagamento sem items");
       return sendOK({ error: "missing_items" });
     }
+
+    // Normalize item types to 'course'/'journey' format
+    const items: PaymentItem[] = rawItems.map(item => ({
+      ...item,
+      type: item.type === 'curso' ? 'course' : item.type === 'jornada' ? 'journey' : item.type
+    }));
 
     const mappedStatus = paymentStatusMap[status] || "PENDING";
 
@@ -412,6 +428,25 @@ export async function POST(req: Request) {
         items,
         metadata.durationMonths ? metadata.durationMonths : 12
       );
+      
+      // Limpar carrinho do usuário após pagamento aprovado
+      try {
+        const cart = await prisma.cart.findUnique({
+          where: { userId },
+          select: { id: true }
+        });
+        
+        if (cart) {
+          await prisma.cartItem.deleteMany({
+            where: { cartId: cart.id }
+          });
+          console.log(`Carrinho limpo para usuário ${userId} após pagamento aprovado`);
+        }
+      } catch (error) {
+        console.error('Erro ao limpar carrinho após pagamento aprovado:', error);
+        // Não falhar o webhook se houver erro ao limpar o carrinho
+      }
+      
       return sendOK();
     }
 
