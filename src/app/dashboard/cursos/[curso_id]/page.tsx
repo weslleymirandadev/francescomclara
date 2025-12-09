@@ -89,6 +89,14 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [refundConfirmationText, setRefundConfirmationText] = useState('');
   const [refundError, setRefundError] = useState('');
+  const [refundId, setRefundId] = useState<string | null>(null);
+  const [isCheckingRefund, setIsCheckingRefund] = useState(false);
+  const [cursoId, setCursoId] = useState<string | null>(null);
+
+  // Resolver params uma vez
+  useEffect(() => {
+    params.then(p => setCursoId(p.curso_id));
+  }, [params]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -171,20 +179,29 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
         throw new Error(errorData.error || 'Erro ao processar reembolso');
       }
 
+      const result = await response.json();
+      const refundIdFromResponse = result.data?.refundId;
+
       // Atualiza o status do pagamento para refletir o reembolso
       const updatedEnrollment = { ...enrollment };
       if (updatedEnrollment.payments[0]) {
         updatedEnrollment.payments[0].refunds = [{
-          id: 'pending-refund',
-          status: 'PENDING'
+          id: refundIdFromResponse || 'pending-refund',
+          status: result.data?.status || 'PENDING'
         }];
         setEnrollment(updatedEnrollment);
+      }
+
+      // Iniciar verificação do reembolso
+      if (refundIdFromResponse) {
+        setRefundId(refundIdFromResponse);
+        setIsCheckingRefund(true);
       }
 
       setRefundModalOpen(false);
       setRefundConfirmationText('');
       setRefundError('');
-      toast.success('Solicitação de reembolso enviada com sucesso!');
+      toast.success('Solicitação de reembolso enviada com sucesso! Verificando status...');
     } catch (error: any) {
       console.error('Refund error:', error);
       toast.error(error.message || 'Erro ao solicitar reembolso');
@@ -201,6 +218,76 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
       router.push('/dashboard');
     }
   }, [isLoading, status, enrollment, router]);
+
+  // Verificar status do reembolso periodicamente
+  useEffect(() => {
+    if (!isCheckingRefund || !refundId || !enrollment?.payments?.[0]) return;
+
+    let isMounted = true;
+
+    const checkRefundStatus = async () => {
+      if (!isMounted || !cursoId) return;
+
+      try {
+        // Primeiro, verificar se o enrollment ainda existe (acesso foi revogado)
+        const enrollmentResponse = await fetch('/api/user/enrollments');
+        if (enrollmentResponse.ok) {
+          const { courses } = await enrollmentResponse.json();
+          const hasAccess = courses.some((c: any) => c.id === cursoId);
+          
+          if (!hasAccess) {
+            if (isMounted) {
+              setIsCheckingRefund(false);
+              setRefundId(null);
+              toast.success('Reembolso processado. Você não tem mais acesso a este curso.');
+              router.push('/dashboard');
+            }
+            return;
+          }
+        }
+
+        // Buscar os pagamentos atualizados para verificar o status do reembolso
+        const paymentsResponse = await fetch(`/api/payments?courseId=${cursoId}`);
+        if (paymentsResponse.ok && isMounted) {
+          const payments = await paymentsResponse.json();
+          const payment = payments.find((p: any) => p.id === enrollment.payments[0].id);
+          
+          if (payment && payment.refunds && Array.isArray(payment.refunds)) {
+            const refund = payment.refunds.find((r: any) => r.id === refundId);
+            
+            if (refund) {
+              const isCompleted = refund.status === 'COMPLETED' || refund.status === 'APPROVED';
+              
+              if (isCompleted && isMounted) {
+                setIsCheckingRefund(false);
+                setRefundId(null);
+                toast.success('Reembolso confirmado! Você será redirecionado.');
+                
+                // Pequeno delay para o usuário ver a mensagem
+                setTimeout(() => {
+                  if (isMounted) {
+                    router.push('/dashboard');
+                  }
+                }, 1500);
+                return;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar status do reembolso:', error);
+      }
+    };
+
+    // Verificar imediatamente e depois a cada 3 segundos
+    checkRefundStatus();
+    const intervalId = setInterval(checkRefundStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isCheckingRefund, refundId, enrollment, router, cursoId]);
 
   const closeRefundModal = () => {
     setRefundModalOpen(false);
