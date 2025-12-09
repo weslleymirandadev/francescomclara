@@ -3,7 +3,7 @@ import { MercadoPagoConfig, Payment } from "mercadopago";
 import prisma from "@/lib/prisma";
 
 async function validateItem(item: Item) {
-  if (item.type === 'course') {
+  if (item.type === 'curso') {
     const course = await prisma.course.findUnique({
       where: { id: item.id },
       select: { id: true, title: true, price: true, imageUrl: true }
@@ -45,7 +45,7 @@ const mp = new MercadoPagoConfig({
 
 interface Item {
   id: string;
-  type: 'course' | 'journey';
+  type: 'curso' | 'jornada';
   title: string;
   description?: string;
   quantity: number;
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
         items: enrichedItems.map(item => ({
           id: item.id,
           title: item.title,
-          description: item.type === 'course' ? 'Curso' : 'Jornada',
+          description: item.type === 'curso' ? 'Curso' : 'Jornada',
           quantity: item.quantity,
           // Mercado Pago espera valores em reais, converter de centavos
           unit_price: item.price! / 100,
@@ -214,7 +214,7 @@ export async function POST(req: Request) {
           // Create related payment items
           items: {
             create: enrichedItems.map(item => {
-              const isCourse = item.type === 'course';
+              const isCourse = item.type === 'curso';
               const price = Number(item.price); // Ensure it's a number
               if (isNaN(price)) {
                 throw new Error(`Preço inválido para ${isCourse ? 'curso' : 'jornada'}: ${item.id}`);
