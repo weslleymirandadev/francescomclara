@@ -15,16 +15,7 @@ export default function RootLayout({
         view="checkout"
         output="deviceId"
       ></Script>
-      <Script src="https://sdk.mercadopago.com/js/v2"
-      onLoad={() => {
-          if (window.MercadoPago) {
-            // Substitua 'SUA_PUBLIC_KEY' pela sua chave pública do Mercado Pago
-            window.MercadoPago.set
-            window.MercadoPago.set
-            window.MercadoPago.setPublishableKey(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY);
-          }
-        }}
-      ></Script>
+      <Script src="https://sdk.mercadopago.com/js/v2"></Script>
       {children}
     </>
   );
