@@ -691,23 +691,17 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
                 const total = getInstallmentTotal(amountInReais, qty);
                 return (
                   <option key={qty} value={qty} className="text-black">
-                    {`${qty}x de R$${perInstallment
-                      .toFixed(2)
-                      .replace(".", ",")} (total R$${total
-                        .toFixed(2)
-                        .replace(".", ",")})`}
+                    {`${qty}x de R$${formatPrice(perInstallment)} (total R$${formatPrice(total)})`}
                   </option>
                 );
               })}
             </select>
             <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-black">
               {installments
-                ? `${installments}x de R$${getInstallmentPerPayment(
+                ? `${installments}x de R$${formatPrice(getInstallmentPerPayment(
                   amount / 100, // Converter de centavos para reais
                   installments,
-                )
-                  .toFixed(2)
-                  .replace(".", ",")}`
+                ))}`
                 : "Selecionar"}
             </div>
             <label
