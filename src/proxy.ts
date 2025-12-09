@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 
 // Rotas que devem ser ignoradas completamente pelo middleware
 const IGNORED_ROUTES = [
-  "/api/mercado-pago/webhook",
   "/api/mercado-pago", // segurança extra
 ];
 

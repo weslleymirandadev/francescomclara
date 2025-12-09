@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import prisma from "@/lib/prisma";
 
-type PaymentItemType = 'COURSE' | 'JOURNEY';
-
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
   options: {
