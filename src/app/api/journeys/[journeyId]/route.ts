@@ -77,7 +77,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { journeyId: string } }
+  { params }: { params: Promise<{ journeyId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -89,7 +89,7 @@ export async function DELETE(
     }
 
     await prisma.journey.delete({
-      where: { id: params.journeyId },
+      where: { id: (await params).journeyId },
     });
 
     return NextResponse.json({ success: true });
