@@ -27,11 +27,15 @@ export function isStaff(user: { role: UserRole } | undefined) {
  */
 export async function hasCourseAccess(userId: string, courseId: string) {
   const now = new Date();
+  // Para cursos: endDate pode ser null (acesso vitalício) ou maior que hoje (acesso ativo)
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       userId,
       courseId,
-      endDate: { gt: now },
+      OR: [
+        { endDate: null }, // Acesso vitalício
+        { endDate: { gte: now } } // Acesso ativo (não expirado)
+      ]
     },
   });
 
