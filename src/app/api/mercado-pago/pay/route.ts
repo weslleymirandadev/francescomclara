@@ -80,8 +80,8 @@ export async function POST(req: Request) {
     const calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     // Mercado Pago espera valores em reais (float), então convertemos de centavos para reais
     const calculatedTotalInReais = calculatedTotalInCents / 100;
-    const description = enrichedItems.length === 1 
-      ? enrichedItems[0].title 
+    const description = enrichedItems.length === 1
+      ? enrichedItems[0].title
       : `${enrichedItems.length} itens no carrinho`;
 
     const payment = new Payment(mp);
@@ -129,7 +129,6 @@ export async function POST(req: Request) {
           quantity: item.quantity
         })),
       },
-      device_id: req.headers.get('X-meli-session-id'),
       additional_info: {
         items: enrichedItems.map(item => ({
           id: item.id,
@@ -146,7 +145,12 @@ export async function POST(req: Request) {
       binary_mode: true,
     };
 
-    const response = await payment.create({ body: mpData as any });
+    const response = await payment.create({
+      body: mpData as any, requestOptions: {
+        idempotencyKey: crypto.randomUUID(),
+        meliSessionId: req.headers.get('X-meli-session-id')!
+      }
+    });
 
     // Salvar no banco de dados usando upsert para evitar duplicação
     const mpPaymentId = response.id?.toString()!;
@@ -155,14 +159,14 @@ export async function POST(req: Request) {
       status: "PENDING" as const,
       // Armazenar amount em centavos no banco de dados
       amount: calculatedTotalInCents,
-      itemType: (enrichedItems.length === 1 
+      itemType: (enrichedItems.length === 1
         ? enrichedItems[0].type === 'course' ? 'COURSE' : 'JOURNEY'
         : 'MULTIPLE') as 'COURSE' | 'JOURNEY' | 'MULTIPLE',
-      courseId: enrichedItems.length === 1 && enrichedItems[0].type === 'course' 
-        ? enrichedItems[0].id 
+      courseId: enrichedItems.length === 1 && enrichedItems[0].type === 'course'
+        ? enrichedItems[0].id
         : null,
-      journeyId: enrichedItems.length === 1 && enrichedItems[0].type === 'journey' 
-        ? enrichedItems[0].id 
+      journeyId: enrichedItems.length === 1 && enrichedItems[0].type === 'journey'
+        ? enrichedItems[0].id
         : null,
       metadata: {
         method,
@@ -215,7 +219,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('Erro ao processar pagamento:', err);
     return NextResponse.json(
-      { error: "Erro ao processar pagamento", details: err instanceof Error ? err.message : String(err) }, 
+      { error: "Erro ao processar pagamento", details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }
