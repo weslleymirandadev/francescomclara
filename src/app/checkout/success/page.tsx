@@ -91,7 +91,8 @@ function SuccessPageContent() {
   };
 
   useEffect(() => {
-    if (payment?.status === "approved") {
+    // Limpar carrinho quando o pagamento for aprovado (verificar tanto 'approved' quanto 'APPROVED')
+    if (payment?.status === "approved" || payment?.status === "APPROVED") {
       clearCart();
     }
   }, [payment?.status, clearCart]);
