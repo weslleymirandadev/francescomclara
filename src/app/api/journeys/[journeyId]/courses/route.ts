@@ -5,11 +5,11 @@ import prisma from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { journeyId: string } }
+  { params }: { params: Promise<{ journeyId: string }> }
 ) {
   try {
     const journeyCourses = await prisma.journeyCourse.findMany({
-      where: { journeyId: params.journeyId },
+      where: { journeyId: (await params).journeyId },
       include: {
         course: true,
       },
@@ -30,7 +30,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { journeyId: string } }
+  { params }: { params: Promise<{ journeyId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -57,7 +57,7 @@ export async function POST(
 
     // Verifica se a jornada existe
     const journey = await prisma.journey.findUnique({
-      where: { id: params.journeyId },
+      where: { id: (await params).journeyId },
     });
 
     if (!journey) {
@@ -70,7 +70,7 @@ export async function POST(
     // Verifica se o curso já está na jornada
     const existingCourse = await prisma.journeyCourse.findFirst({
       where: {
-        journeyId: params.journeyId,
+        journeyId: (await params).journeyId,
         courseId,
       },
     });
@@ -85,7 +85,7 @@ export async function POST(
     // Adiciona o curso à jornada
     const journeyCourse = await prisma.journeyCourse.create({
       data: {
-        journeyId: params.journeyId,
+        journeyId: (await params).journeyId,
         courseId,
         order: order || 0,
       },

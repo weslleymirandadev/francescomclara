@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { journeyId: string; courseId: string } }
+  { params }: { params: Promise<{ journeyId: string; courseId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,8 +19,8 @@ export async function DELETE(
     // Remove o curso da jornada
     await prisma.journeyCourse.deleteMany({
       where: {
-        journeyId: params.journeyId,
-        courseId: params.courseId,
+        journeyId: (await params).journeyId,
+        courseId: (await params).courseId,
       },
     });
 
@@ -36,7 +36,7 @@ export async function DELETE(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { journeyId: string; courseId: string } }
+  { params }: { params: Promise<{ journeyId: string; courseId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -52,8 +52,8 @@ export async function PATCH(
     // Atualiza a ordem do curso na jornada
     const journeyCourse = await prisma.journeyCourse.updateMany({
       where: {
-        journeyId: params.journeyId,
-        courseId: params.courseId,
+        journeyId: (await params).journeyId,
+        courseId: (await params).courseId,
       },
       data: {
         order: order,

@@ -5,11 +5,11 @@ import prisma from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { journeyId: string } }
+  { params }: { params: Promise<{ journeyId: string }> }
 ) {
   try {
     const journey = await prisma.journey.findUnique({
-      where: { id: params.journeyId },
+      where: { id: (await params).journeyId },
       include: {
         courses: {
           include: {
@@ -41,7 +41,7 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { journeyId: string } }
+  { params }: { params: Promise<{ journeyId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -55,7 +55,7 @@ export async function PUT(
     const data = await request.json();
     
     const journey = await prisma.journey.update({
-      where: { id: params.journeyId },
+      where: { id: (await params).journeyId },
       data: {
         title: data.title,
         description: data.description,
