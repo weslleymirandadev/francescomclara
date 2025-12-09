@@ -34,7 +34,11 @@ export async function GET(request: Request) {
         } : {})
       },
       include: {
-        refunds: true,
+        refunds: {
+          orderBy: {
+            createdAt: 'desc'
+          }
+        },
         items: true
       },
       orderBy: {
