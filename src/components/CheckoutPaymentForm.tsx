@@ -396,10 +396,14 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
         throw new Error("E-mail é obrigatório para o pagamento");
       }
 
+      // @ts-ignore
+      const deviceId = window.MP_DEVICE_SESSION_ID;
+
       const paymentResponse = await fetch("/api/mercado-pago/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-meli-session-id": deviceId
         },
         body: JSON.stringify({
           method: 'pix',
