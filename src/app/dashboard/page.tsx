@@ -184,7 +184,7 @@ export default function Dashboard() {
                   whileHover={{ y: -5 }}
                   className="bg-white overflow-hidden shadow rounded-lg"
                 >
-                  <Link href={`/courses/${course.id}`}>
+                  <Link href={`/dashboard/cursos/${course.id}`}>
                     <div className="h-48 bg-gray-200 overflow-hidden">
                       {course.imageUrl ? (
                         <img
@@ -252,7 +252,7 @@ export default function Dashboard() {
                 </button>
               ) : (
                 <Link
-                  href="/courses"
+                  href="/cursos"
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Explorar cursos
@@ -311,7 +311,7 @@ export default function Dashboard() {
                     whileHover={{ x: 5 }}
                     className="bg-white overflow-hidden shadow rounded-lg"
                   >
-                    <Link href={`/journeys/${journey.id}`}>
+                    <Link href={`/dashboard/jornadas/${journey.id}`}>
                       <div className="p-6">
                         <div className="flex items-start">
                           <div className="shrink-0 h-24 w-24 bg-green-100 rounded-md flex items-center justify-center">
