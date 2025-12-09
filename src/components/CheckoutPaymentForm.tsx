@@ -32,6 +32,30 @@ function isValidCpf(value: string) {
   return digits === baseNine + d1.toString() + d2.toString();
 }
 
+function isValidCnpj(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 14) return false;
+  if (/^(\d)\1+$/.test(digits)) return false;
+
+  const calcCheckDigit = (base: string, weights: number[]) => {
+    let sum = 0;
+    for (let i = 0; i < base.length; i += 1) {
+      sum += parseInt(base.charAt(i), 10) * weights[i];
+    }
+    const rest = sum % 11;
+    return rest < 2 ? 0 : 11 - rest;
+  };
+
+  const baseTwelve = digits.substring(0, 12);
+  const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  
+  const d1 = calcCheckDigit(baseTwelve, weights1);
+  const d2 = calcCheckDigit(baseTwelve + d1.toString(), weights2);
+
+  return digits === baseTwelve + d1.toString() + d2.toString();
+}
+
 // Centralized validation rules
 const VALIDATION_RULES = {
   cardNumber: {
@@ -108,35 +132,60 @@ const cardSchema = z.object({
   document: z.string().superRefine((val, ctx) => {
     // @ts-ignore - parent exists at runtime but not in type definition
     const documentType = ctx.parent?.documentType;
+    const digitsOnly = val.replace(/\D/g, "");
 
     if (documentType === "CPF") {
-      if (val.length < VALIDATION_RULES.cpf.min) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
-          minimum: VALIDATION_RULES.cpf.min,
-          type: "string",
-          inclusive: true,
-          message: VALIDATION_RULES.cpf.error.min,
-          origin: "string"
-        });
-      } else if (!isValidCpf(val)) {
+      const requiredLength = 11;
+      if (digitsOnly.length < requiredLength) {
+        // Não mostrar erro enquanto está digitando, apenas quando estiver completo
+        if (digitsOnly.length === 0) {
+          // Campo vazio - não validar ainda
+          return;
+        }
+        // Só mostrar erro se o campo estiver completo (com máscara)
+        if (val.length === VALIDATION_RULES.cpf.min) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.too_small,
+            minimum: VALIDATION_RULES.cpf.min,
+            type: "string",
+            inclusive: true,
+            message: VALIDATION_RULES.cpf.error.min,
+            origin: "string"
+          });
+        }
+      } else if (digitsOnly.length === requiredLength && !isValidCpf(val)) {
+        // Validar apenas quando tiver o tamanho completo
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: VALIDATION_RULES.cpf.error.invalid
         });
       }
-    } else { // CNPJ
-      if (val.length < VALIDATION_RULES.cnpj.min) {
+    } else if (documentType === "CNPJ") {
+      const requiredLength = 14;
+      if (digitsOnly.length < requiredLength) {
+        // Não mostrar erro enquanto está digitando, apenas quando estiver completo
+        if (digitsOnly.length === 0) {
+          // Campo vazio - não validar ainda
+          return;
+        }
+        // Só mostrar erro se o campo estiver completo (com máscara)
+        if (val.length === VALIDATION_RULES.cnpj.min) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.too_small,
+            minimum: VALIDATION_RULES.cnpj.min,
+            type: "string",
+            inclusive: true,
+            message: VALIDATION_RULES.cnpj.error.min,
+            origin: "string"
+          });
+        }
+      } else if (digitsOnly.length === requiredLength && !isValidCnpj(val)) {
+        // Validar apenas quando tiver o tamanho completo
         ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
-          minimum: VALIDATION_RULES.cnpj.min,
-          type: "string",
-          inclusive: true,
-          message: VALIDATION_RULES.cnpj.error.min,
-          origin: "string"
+          code: z.ZodIssueCode.custom,
+          message: VALIDATION_RULES.cnpj.error.invalid
         });
       }
-      // Add CNPJ validation if needed
     }
   }),
   installments: z.number().min(1, "Selecione o número de parcelas")
@@ -184,6 +233,8 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
     setValue,
     watch,
     trigger,
+    clearErrors,
+    setError,
     formState: { errors },
   } = useForm<z.infer<typeof cardSchema>>({
     resolver: zodResolver(cardSchema),
@@ -652,12 +703,10 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
                 {...register("documentType", {
                   onChange: (e) => {
                     const value = e.target.value as "CPF" | "CNPJ";
-                    const current = watch("document") || "";
-                    if (value === "CPF") {
-                      setValue("document", maskCpf(current));
-                    } else {
-                      setValue("document", maskCnpj(current));
-                    }
+                    // Limpar o input quando trocar de tipo
+                    setValue("document", "", { shouldValidate: false });
+                    // Limpar erros do documento anterior
+                    trigger("document");
                   },
                 })}
                 className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.documentType ? "border-red-400" : ""}`}
@@ -665,7 +714,7 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
                 <option value="CPF" className="text-black">CPF</option>
                 <option value="CNPJ" className="text-black">CNPJ</option>
               </select>
-              <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-black">
+              <div className="pointer-events-none absolute left-3 top-1/3 -translate-y-1/2 text-xs text-black">
                 {documentType}
               </div>
               <label
@@ -683,12 +732,85 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
                 {...register("document", {
                   onChange: (e) => {
                     const value = e.target.value;
+                    let maskedValue = "";
                     if (documentType === "CPF") {
-                      e.target.value = maskCpf(value);
+                      maskedValue = maskCpf(value);
                     } else {
-                      e.target.value = maskCnpj(value);
+                      maskedValue = maskCnpj(value);
                     }
-                    setValue("document", e.target.value, { shouldValidate: true });
+                    e.target.value = maskedValue;
+                    
+                    const digitsOnly = maskedValue.replace(/\D/g, "");
+                    const requiredLength = documentType === "CPF" ? 11 : 14;
+                    const isComplete = digitsOnly.length === requiredLength;
+                    
+                    // Atualizar o valor
+                    setValue("document", maskedValue, { 
+                      shouldValidate: false 
+                    });
+                    
+                    // Validar manualmente quando o campo estiver completo
+                    if (isComplete) {
+                      let isValid = false;
+                      let errorMessage = "";
+                      
+                      if (documentType === "CPF") {
+                        isValid = isValidCpf(maskedValue);
+                        if (!isValid) {
+                          errorMessage = VALIDATION_RULES.cpf.error.invalid;
+                        }
+                      } else {
+                        isValid = isValidCnpj(maskedValue);
+                        if (!isValid) {
+                          errorMessage = VALIDATION_RULES.cnpj.error.invalid;
+                        }
+                      }
+                      
+                      if (!isValid) {
+                        setError("document", {
+                          type: "manual",
+                          message: errorMessage
+                        });
+                      } else {
+                        clearErrors("document");
+                      }
+                    } else {
+                      // Limpar erros enquanto está digitando
+                      clearErrors("document");
+                    }
+                  },
+                  onBlur: () => {
+                    // Validar novamente ao sair do campo
+                    const currentValue = watch("document");
+                    if (currentValue) {
+                      const digitsOnly = currentValue.replace(/\D/g, "");
+                      const requiredLength = documentType === "CPF" ? 11 : 14;
+                      if (digitsOnly.length === requiredLength) {
+                        let isValid = false;
+                        let errorMessage = "";
+                        
+                        if (documentType === "CPF") {
+                          isValid = isValidCpf(currentValue);
+                          if (!isValid) {
+                            errorMessage = VALIDATION_RULES.cpf.error.invalid;
+                          }
+                        } else {
+                          isValid = isValidCnpj(currentValue);
+                          if (!isValid) {
+                            errorMessage = VALIDATION_RULES.cnpj.error.invalid;
+                          }
+                        }
+                        
+                        if (!isValid) {
+                          setError("document", {
+                            type: "manual",
+                            message: errorMessage
+                          });
+                        } else {
+                          clearErrors("document");
+                        }
+                      }
+                    }
                   },
                 })}
                 className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.document ? "border-red-400" : ""}`}
@@ -699,9 +821,20 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
               >
                 {documentType === "CPF" ? "CPF" : "CNPJ"}
               </label>
-              {errors.document && (
-                <span className="text-xs text-red-500">{errors.document.message}</span>
-              )}
+              <div className="mt-1 flex items-center justify-between">
+                <div className="text-xs text-gray-500">
+                  {(() => {
+                    const currentValue = watch("document") || "";
+                    const digitsOnly = currentValue.replace(/\D/g, "");
+                    const requiredLength = documentType === "CPF" ? 11 : 14;
+                    const currentLength = digitsOnly.length;
+                    return `${currentLength}/${requiredLength} caracteres`;
+                  })()}
+                </div>
+                {errors.document && (
+                  <span className="text-xs text-red-500">{errors.document.message}</span>
+                )}
+              </div>
             </div>
           </div>
 
