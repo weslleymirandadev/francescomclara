@@ -119,7 +119,7 @@ export async function POST(req: Request) {
           quantity: item.quantity,
           // Mercado Pago espera valores em reais, converter de centavos
           unit_price: item.price! / 100,
-          category_id: item.type.toUpperCase(),
+          category_id: item.type,
           ...(item.imageUrl && { picture_url: item.imageUrl }),
         })),
       },
