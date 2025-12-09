@@ -47,8 +47,54 @@ export async function POST(req: Request) {
       );
     }
 
+    // Normalize item types (frontend sends 'course'/'journey', API expects 'curso'/'jornada')
+    const normalizedItems = items.map(item => ({
+      ...item,
+      type: item.type === 'course' ? 'curso' : item.type === 'journey' ? 'jornada' : item.type
+    }));
+
+    // Validate that all items exist in the database
+    const courseIds = normalizedItems.filter(item => item.type === 'curso').map(item => item.id);
+    const journeyIds = normalizedItems.filter(item => item.type === 'jornada').map(item => item.id);
+
+    // Check if courses exist
+    if (courseIds.length > 0) {
+      const existingCourses = await prisma.course.findMany({
+        where: { id: { in: courseIds } },
+        select: { id: true, title: true, price: true }
+      });
+      
+      const existingCourseIds = new Set(existingCourses.map(c => c.id));
+      const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
+      
+      if (missingCourses.length > 0) {
+        return NextResponse.json(
+          { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Check if journeys exist
+    if (journeyIds.length > 0) {
+      const existingJourneys = await prisma.journey.findMany({
+        where: { id: { in: journeyIds } },
+        select: { id: true, title: true, price: true }
+      });
+      
+      const existingJourneyIds = new Set(existingJourneys.map(j => j.id));
+      const missingJourneys = journeyIds.filter(id => !existingJourneyIds.has(id));
+      
+      if (missingJourneys.length > 0) {
+        return NextResponse.json(
+          { error: `Jornadas não encontradas: ${missingJourneys.join(', ')}` },
+          { status: 404 }
+        );
+      }
+    }
+
     // Validate and enrich items with database data
-    const enrichedItems = items.map(item => ({
+    const enrichedItems = normalizedItems.map(item => ({
       ...item,
       // Ensure required fields have default values
       title: item.title || (item.type === 'curso' ? 'Curso' : 'Jornada'),
