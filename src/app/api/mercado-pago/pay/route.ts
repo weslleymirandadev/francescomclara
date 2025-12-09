@@ -75,14 +75,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const isValidCart = await validateCartItems(userId, items);
+    // const isValidCart = await validateCartItems(userId, items);
 
-    if (!isValidCart) {
-      return NextResponse.json(
-        { error: "Alguns itens do seu carrinho já foram adquiridos. Atualize seu carrinho e tente novamente." },
-        { status: 400 }
-      );
-    }
+    // if (!isValidCart) {
+    //   return NextResponse.json(
+    //     { error: "Alguns itens do seu carrinho já foram adquiridos. Atualize seu carrinho e tente novamente." },
+    //     { status: 400 }
+    //   );
+    // }
 
 
     // Buscar informações adicionais dos itens no banco de dados
