@@ -50,13 +50,39 @@ export async function POST(req: Request) {
     // Log items received
     console.log('Items recebidos do frontend:', JSON.stringify(items, null, 2));
 
-    // Normalize item types (frontend sends 'course'/'journey', API expects 'curso'/'jornada')
-    const normalizedItems = items.map(item => ({
-      ...item,
-      type: item.type === 'course' ? 'curso' : item.type === 'journey' ? 'jornada' : item.type
+    // Detect item types if not provided by checking the database
+    const itemsWithTypes = await Promise.all(items.map(async (item) => {
+      // If type is already provided, normalize it
+      if (item.type) {
+        return {
+          ...item,
+          type: item.type === 'course' ? 'curso' : item.type === 'journey' ? 'jornada' : item.type
+        };
+      }
+
+      // If type is missing, try to detect it by checking both tables
+      console.log(`Tipo não fornecido para item ${item.id}, detectando automaticamente...`);
+      
+      const [course, journey] = await Promise.all([
+        prisma.course.findUnique({ where: { id: item.id }, select: { id: true } }),
+        prisma.journey.findUnique({ where: { id: item.id }, select: { id: true } })
+      ]);
+
+      if (course) {
+        console.log(`Item ${item.id} identificado como CURSO`);
+        return { ...item, type: 'curso' };
+      } else if (journey) {
+        console.log(`Item ${item.id} identificado como JORNADA`);
+        return { ...item, type: 'jornada' };
+      } else {
+        throw new Error(`Item ${item.id} não encontrado nem como curso nem como jornada`);
+      }
     }));
 
-    console.log('Items normalizados:', JSON.stringify(normalizedItems, null, 2));
+    console.log('Items com tipos detectados:', JSON.stringify(itemsWithTypes, null, 2));
+
+    // Normalize item types (frontend sends 'course'/'journey', API expects 'curso'/'jornada')
+    const normalizedItems = itemsWithTypes;
 
     // Validate that all items exist in the database
     const courseIds = normalizedItems.filter(item => item.type === 'curso').map(item => item.id);
