@@ -389,7 +389,6 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
 
     setProcessing(true);
     try {
-      // Preparar dados do pagador
       const payerName = session.user.name || '';
       const payerEmail = session.user.email;
 
@@ -397,7 +396,6 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
         throw new Error("E-mail é obrigatório para o pagamento");
       }
 
-      // Fazer o pagamento PIX
       const paymentResponse = await fetch("/api/mercado-pago/pay", {
         method: "POST",
         headers: {
@@ -417,10 +415,10 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             id: item.id,
             type: item.type,
             title: item.title,
-            price: item.price, // já está em centavos
+            price: item.price,
             quantity: 1,
           })),
-          total: amount, // já está em centavos
+          total: amount,
         }),
       });
 
@@ -430,24 +428,9 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
         throw new Error(paymentResult.error || "Erro ao processar pagamento");
       }
 
-      // Verificar se há QR Code do PIX
-      if (paymentResult.point_of_interaction?.transaction_data) {
-        const pixData = paymentResult.point_of_interaction.transaction_data;
-        
-        // Redirecionar para página de sucesso com dados do PIX
-        const params = new URLSearchParams({
-          payment_id: paymentResult.id?.toString() || '',
-          pix: 'true',
-          qr_code: pixData.qr_code || '',
-          qr_code_base64: pixData.qr_code_base64 || '',
-          ticket_url: pixData.ticket_url || '',
-        });
-        
-        router.push(`/checkout/success?${params.toString()}`);
-      } else {
-        toast.success("PIX gerado com sucesso!");
-        router.push(`/checkout/success?payment_id=${paymentResult.id}&pix=true`);
-      }
+      // Only pass the payment ID to the success page
+      router.push(`/checkout/success?payment_id=${paymentResult.id}`);
+
     } catch (error: any) {
       console.error('Erro no pagamento PIX:', error);
       toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");

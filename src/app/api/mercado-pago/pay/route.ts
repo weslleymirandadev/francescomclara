@@ -189,6 +189,20 @@ export async function POST(req: Request) {
       },
     });
 
+    if (response.point_of_interaction?.transaction_data) {
+      await prisma.payment.update({
+        where: { id: paymentRecord.id },
+        data: {
+          metadata: {
+            ...paymentData.metadata,
+            qr_code: response.point_of_interaction.transaction_data.qr_code,
+            qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64,
+            ticket_url: response.point_of_interaction.transaction_data.ticket_url
+          }
+        }
+      });
+    }
+
     return NextResponse.json({
       id: response.id,
       status: response.status,
