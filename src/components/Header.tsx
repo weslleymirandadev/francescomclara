@@ -63,7 +63,7 @@ export function Header() {
               <div className="flex-1 overflow-y-auto px-4 py-3">
                 {items.length === 0 ? (
                   <p className="text-sm text-gray-500">
-                    Seu carrinho está vazio. Adicione cursos ou jornadas para continuar.
+                    Seu carrinho está vazio. Adicione cursos para continuar.
                   </p>
                 ) : (
                   <ul className="space-y-3">
@@ -75,7 +75,7 @@ export function Header() {
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-gray-900">{item.title}</p>
                           <p className="text-[11px] uppercase text-gray-400">
-                            {item.type === "jornada" ? "Jornada" : "Curso"}
+                            Curso
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">

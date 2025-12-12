@@ -12,12 +12,9 @@ import {
 import { useSession } from "next-auth/react";
 import { toast } from 'react-hot-toast';
 
-export type CartItemType = "curso" | "jornada";
-
 export interface CartItem {
   id: string; // slug
   title: string;
-  type: CartItemType;
   price: number;
 }
 
@@ -28,7 +25,7 @@ interface CartContextValue {
   openCart: () => void;
   closeCart: () => void;
   addItem: (item: CartItem) => void;
-  removeItem: (id: string, type: CartItemType) => void;
+  removeItem: (id: string) => void;
   clearCart: () => void;
 }
 
@@ -63,14 +60,13 @@ export function CartProvider({ children }: CartProviderProps) {
             // Normalize server items to match CartItem format
             const normalizedItems = (serverItems || [])
               .map((item: any) => {
-                const itemId = item.courseId ?? item.journeyId;
-                if (!itemId || item.price == null || !item.title) return null;
+                if (!item.courseId || item.price == null || !item.title) return null;
                 
                 return {
-                  id: itemId,
+                  id: item.courseId,
                   title: item.title,
                   price: item.price,
-                  type: item.itemType === "JOURNEY" ? "jornada" as CartItemType : "curso" as CartItemType,
+                  type: 'course',
                 };
               })
               .filter(Boolean) as CartItem[];
@@ -120,24 +116,23 @@ export function CartProvider({ children }: CartProviderProps) {
     // 1. Check if item is already in cart (case-insensitive and ignoring whitespace)
     const normalizedItemId = item.id.trim().toLowerCase();
     const alreadyInCart = items.some(i => 
-      i.id.trim().toLowerCase() === normalizedItemId && 
-      i.type === item.type
+      i.id.trim().toLowerCase() === normalizedItemId
     );
     
     if (alreadyInCart) {
-      toast.error('Este item já está no seu carrinho');
+      toast.error('Este curso já está no seu carrinho');
       openCart();
       return;
     }
 
-    // 2. Check if user already has access to this item
+    // 2. Check if user already has access to this course
     if (status === "authenticated") {
       try {
-        const response = await fetch(`/api/user/has-access?type=${item.type}&id=${item.id}`);
+        const response = await fetch(`/api/user/has-access?id=${item.id}`);
         const { hasAccess } = await response.json();
 
         if (hasAccess) {
-          toast.error(`Você já tem acesso a este ${item.type}`);
+          toast.error('Você já tem acesso a este curso');
           return;
         }
       } catch (error) {
@@ -159,8 +154,8 @@ export function CartProvider({ children }: CartProviderProps) {
         
         // Create the new item in the format expected by the API
         const newItem = {
-          itemType: item.type === 'jornada' ? 'JOURNEY' : 'COURSE',
-          [item.type === 'jornada' ? 'journeyId' : 'courseId']: item.id,
+          itemType: 'COURSE',
+          courseId: item.id,
           quantity: 1
         };
         
@@ -190,23 +185,21 @@ export function CartProvider({ children }: CartProviderProps) {
   }
 
 
-  async function removeItem(id: string, type: CartItemType) {
-    const itemType = type === "jornada" ? "JOURNEY" : "COURSE";
+  async function removeItem(id: string) {
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
     
-    // Optimistically update the UI
-    setItems(prev => prev.filter((i) => i.id !== id || i.type !== type));
-
     // If user is authenticated, sync with server
     if (status === "authenticated") {
       try {
-        const response = await fetch("/api/cart", {
+        // Remove item from server
+        const response = await fetch(`/api/cart`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             itemId: id,
-            itemType,
+            itemType: 'COURSE',
           }),
         });
 
@@ -222,25 +215,19 @@ export function CartProvider({ children }: CartProviderProps) {
           
           // Normalize server items to match CartItem format
           const normalizedItems = serverItems
-            .map((item: any) => {
-              const itemId = item.courseId ?? item.journeyId;
-              if (!itemId || item.price == null || !item.title) return null;
-              
-              return {
-                id: itemId,
-                title: item.title,
-                price: item.price,
-                type: item.itemType === "JOURNEY" ? "jornada" as CartItemType : "curso" as CartItemType,
-              };
-            })
-            .filter(Boolean) as CartItem[];
+            .filter((item: any) => item.courseId) // Only include course items
+            .map((item: any) => ({
+              id: item.courseId,
+              title: item.title || 'Curso',
+              price: item.price || 0,
+              type: 'course' as const,
+            }))
+            .filter((item: any) => item.id && item.title && item.price !== undefined);
           
           setItems(normalizedItems);
         }
       } catch (error) {
         console.error("Error removing item:", error);
-        // If there's an error, we could show a toast or handle it in the UI
-        // For now, we'll just log it and let the optimistic update stand
       }
     }
   }
@@ -271,43 +258,39 @@ export function CartProvider({ children }: CartProviderProps) {
         // Busca carrinho atual do servidor
         const res = await fetch("/api/cart", { cache: "no-store" });
         let serverItems: {
-          itemType: "COURSE" | "JOURNEY";
+          itemType: "COURSE";
           courseId?: string | null;
-          journeyId?: string | null;
           title: string | null;
           price: number | null;
         }[] = [];
 
         if (res.ok) {
           const data = await res.json();
-          serverItems = Array.isArray(data.items) ? data.items : [];
+          // Filtra apenas itens do tipo curso
+          serverItems = Array.isArray(data.items) 
+            ? data.items.filter((item: any) => item.itemType === 'COURSE' && item.courseId)
+            : [];
         }
 
         // Normaliza items do servidor para o formato do CartContext
         const serverCart: CartItem[] = serverItems
-          .map((item) => {
-            const id = item.courseId ?? item.journeyId ?? undefined;
-            if (!id || item.price == null || !item.title) return null;
-
-            return {
-              id,
-              title: item.title,
-              price: item.price,
-              type: item.itemType === "JOURNEY" ? ("jornada" as CartItemType) : ("curso" as CartItemType),
-            } as CartItem;
-          })
-          .filter(Boolean) as CartItem[];
+          .filter(item => item.courseId && item.price !== null && item.title)
+          .map(item => ({
+            id: item.courseId!,
+            title: item.title!,
+            price: item.price!,
+            type: 'course' as const,
+          }));
 
         // Pega items atuais do estado (sem usar items diretamente para evitar loop)
         setItems(currentItems => {
-          // Mescla guest (currentItems) + serverCart por (type,id), sem quantidade
+          // Mescla guest (currentItems) + serverCart por id
           const mergedMap = new Map<string, CartItem>();
 
           function mergeSource(list: CartItem[]) {
             for (const item of list) {
-              const key = `${item.type}:${item.id}`;
-              if (!mergedMap.has(key)) {
-                mergedMap.set(key, { ...item });
+              if (!mergedMap.has(item.id)) {
+                mergedMap.set(item.id, { ...item });
               }
             }
           }
@@ -324,10 +307,9 @@ export function CartProvider({ children }: CartProviderProps) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              items: merged.map((item) => ({
-                itemType: item.type === "jornada" ? "JOURNEY" : "COURSE",
-                courseId: item.type === "curso" ? item.id : null,
-                journeyId: item.type === "jornada" ? item.id : null,
+              items: merged.map(item => ({
+                itemType: 'COURSE',
+                courseId: item.id,
                 quantity: 1,
               })),
             }),
@@ -346,7 +328,8 @@ export function CartProvider({ children }: CartProviderProps) {
           
           return merged;
         });
-      } catch {
+      } catch (error) {
+        console.error("Error syncing cart with server:", error);
         // Em caso de erro, mantém apenas o carrinho em memória/localStorage
         hasSyncedWithServerRef.current = true; // Marca como sincronizado mesmo em caso de erro para evitar loops
       }

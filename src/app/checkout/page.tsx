@@ -40,13 +40,13 @@ export default function CheckoutCartPage() {
         <div className="mx-auto max-w-lg space-y-4 text-center">
           <h1 className="text-2xl font-semibold text-gray-900">Carrinho vazio</h1>
           <p className="text-sm text-gray-500">
-            Adicione cursos ou jornadas na página inicial para continuar.
+            Adicione cursos na página inicial para continuar.
           </p>
           <Link
             href="/"
             className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
           >
-            Ver cursos e jornadas
+            Ver cursos
           </Link>
         </div>
       </main>
@@ -71,7 +71,7 @@ export default function CheckoutCartPage() {
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-900">{item.title}</p>
                   <p className="text-xs uppercase text-gray-400">
-                    {item.type === "jornada" ? "Jornada" : "Curso"}
+                    Curso
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -80,7 +80,7 @@ export default function CheckoutCartPage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.id, item.type)}
+                    onClick={() => removeItem(item.id)}
                     className="text-xs font-medium text-red-500 hover:text-red-600"
                   >
                     Remover
@@ -120,7 +120,7 @@ export default function CheckoutCartPage() {
             amount={total} 
             items={items.map(item => ({
               id: item.id,
-              type: item.type as 'course' | 'journey',
+              type: 'course',
               title: item.title,
               price: item.price
             }))} 

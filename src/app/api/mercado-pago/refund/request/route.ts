@@ -4,7 +4,7 @@ import { MercadoPagoConfig, PaymentRefund } from "mercadopago";
 
 type PaymentItem = {
   id: string;
-  type: 'curso' | 'jornada';
+  type: 'curso';
   quantity?: number;
   price?: number;
   title?: string;
@@ -120,18 +120,12 @@ export async function POST(req: Request) {
       
       await Promise.all(
         payment.items.map(async (item) => {
-          if (item.itemType === 'COURSE' && item.courseId) {
+          if (item.courseId) {
             console.log(`Removendo acesso ao curso ${item.courseId} para o usuário ${userId}`);
             await prisma.enrollment.deleteMany({
               where: { userId, courseId: item.courseId }
             });
             console.log(`Acesso ao curso ${item.courseId} removido com sucesso`);
-          } else if (item.itemType === 'JOURNEY' && item.journeyId) {
-            console.log(`Removendo acesso à jornada ${item.journeyId} para o usuário ${userId}`);
-            await prisma.enrollment.deleteMany({
-              where: { userId, journeyId: item.journeyId }
-            });
-            console.log(`Acesso à jornada ${item.journeyId} removido com sucesso`);
           }
         })
       );
@@ -151,8 +145,8 @@ export async function POST(req: Request) {
         amount: refund.amount,
         paymentId: refund.paymentId,
         items: payment.items.map(item => ({
-          id: item.courseId || item.journeyId,
-          type: item.itemType === 'COURSE' ? 'course' : 'journey',
+          id: item.courseId,
+          type: 'course',
           title: item.title,
           quantity: item.quantity,
           price: item.price

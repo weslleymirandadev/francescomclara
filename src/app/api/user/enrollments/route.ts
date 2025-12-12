@@ -11,7 +11,7 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Get user with their enrollments, courses, and journeys
+    // Get user with their enrollments and courses
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: {
@@ -20,7 +20,8 @@ export async function GET() {
             OR: [
               { endDate: null },
               { endDate: { gte: new Date() } }
-            ]
+            ],
+            courseId: { not: null } // Garante que só retorne matrículas de cursos
           },
           include: {
             course: {
@@ -39,30 +40,6 @@ export async function GET() {
                   orderBy: { order: 'asc' }
                 }
               }
-            },
-            journey: {
-              include: {
-                courses: {
-                  include: {
-                    course: {
-                      include: {
-                        modules: {
-                          include: {
-                            lessons: {
-                              select: {
-                                id: true,
-                                title: true,
-                                order: true
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  orderBy: { order: 'asc' }
-                }
-              }
             }
           }
         }
@@ -73,16 +50,11 @@ export async function GET() {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Separate courses and journeys
     const courses = user.enrollments
-      .filter(e => e.course && !e.journey)
+      .filter(e => e.course)
       .map(e => e.course!);
 
-    const journeys = user.enrollments
-      .filter(e => e.journey)
-      .map(e => e.journey!);
-
-    return NextResponse.json({ courses, journeys });
+    return NextResponse.json({ courses });
 
   } catch (error) {
     console.error('Error fetching enrollments:', error);
