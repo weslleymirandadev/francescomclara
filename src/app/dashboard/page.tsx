@@ -4,9 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBook, FaBookOpen, FaGraduationCap, FaMapSigns, FaRegClock, FaSearch } from 'react-icons/fa';
+import { FaBook, FaBookOpen, FaGraduationCap, FaRegClock, FaSearch } from 'react-icons/fa';
 import { motion } from 'framer-motion';
-import { prisma } from '@/lib/prisma';
 
 interface Lesson {
   id: string;
@@ -31,20 +30,6 @@ interface Course {
   modules: Module[];
 }
 
-interface JourneyCourse {
-  order: number;
-  course: Course;
-}
-
-interface Journey {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string | null;
-  level: string;
-  courses: JourneyCourse[];
-}
-
 interface DashboardData {
   user: {
     id: string;
@@ -53,13 +38,12 @@ interface DashboardData {
     image: string | null;
   };
   courses: Course[];
-  journeys: Journey[];
 }
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<{ user: DashboardData['user']; courses: Course[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -87,7 +71,7 @@ export default function Dashboard() {
         throw new Error('Failed to fetch dashboard data');
       }
 
-      const { courses, journeys } = await response.json();
+      const { courses } = await response.json();
 
       setData({
         user: {
@@ -97,7 +81,6 @@ export default function Dashboard() {
           image: session?.user?.image || null,
         },
         courses,
-        journeys,
       });
 
     } catch (error) {
@@ -110,11 +93,6 @@ export default function Dashboard() {
   const filteredCourses = data?.courses.filter(course => 
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.description.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  const filteredJourneys = data?.journeys.filter(journey => 
-    journey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    journey.description.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
   if (loading) {
@@ -154,7 +132,7 @@ export default function Dashboard() {
             </div>
             <input
               type="text"
-              placeholder="Buscar cursos e jornadas..."
+              placeholder="Buscar cursos..."
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -193,7 +171,7 @@ export default function Dashboard() {
                           alt={course.title}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-r from-blue-500 to-blue-700 flex items-center justify-center">
+                        <div className="w-full h-full bg-linear-to-r from-blue-500 to-blue-700 flex items-center justify-center">
                           <FaGraduationCap className="h-16 w-16 text-white" />
                         </div>
                       )}
@@ -256,139 +234,6 @@ export default function Dashboard() {
                   className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Explorar cursos
-                </Link>
-              )}
-            </div>
-          )}
-        </section>
-
-        {/* Journeys Section */}
-        <section>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <FaMapSigns className="mr-2 text-green-600" />
-              Minhas Jornadas
-            </h2>
-            <span className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">
-              {filteredJourneys.length} jornada{filteredJourneys.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {filteredJourneys.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6">
-              {filteredJourneys.map((journey) => {
-                const totalCourses = journey.courses.length;
-                const totalLessons = journey.courses.reduce(
-                  (total, { course }) =>
-                    total +
-                    course.modules.reduce(
-                      (sum, module) => sum + module.lessons.length,
-                      0
-                    ),
-                  0
-                );
-                const totalDuration = Math.ceil(
-                  journey.courses.reduce(
-                    (total, { course }) =>
-                      total +
-                      course.modules.reduce(
-                        (sum, module) =>
-                          sum +
-                          module.lessons.reduce(
-                            (lessonSum, lesson) =>
-                              lessonSum + (lesson.duration || 0),
-                            0
-                          ),
-                        0
-                      ),
-                    0
-                  ) / 60
-                );
-
-                return (
-                  <motion.div
-                    key={journey.id}
-                    whileHover={{ x: 5 }}
-                    className="bg-white overflow-hidden shadow rounded-lg"
-                  >
-                    <Link href={`/dashboard/jornadas/${journey.id}`}>
-                      <div className="p-6">
-                        <div className="flex items-start">
-                          <div className="shrink-0 h-24 w-24 bg-green-100 rounded-md flex items-center justify-center">
-                            {journey.imageUrl ? (
-                              <img
-                                className="h-full w-full object-cover rounded-md"
-                                src={journey.imageUrl}
-                                alt={journey.title}
-                              />
-                            ) : (
-                              <FaMapSigns className="h-12 w-12 text-green-600" />
-                            )}
-                          </div>
-                          <div className="ml-6 flex-1">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-xl font-semibold text-gray-900">
-                                {journey.title}
-                              </h3>
-                              <span className="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full">
-                                {journey.level}
-                              </span>
-                            </div>
-                            <p className="mt-2 text-gray-600">
-                              {journey.description}
-                            </p>
-                            <div className="mt-4 flex space-x-6">
-                              <div className="flex items-center text-sm text-gray-500">
-                                <FaBook className="mr-1" />
-                                <span>
-                                  {totalCourses} curso
-                                  {totalCourses !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-                              <div className="flex items-center text-sm text-gray-500">
-                                <FaBookOpen className="mr-1" />
-                                <span>
-                                  {totalLessons} aula
-                                  {totalLessons !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-                              <div className="flex items-center text-sm text-gray-500">
-                                <FaRegClock className="mr-1" />
-                                <span>{totalDuration} min</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <FaMapSigns className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">
-                Nenhuma jornada encontrada
-              </h3>
-              <p className="mt-1 text-gray-500">
-                {searchTerm
-                  ? 'Nenhuma jornada corresponde à sua busca.'
-                  : 'Você ainda não está inscrito em nenhuma jornada.'}
-              </p>
-              {searchTerm ? (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="mt-4 text-sm text-green-600 hover:text-green-500"
-                >
-                  Limpar busca
-                </button>
-              ) : (
-                <Link
-                  href="/journeys"
-                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-                >
-                  Explorar jornadas
                 </Link>
               )}
             </div>

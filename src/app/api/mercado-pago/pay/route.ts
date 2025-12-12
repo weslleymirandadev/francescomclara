@@ -1,36 +1,54 @@
 import { NextResponse } from "next/server";
-import { MercadoPagoConfig, Payment } from "mercadopago";
 import prisma from "@/lib/prisma";
 
-const mp = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN!,
-  options: {
-    timeout: 10000,
-    idempotencyKey: crypto.randomUUID()
-  }
-});
-
-interface Item {
-  id: string;
-  type: 'curso' | 'jornada';
-  title: string;
-  description?: string;
-  quantity: number;
-  price: number;
-  imageUrl?: string;
+interface PreapprovalRequest {
+  reason: string;
+  external_reference: string;
+  payer_email: string;
+  card_token_id?: string;
+  auto_recurring: {
+    frequency: number;
+    frequency_type: 'days' | 'months';
+    transaction_amount: number;
+    currency_id: 'BRL';
+    start_date?: string;
+    end_date?: string;
+  };
+  back_url?: string;
+  status?: 'authorized' | 'pending';
+  payment_method_id?: string;
+  installments?: number;
+  payer?: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    identification?: {
+      type: string;
+      number: string;
+    };
+  };
 }
 
+/**
+ * Cria uma assinatura recorrente usando a API de Preapproval do Mercado Pago
+ * Suporta dois modos:
+ * 1. Com token (transparente): autoriza imediatamente sem redirecionamento
+ * 2. Sem token: redireciona para checkout do Mercado Pago
+ */
 export async function POST(req: Request) {
   try {
     const {
-      method,
-      installments = 1,
-      token,
       payer,
       userId,
       items,
       total,
-      issuer_id,
+      token, // Token do cartão (opcional - se fornecido, cria assinatura transparente)
+      method, // Método de pagamento (opcional - usado apenas com token)
+      installments = 1, // Parcelas (opcional - usado apenas com token)
+      frequencyType = 'months', // 'days' ou 'months'
+      frequency = 1, // Frequência de cobrança (ex: 1 = mensal, 2 = bimestral)
+      // Dados do cartão para salvar (opcional - usado apenas com token)
+      cardData,
     } = await req.json();
 
     if (!userId) {
@@ -47,360 +65,294 @@ export async function POST(req: Request) {
       );
     }
 
-    // Log items received
-    console.log('Items recebidos do frontend:', JSON.stringify(items, null, 2));
-
-    // Detect item types if not provided by checking the database
-    const itemsWithTypes = await Promise.all(items.map(async (item) => {
-      // If type is already provided, normalize it
-      if (item.type) {
-        const normalizedType = item.type === 'course' ? 'curso' : item.type === 'journey' ? 'jornada' : item.type;
-        
-        // Validate that the item exists with the provided type
-        if (normalizedType === 'curso') {
-          const course = await prisma.course.findUnique({ where: { id: item.id }, select: { id: true } });
-          if (!course) {
-            throw new Error(`Curso com ID ${item.id} não encontrado no banco de dados`);
-          }
-        } else if (normalizedType === 'jornada') {
-          const journey = await prisma.journey.findUnique({ where: { id: item.id }, select: { id: true } });
-          if (!journey) {
-            throw new Error(`Jornada com ID ${item.id} não encontrada no banco de dados`);
-          }
-        }
-        
-        return {
-          ...item,
-          type: normalizedType
-        };
-      }
-
-      // If type is missing, try to detect it by checking both tables
-      console.log(`Tipo não fornecido para item ${item.id}, detectando automaticamente...`);
-      
-      const [course, journey] = await Promise.all([
-        prisma.course.findUnique({ where: { id: item.id }, select: { id: true } }),
-        prisma.journey.findUnique({ where: { id: item.id }, select: { id: true } })
-      ]);
-
-      if (course) {
-        console.log(`Item ${item.id} identificado como CURSO`);
-        return { ...item, type: 'curso' };
-      } else if (journey) {
-        console.log(`Item ${item.id} identificado como JORNADA`);
-        return { ...item, type: 'jornada' };
-      } else {
-        // Tentar buscar em CartItem para ver se é um ID de carrinho incorreto
-        const cartItem = await prisma.cartItem.findUnique({
-          where: { id: item.id },
-          select: { courseId: true, journeyId: true }
-        });
-        
-        if (cartItem) {
-          const actualId = cartItem.courseId || cartItem.journeyId;
-          if (actualId) {
-            throw new Error(`ID fornecido (${item.id}) é um ID de item do carrinho. Use o ID do curso/jornada (${actualId}) em vez disso.`);
-          }
-        }
-        
-        throw new Error(`Item ${item.id} não encontrado nem como curso nem como jornada. Verifique se o ID está correto.`);
-      }
-    }));
-
-    console.log('Items com tipos detectados:', JSON.stringify(itemsWithTypes, null, 2));
-
-    // Normalize item types (frontend sends 'course'/'journey', API expects 'curso'/'jornada')
-    const normalizedItems = itemsWithTypes;
-
-    // Validate that all items exist in the database
-    const courseIds = normalizedItems.filter(item => item.type === 'curso').map(item => item.id);
-    const journeyIds = normalizedItems.filter(item => item.type === 'jornada').map(item => item.id);
-
-    console.log('Course IDs para validar:', courseIds);
-    console.log('Journey IDs para validar:', journeyIds);
-
-    // Check if courses exist
-    if (courseIds.length > 0) {
-      const existingCourses = await prisma.course.findMany({
-        where: { id: { in: courseIds } },
-        select: { id: true, title: true, price: true }
-      });
-      
-      const existingCourseIds = new Set(existingCourses.map(c => c.id));
-      const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
-      
-      if (missingCourses.length > 0) {
-        return NextResponse.json(
-          { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
-          { status: 404 }
-        );
-      }
+    if (!payer?.email) {
+      return NextResponse.json(
+        { error: "Email do pagador é obrigatório" },
+        { status: 400 }
+      );
     }
 
-    // Check if journeys exist
-    if (journeyIds.length > 0) {
-      console.log('Validando jornadas:', journeyIds);
-      const existingJourneys = await prisma.journey.findMany({
-        where: { id: { in: journeyIds } },
-        select: { id: true, title: true, price: true }
-      });
-      
-      console.log('Jornadas encontradas no banco:', existingJourneys.map(j => j.id));
-      const existingJourneyIds = new Set(existingJourneys.map(j => j.id));
-      const missingJourneys = journeyIds.filter(id => !existingJourneyIds.has(id));
-      
-      if (missingJourneys.length > 0) {
-        console.error('Jornadas não encontradas:', missingJourneys);
-        return NextResponse.json(
-          { error: `Jornadas não encontradas: ${missingJourneys.join(', ')}` },
-          { status: 404 }
-        );
-      }
+    const isTransparent = !!token;
+    console.log(`Criando assinatura ${isTransparent ? 'transparente' : 'com redirecionamento'}`);
+    console.log('Items recebidos:', JSON.stringify(items, null, 2));
+
+    // Validar que todos os cursos existem
+    const courseIds = items.map(item => item.id);
+    const existingCourses = await prisma.course.findMany({
+      where: { id: { in: courseIds } },
+      select: { id: true, title: true, price: true }
+    });
+    
+    const existingCourseIds = new Set(existingCourses.map(c => c.id));
+    const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
+    
+    if (missingCourses.length > 0) {
+      return NextResponse.json(
+        { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
+        { status: 404 }
+      );
     }
 
-    // Validate and enrich items with database data
-    const enrichedItems = normalizedItems.map(item => ({
-      ...item,
-      // Ensure required fields have default values
-      title: item.title || (item.type === 'curso' ? 'Curso' : 'Jornada'),
-      price: item.price || 0,
-      quantity: item.quantity || 1,
-      imageUrl: item.imageUrl || ''
-    }));
+    // Enriquecer items com dados dos cursos
+    const enrichedItems = items.map(item => {
+      const course = existingCourses.find(c => c.id === item.id);
+      return {
+        ...item,
+        title: course?.title || item.title,
+        price: course?.price || item.price,
+        quantity: item.quantity || 1,
+        imageUrl: item.imageUrl || ''
+      };
+    });
 
-
-    // Calcular o total se não fornecido (em centavos)
+    // Calcular o total (em centavos)
     const calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
-    // Mercado Pago espera valores em reais (float), então convertemos de centavos para reais
     const calculatedTotalInReais = calculatedTotalInCents / 100;
+    
     const description = enrichedItems.length === 1
-      ? enrichedItems[0].title
-      : `${enrichedItems.length} itens no carrinho`;
+      ? `Assinatura: ${enrichedItems[0].title}`
+      : `Assinatura: ${enrichedItems.length} cursos`;
 
-    const payment = new Payment(mp);
+    // Preparar dados para Preapproval
+    const externalReference = `subscription-${userId}-${Date.now()}`;
+    
+    // Calcular data de início (hoje) e fim (12 meses depois)
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    const subscriptionEndDate = new Date();
+    subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 12);
+    subscriptionEndDate.setHours(23, 59, 59, 999);
 
-    const mpData = {
-      transaction_amount: calculatedTotalInReais,
-      payment_method_id: method,
-      installments: method !== 'pix' ? installments : 1,
-      ...(issuer_id && { issuer_id }),
-      ...(token && { token }),
-      ...(method === "pix" && {
-        transaction_details: {
-          financial_institution: "pix",
-        },
-      }),
+    const preapprovalData: PreapprovalRequest = {
+      reason: description,
+      external_reference: externalReference,
+      payer_email: payer.email,
+      auto_recurring: {
+        frequency: frequency,
+        frequency_type: frequencyType as 'days' | 'months',
+        transaction_amount: calculatedTotalInReais,
+        currency_id: 'BRL',
+        start_date: startDate.toISOString(),
+        end_date: subscriptionEndDate.toISOString(),
+      },
+      back_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success`,
+      status: token ? 'authorized' : 'pending', // Se tiver token, já autoriza
       payer: {
         email: payer.email,
         first_name: payer.firstName || payer.name?.split(' ')[0] || '',
         last_name: payer.lastName || payer.name?.split(' ').slice(1).join(' ') || '',
         identification: {
           type: 'CPF',
-          number: payer.cpf.replace(/\D/g, '')
-        },
-        ...(payer.zipCode && {
-          address: {
-            zip_code: payer.zipCode,
-            street_name: payer.streetName || '',
-            street_number: payer.streetNumber || '',
-            neighborhood: payer.neighborhood || '',
-            city: payer.city || '',
-            federal_unit: payer.state || ''
-          }
-        })
+          number: payer.cpf?.replace(/\D/g, '') || ''
+        }
       },
-      description,
-      external_reference: `order-${Date.now()}`,
-      notification_url: `${process.env.NEXT_PUBLIC_URL}/api/mercado-pago/webhook`,
-      metadata: {
-        userId,
-        items: enrichedItems.map(item => ({
-          id: item.id,
-          type: item.type,
-          title: item.title,
-          price: item.price,
-          quantity: 1
-        })),
-      },
-      additional_info: {
-        items: enrichedItems.map(item => ({
-          id: item.id,
-          title: item.title,
-          description: item.type === 'curso' ? 'Curso' : 'Jornada',
-          quantity: item.quantity,
-          // Mercado Pago espera valores em reais, converter de centavos
-          unit_price: item.price! / 100,
-          category_id: item.type,
-          ...(item.imageUrl && { picture_url: item.imageUrl }),
-        })),
-      },
-      statement_descriptor: "PROGRAMACAO.DEV",
-      binary_mode: true,
     };
 
-    // Log para debug
-    console.log('Criando pagamento com método:', method);
-    if (method === 'pix') {
-      console.log('Dados do pagamento PIX:', {
-        transaction_amount: calculatedTotalInReais,
-        payer_email: payer.email,
-        payer_cpf: payer.cpf?.replace(/\D/g, ''),
-      });
-    }
-
-    let response;
-    try {
-      response = await payment.create({
-        body: mpData as any,
-        requestOptions: {
-          idempotencyKey: crypto.randomUUID(),
-          meliSessionId: req.headers.get('X-meli-session-id')!
-        }
-      });
-      
-      console.log('Resposta do Mercado Pago:', {
-        id: response.id,
-        status: response.status,
-        payment_method_id: response.payment_method_id,
-        has_point_of_interaction: !!response.point_of_interaction
-      });
-    } catch (mpError: any) {
-      console.error('Erro ao criar pagamento no Mercado Pago:', mpError);
-      console.error('Detalhes do erro:', {
-        message: mpError.message,
-        cause: mpError.cause,
-        status: mpError.status,
-        statusCode: mpError.statusCode
-      });
-      return NextResponse.json(
-        {
-          error: "Erro ao processar pagamento no gateway",
-          details: process.env.NODE_ENV === 'development' ? mpError.message : undefined
-        },
-        { status: 500 }
-      );
-    }
-
-    if (!response?.id) {
-      console.error('Resposta do Mercado Pago sem ID:', response);
-      return NextResponse.json(
-        { error: "Falha ao processar pagamento no gateway" },
-        { status: 500 }
-      );
-    }
-
-    const mpPaymentId = response.id?.toString()!;
-
-    // Double-check that all items still exist before creating payment
-    console.log('Revalidando itens antes de criar pagamento...');
-    for (const item of enrichedItems) {
-      if (item.type === 'curso') {
-        const course = await prisma.course.findUnique({
-          where: { id: item.id },
-          select: { id: true }
-        });
-        if (!course) {
-          console.error(`Curso não encontrado antes de criar pagamento: ${item.id}`);
-          return NextResponse.json(
-            { error: `Curso não encontrado: ${item.id}` },
-            { status: 404 }
-          );
-        }
-      } else if (item.type === 'jornada') {
-        const journey = await prisma.journey.findUnique({
-          where: { id: item.id },
-          select: { id: true }
-        });
-        if (!journey) {
-          console.error(`Jornada não encontrada antes de criar pagamento: ${item.id}`);
-          return NextResponse.json(
-            { error: `Jornada não encontrada: ${item.id}` },
-            { status: 404 }
-          );
-        }
+    // Se tiver token, adicionar dados do cartão para checkout transparente
+    if (token) {
+      preapprovalData.card_token_id = token;
+      if (method) {
+        preapprovalData.payment_method_id = method;
+      }
+      if (installments > 1) {
+        preapprovalData.installments = installments;
       }
     }
 
-    // Create payment record with items in a transaction
-    let paymentRecord;
-    
-    // Preparar metadata com o método correto
-    const paymentMetadata = {
-      userId,
-      method: method, // Garantir que o método seja salvo corretamente
-      installments,
-      items: enrichedItems,
-      ...(response.point_of_interaction?.transaction_data && {
-        qr_code: response.point_of_interaction.transaction_data.qr_code,
-        qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64,
-        ticket_url: response.point_of_interaction.transaction_data.ticket_url
-      })
+    // Obter meliSessionId do header (crucial para checkout transparente/antifraude)
+    const meliSessionId = req.headers.get('X-meli-session-id');
+
+    // Criar Preapproval via API REST do Mercado Pago
+    const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      'X-Idempotency-Key': crypto.randomUUID(),
+      'X-meli-session-id': meliSessionId!
     };
-    
-    console.log('Metadata que será salvo no pagamento:', JSON.stringify(paymentMetadata, null, 2));
-    console.log('Método do pagamento:', method);
-    
-    paymentRecord = await prisma.$transaction(async (prisma) => {
-      // 1. Create the payment
-      const payment = await prisma.payment.create({
-        data: {
-          userId,
-          mpPaymentId,
-          status: "PENDING",
-          amount: calculatedTotalInCents,
-          metadata: paymentMetadata,
-          // Create related payment items
-          items: {
-            create: enrichedItems.map(item => {
-              const isCourse = item.type === 'curso';
-              const price = Number(item.price); // Ensure it's a number
-              if (isNaN(price)) {
-                throw new Error(`Preço inválido para ${isCourse ? 'curso' : 'jornada'}: ${item.id}`);
-              }
 
-              const paymentItemData: any = {
-                itemType: (isCourse ? 'COURSE' : 'JOURNEY') as 'COURSE' | 'JOURNEY',
-                ...(isCourse
-                  ? { courseId: item.id }
-                  : { journeyId: item.id }
-                ),
-                quantity: item.quantity,
-                price: price, // Now definitely a number
-                title: item.title,
-                description: isCourse ? 'Curso' : 'Jornada',
-              };
-
-              console.log(`Criando PaymentItem:`, {
-                type: isCourse ? 'COURSE' : 'JOURNEY',
-                id: item.id,
-                courseId: isCourse ? item.id : undefined,
-                journeyId: !isCourse ? item.id : undefined,
-              });
-
-              return paymentItemData;
-            })
-          }
-        },
-        include: {
-          items: true // Include the created items in the response
-        }
-      });
-
-      return payment;
+    const response = await fetch(`${mpApiUrl}/preapproval`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(preapprovalData),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Erro ao criar assinatura no Mercado Pago:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+      });
+      
+      return NextResponse.json(
+        {
+          error: "Erro ao processar assinatura no gateway",
+          details: process.env.NODE_ENV === 'development' ? JSON.stringify(errorData) : undefined
+        },
+        { status: response.status || 500 }
+      );
+    }
+
+    const preapprovalResponse = await response.json();
+
+    if (!preapprovalResponse?.id) {
+      console.error('Resposta do Mercado Pago sem ID:', preapprovalResponse);
+      return NextResponse.json(
+        { error: "Falha ao processar assinatura no gateway" },
+        { status: 500 }
+      );
+    }
+
+    const mpPreapprovalId = preapprovalResponse.id.toString();
+    const isAuthorized = preapprovalResponse.status === 'authorized';
+
+    console.log('Assinatura criada com sucesso:', {
+      id: mpPreapprovalId,
+      status: preapprovalResponse.status,
+      isAuthorized,
+      init_point: preapprovalResponse.init_point,
+    });
+
+    // Calcular data de término para matrículas
+    const enrollmentEndDate = new Date();
+    if (frequencyType === 'months') {
+      enrollmentEndDate.setMonth(enrollmentEndDate.getMonth() + (12 * frequency));
+    } else {
+      enrollmentEndDate.setDate(enrollmentEndDate.getDate() + (365 * frequency));
+    }
+
+    // Criar registro de pagamento/assinatura no banco e conceder acesso se autorizado
+    const payment = await prisma.payment.create({
+      data: {
+        userId,
+        mpPaymentId: mpPreapprovalId,
+        status: isAuthorized ? 'APPROVED' : (preapprovalResponse.status || 'pending'),
+        amount: calculatedTotalInCents,
+        metadata: {
+          type: 'subscription',
+          isTransparent: isTransparent,
+          ...(method && { paymentMethod: method }),
+          ...(installments > 1 && { installments }),
+          frequency,
+          frequencyType,
+          items: enrichedItems.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+          })),
+          external_reference: externalReference,
+          ...(preapprovalResponse.init_point && { init_point: preapprovalResponse.init_point }),
+          ...(preapprovalResponse.sandbox_init_point && { sandbox_init_point: preapprovalResponse.sandbox_init_point }),
+        },
+        items: {
+          create: enrichedItems.map(item => ({
+            courseId: item.id,
+            price: item.price,
+            quantity: item.quantity,
+            title: item.title,
+            description: item.description || `Curso: ${item.title}`,
+          })),
+        },
+      },
+    });
+
+    // Se for checkout transparente e tiver dados do cartão, salvar método de pagamento
+    if (isTransparent && token && cardData) {
+      try {
+        // Verificar se já existe um método padrão para este usuário
+        const existingDefault = await prisma.paymentMethod.findFirst({
+          where: {
+            userId,
+            isDefault: true,
+            isActive: true,
+          },
+        });
+
+        // Extrair últimos 4 dígitos do número do cartão
+        const cardNumber = cardData.cardNumber?.replace(/\s/g, '') || '';
+        const last4Digits = cardNumber.slice(-4);
+
+        // Parse da data de validade
+        const expiry = cardData.expiry || '';
+        const [expiryMonth, expiryYear] = expiry.split('/');
+        const expiryYearFull = expiryYear ? parseInt(`20${expiryYear}`) : new Date().getFullYear() + 1;
+        const expiryMonthNum = expiryMonth ? parseInt(expiryMonth) : 12;
+
+        // Salvar método de pagamento
+        await prisma.paymentMethod.create({
+          data: {
+            userId,
+            paymentId: payment.id,
+            last4Digits: last4Digits || '****',
+            brand: method || 'unknown',
+            holderName: cardData.holderName || payer.name || '',
+            expiryMonth: expiryMonthNum,
+            expiryYear: expiryYearFull,
+            mpCardToken: token,
+            isDefault: !existingDefault, // Primeiro cartão é padrão
+            isActive: true,
+            metadata: {
+              installments: installments > 1 ? installments : undefined,
+            },
+          },
+        });
+
+        console.log('Método de pagamento salvo com sucesso para assinatura transparente');
+      } catch (paymentMethodError) {
+        console.error('Erro ao salvar método de pagamento:', paymentMethodError);
+        // Não falhar a criação da assinatura se houver erro ao salvar o método de pagamento
+      }
+    }
+
+    // Conceder acesso e limpar carrinho
+    await prisma.$transaction([
+      // Se autorizado imediatamente (transparente), conceder acesso aos cursos
+      ...(isAuthorized ? enrichedItems.map(item =>
+        prisma.enrollment.upsert({
+          where: {
+            userId_courseId: { userId, courseId: item.id }
+          },
+          create: {
+            userId,
+            courseId: item.id,
+            startDate: new Date(),
+            endDate: enrollmentEndDate,
+          },
+          update: {
+            endDate: enrollmentEndDate,
+          }
+        })
+      ) : []),
+      
+      // Limpar carrinho
+      prisma.cartItem.deleteMany({
+        where: {
+          cart: { userId },
+          courseId: { in: courseIds },
+        },
+      }),
+    ]);
+
     return NextResponse.json({
-      id: response.id,
-      status: response.status,
-      status_detail: response.status_detail,
-      point_of_interaction: response.point_of_interaction,
-      payment_record: paymentRecord
+      id: preapprovalResponse.id,
+      status: preapprovalResponse.status,
+      init_point: preapprovalResponse.init_point,
+      sandbox_init_point: preapprovalResponse.sandbox_init_point,
+      external_reference: externalReference,
+      isTransparent: isTransparent,
+      // Se for transparente e já autorizado, não precisa redirecionar
+      requiresRedirect: !isTransparent || preapprovalResponse.status !== 'authorized',
     });
 
   } catch (err) {
-    console.error('Erro ao processar pagamento:', err);
+    console.error('Erro ao processar assinatura:', err);
     return NextResponse.json(
-      { error: "Erro ao processar pagamento", details: err instanceof Error ? err.message : String(err) },
+      { 
+        error: "Erro ao processar assinatura", 
+        details: err instanceof Error ? err.message : String(err) 
+      },
       { status: 500 }
     );
   }

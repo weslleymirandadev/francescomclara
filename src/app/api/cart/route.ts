@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { PaymentItemType } from "@/generated/prisma/enums";
 
 async function getUserId() {
   const session = await getServerSession(authOptions);
@@ -22,7 +21,6 @@ export async function GET() {
       items: {
         include: {
           course: true,
-          journey: true,
         },
       },
     },
@@ -33,25 +31,18 @@ export async function GET() {
   }
 
   const items = cart.items.map((item) => ({
-    id: item.courseId ?? item.journeyId ?? item.id, // Use courseId or journeyId, fallback to CartItem id
-    itemType: item.itemType,
+    id: item.courseId ?? item.id,
     quantity: item.quantity,
     courseId: item.courseId,
-    journeyId: item.journeyId,
-    title: item.course?.title ?? item.journey?.title ?? null,
-    price:
-      item.course?.price ??
-      item.journey?.price ??
-      null,
+    title: item.course?.title ?? null,
+    price: item.course?.price ?? null,
   }));
 
   return NextResponse.json({ items });
 }
 
 interface SaveCartItem {
-  itemType: PaymentItemType;
-  courseId?: string | null;
-  journeyId?: string | null;
+  courseId: string;
   quantity: number;
 }
 
@@ -70,7 +61,7 @@ export async function PUT(req: NextRequest) {
 
   const items = body.items ?? [];
 
-  // Filtra IDs válidos de curso e jornada para evitar violações de FK
+  // Filtra IDs válidos de curso para evitar violações de FK
   const courseIds = Array.from(
     new Set(
       items
@@ -79,41 +70,18 @@ export async function PUT(req: NextRequest) {
     ),
   );
 
-  const journeyIds = Array.from(
-    new Set(
-      items
-        .map((item) => item.journeyId)
-        .filter((id): id is string => typeof id === "string" && id.length > 0),
-    ),
-  );
-
-  const [existingCourses, existingJourneys] = await Promise.all([
-    courseIds.length
-      ? prisma.course.findMany({
-          where: { id: { in: courseIds } },
-          select: { id: true },
-        })
-      : Promise.resolve([]),
-    journeyIds.length
-      ? prisma.journey.findMany({
-          where: { id: { in: journeyIds } },
-          select: { id: true },
-        })
-      : Promise.resolve([]),
-  ]);
+  const existingCourses = courseIds.length
+    ? await prisma.course.findMany({
+        where: { id: { in: courseIds } },
+        select: { id: true },
+      })
+    : [];
 
   const validCourseIdSet = new Set(existingCourses.map((c) => c.id));
-  const validJourneyIdSet = new Set(existingJourneys.map((j) => j.id));
 
-  const sanitizedItems = items.filter((item) => {
-    if (item.courseId) {
-      return validCourseIdSet.has(item.courseId);
-    }
-    if (item.journeyId) {
-      return validJourneyIdSet.has(item.journeyId);
-    }
-    return false;
-  });
+  const sanitizedItems = items.filter((item) => 
+    item.courseId && validCourseIdSet.has(item.courseId)
+  );
 
   try {
     const cart = await prisma.cart.upsert({
@@ -122,9 +90,7 @@ export async function PUT(req: NextRequest) {
         userId,
         items: {
           create: sanitizedItems.map((item) => ({
-            itemType: item.itemType,
-            courseId: item.courseId ?? null,
-            journeyId: item.journeyId ?? null,
+            courseId: item.courseId,
             quantity: item.quantity,
           })),
         },
@@ -133,9 +99,7 @@ export async function PUT(req: NextRequest) {
         items: {
           deleteMany: {},
           create: sanitizedItems.map((item) => ({
-            itemType: item.itemType,
-            courseId: item.courseId ?? null,
-            journeyId: item.journeyId ?? null,
+            courseId: item.courseId,
             quantity: item.quantity,
           })),
         },
@@ -154,7 +118,7 @@ export async function PUT(req: NextRequest) {
     if (error?.code === "P2003") {
       return NextResponse.json(
         {
-          error: "Invalid cart items: one or more items reference non-existing courses or journeys.",
+          error: "Invalid cart items: one or more items reference non-existing courses.",
         },
         { status: 400 },
       );
@@ -177,9 +141,8 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { itemId, itemType, clear } = body as {
+    const { itemId, clear } = body as {
       itemId?: string;
-      itemType?: "COURSE" | "JOURNEY";
       clear?: boolean;
     };
 
@@ -198,16 +161,12 @@ export async function DELETE(req: NextRequest) {
       await prisma.cartItem.deleteMany({
         where: { cartId: cart.id },
       });
-    } else if (itemId && itemType) {
+    } else if (itemId) {
       // Remove specific item from cart
       await prisma.cartItem.deleteMany({
         where: {
           cartId: cart.id,
-          itemType,
-          OR: [
-            { courseId: itemType === "COURSE" ? itemId : null },
-            { journeyId: itemType === "JOURNEY" ? itemId : null },
-          ],
+          courseId: itemId,
         },
       });
     } else {
@@ -224,7 +183,6 @@ export async function DELETE(req: NextRequest) {
         items: {
           include: {
             course: true,
-            journey: true,
           },
         },
       },
@@ -232,12 +190,10 @@ export async function DELETE(req: NextRequest) {
 
     const items = updatedCart?.items.map((item) => ({
       id: item.id,
-      itemType: item.itemType,
       quantity: item.quantity,
       courseId: item.courseId,
-      journeyId: item.journeyId,
-      title: item.course?.title ?? item.journey?.title ?? null,
-      price: item.course?.price ?? item.journey?.price ?? null,
+      title: item.course?.title ?? null,
+      price: item.course?.price ?? null,
     })) || [];
 
     return NextResponse.json({ items });

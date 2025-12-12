@@ -33,7 +33,7 @@ export async function proxy(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   const isPublicApiRoute =
-    (pathname === "/api/courses" || pathname === "/api/journeys") &&
+    (pathname === "/api/courses") &&
     req.method === "GET";
 
   const isPublicRoute =
@@ -43,8 +43,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/curso/") ||
     pathname.startsWith("/cursos/") ||
-    pathname.startsWith("/jornada/") ||
-    pathname.startsWith("/jornadas/") ||
+    pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
     isPublicApiRoute;
@@ -56,7 +55,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 6. Verificar acesso a cursos/jornadas
   if (token) {
     // Verificar acesso a cursos
     if (pathname.startsWith('/dashboard/cursos/')) {
@@ -66,20 +64,12 @@ export async function proxy(req: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
-    
-    // Verificar acesso a jornadas
-    if (pathname.startsWith('/dashboard/jornadas/')) {
-      const parts = pathname.split('/');
-      const journeyId = parts[3]; // Pega o ID da jornada da URL
-      if (journeyId && !await hasJourneyAccess(token.sub!, journeyId)) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
-    }
+  
   }
 
   // 7. Permissões para /admin
   if (pathname.startsWith("/admin")) {
-    if (!token || !["ADMIN", "MODERATOR"].includes(token.role as string)) {
+    if (!token || token.role != "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
@@ -92,27 +82,11 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
-// Função auxiliar para verificar acesso a curso
 async function hasCourseAccess(userId: string, courseId: string): Promise<boolean> {
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       userId,
       courseId,
-      OR: [
-        { endDate: null }, // Acesso vitalício
-        { endDate: { gte: new Date() } } // Acesso ativo
-      ]
-    }
-  });
-  return !!enrollment;
-}
-
-// Função auxiliar para verificar acesso a jornada
-async function hasJourneyAccess(userId: string, journeyId: string): Promise<boolean> {
-  const enrollment = await prisma.enrollment.findFirst({
-    where: {
-      userId,
-      journeyId,
       OR: [
         { endDate: null }, // Acesso vitalício
         { endDate: { gte: new Date() } } // Acesso ativo

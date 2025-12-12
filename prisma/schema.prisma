@@ -24,6 +24,7 @@ model User {
   forumPosts       ForumPost[]
   lessonProgresses LessonProgress[]
   payments         Payment[]
+  paymentMethods   PaymentMethod[]
   sessions         Session[]
   passwords        UserPassword?
 }
@@ -78,17 +79,51 @@ model Session {
   user         User     @relation(fields: [userId], references: [id])
 }
 
+enum TrackObjective {
+  TRAVEL      // Viagens
+  WORK        // Trabalho
+  FAMILY      // Família
+  KNOWLEDGE   // Conhecimento
+}
+
+model Track {
+  id          String          @id @default(cuid())
+  name        String
+  description String
+  objective   TrackObjective  // Objetivo da trilha (viagens, trabalho, família, conhecimento)
+  imageUrl    String?
+  active      Boolean         @default(true)
+  courses     TrackCourse[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([objective])
+  @@index([active])
+}
+
+model TrackCourse {
+  id        String   @id @default(cuid())
+  trackId   String
+  courseId  String
+  order     Int      @default(0) // Ordem do curso dentro da trilha
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, courseId])
+  @@index([trackId])
+  @@index([courseId])
+}
+
 model Course {
-  id              String         @id @default(cuid())
+  id              String                  @id @default(cuid())
   title           String
   description     String
   imageUrl        String?
   price           Int?
-  discountPrice   Int            @default(0)
-  discountEnabled Boolean        @default(false)
-  public          Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  discountPrice   Int                     @default(0)
+  discountEnabled Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
   level           String
   cartItems       CartItem[]
   posts           CoursePost[]
@@ -96,6 +131,8 @@ model Course {
   forumPosts      ForumPost[]
   modules         Module[]
   paymentItems    PaymentItem[]
+  subscriptionPlans SubscriptionPlanCourse[]
+  tracks          TrackCourse[]
 
   users User[]
 }
@@ -210,6 +247,7 @@ model Payment {
   updatedAt   DateTime      @updatedAt
   items       PaymentItem[]
   refunds     Refund[]
+  paymentMethod PaymentMethod?
 
   @@index([status])
   @@index([createdAt])
@@ -242,5 +280,76 @@ model Refund {
   payment    Payment  @relation(fields: [paymentId], references: [id])
 
   @@index([paymentId])
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId     String?   @unique
+  payment       Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  
+  last4Digits   String
+  brand         String    // visa, mastercard, amex, etc
+  holderName    String
+  expiryMonth   Int
+  expiryYear    Int
+  
+  mpCardToken   String?   // Token do cartão no Mercado Pago (se disponível)
+  mpCardId      String?   // ID do cartão salvo no Mercado Pago
+  
+  isDefault     Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  metadata      Json?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([paymentId])
+  @@index([isDefault])
+  @@index([isActive])
+}
+
+enum SubscriptionPlanType {
+  INDIVIDUAL
+  FAMILY
+}
+
+enum SubscriptionPlanPeriod {
+  MONTHLY
+  YEARLY
+}
+
+model SubscriptionPlan {
+  id              String                  @id @default(cuid())
+  name            String
+  description     String?
+  price           Int                     // Preço em centavos
+  discountPrice   Int?                    // Preço com desconto em centavos (opcional)
+  discountEnabled Boolean                 @default(false)
+  type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
+  period          SubscriptionPlanPeriod   // MONTHLY ou YEARLY
+  features        Json?                   // Lista de features do plano
+  courses         SubscriptionPlanCourse[]
+  active          Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([type])
+  @@index([period])
+  @@index([active])
+}
+
+model SubscriptionPlanCourse {
+  id                 String            @id @default(cuid())
+  subscriptionPlanId  String
+  courseId           String?
+  subscriptionPlan   SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
+  course             Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionPlanId, courseId])
+  @@index([subscriptionPlanId])
+  @@index([courseId])
 }
 

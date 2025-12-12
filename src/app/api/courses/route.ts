@@ -6,7 +6,6 @@ import { authOptions } from "@/lib/auth";
 export async function GET(request: Request) {
   try {
     const courses = await prisma.course.findMany({
-      where: { public: true },
       select: {
         id: true,
         title: true,
@@ -16,7 +15,6 @@ export async function GET(request: Request) {
         discountPrice: true,
         discountEnabled: true,
         level: true,
-        public: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { title, description, imageUrl, price, discountPrice, discountEnabled, level, public: isPublic } = await request.json();
+    const { title, description, imageUrl, price, discountPrice, discountEnabled, level } = await request.json();
 
     const course = await prisma.course.create({
       data: {
@@ -53,7 +51,6 @@ export async function POST(request: Request) {
         discountPrice: discountPrice !== undefined ? Number(discountPrice) : 0,
         discountEnabled: discountEnabled !== undefined ? Boolean(discountEnabled) : false,
         level,
-        public: isPublic,
       },
     });
 

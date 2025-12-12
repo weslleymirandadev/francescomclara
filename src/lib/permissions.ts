@@ -66,7 +66,7 @@ export async function hasLessonAccess(userId: string, lessonId: string) {
 //
 
 /**
- * Verifica se um post do fórum (ForumPost) é público ou vinculado a um curso/jornada
+ * Verifica se um post do fórum (ForumPost) é público ou vinculado a um curso
  * e se o usuário tem acesso a esse contexto.
  */
 export async function canViewPost(userId: string | null, postId: string) {

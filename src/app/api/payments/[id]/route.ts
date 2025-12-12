@@ -35,7 +35,7 @@ export async function GET(
 
     if (!payment) {
       return new NextResponse(
-        JSON.stringify({ error: 'Pagamento não encontrado' }),
+        JSON.stringify({ error: 'Assinatura não encontrada' }),
         { 
           status: 404,
           headers: {
@@ -54,7 +54,7 @@ export async function GET(
   } catch (error) {
     console.error('Erro ao buscar pagamento:', error);
     return new NextResponse(
-      JSON.stringify({ error: 'Erro ao buscar informações do pagamento' }),
+      JSON.stringify({ error: 'Erro ao buscar informações da assinatura' }),
       { 
         status: 500,
         headers: {

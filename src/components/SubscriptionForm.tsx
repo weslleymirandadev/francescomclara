@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FaCreditCard } from "react-icons/fa";
-import { FaPix } from "react-icons/fa6";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
@@ -191,15 +190,10 @@ const cardSchema = z.object({
   installments: z.number().min(1, "Selecione o número de parcelas")
 });
 
-const pixSchema = z.object({
-  cpf: z.string()
-    .min(VALIDATION_RULES.cpf.min, VALIDATION_RULES.cpf.error.min)
-    .refine(val => isValidCpf(val), VALIDATION_RULES.cpf.error.invalid)
-});
 
 export interface CartItem {
   id: string;
-  type: 'course' | 'journey';
+  type: 'course';
   title: string;
   price: number;
 }
@@ -216,15 +210,14 @@ interface SessionData {
   status: 'authenticated' | 'unauthenticated' | 'loading';
 }
 
-interface CheckoutPaymentFormProps {
+interface SubscriptionFormProps {
   amount: number;
   items: CartItem[];
 }
 
-export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps) {
+export function SubscriptionForm({ amount, items }: SubscriptionFormProps) {
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
-  const [method, setMethod] = useState<"card" | "pix" | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const {
@@ -248,13 +241,6 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
 
   const documentType = watch("documentType");
   const installments = watch("installments");
-
-  const pixForm = useForm<z.infer<typeof pixSchema>>({
-    resolver: zodResolver(pixSchema),
-    mode: "onChange",
-  });
-
-  const { register: registerPix, handleSubmit: handleSubmitPix, formState: { errors: pixErrors } } = pixForm;
 
   function maskCpf(value: string) {
     let v = value.replace(/\D/g, "");
@@ -407,27 +393,23 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
       // @ts-ignore
       const deviceId = window.MP_DEVICE_SESSION_ID;
 
-      // Fazer o pagamento
-      const paymentResponse = await fetch("/api/mercado-pago/pay", {
+      // Criar assinatura
+      const subscriptionResponse = await fetch("/api/mercado-pago/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-meli-session-id": deviceId, // Device ID para Antifraude
         },
         body: JSON.stringify({
-          method: paymentMethodId, // AGORA É O ID DA BANDEIRA (Ex: 'visa')
-          issuer_id: issuerId,     // ID do Emissor/Banco
+          token: token, // Token do cartão para checkout transparente
+          method: paymentMethodId, // ID da bandeira (Ex: 'visa')
           installments: data.installments,
-          token: token,
           payer: {
             email: payerEmail,
             firstName: payerName.split(' ')[0] || '',
             lastName: payerName.split(' ').slice(1).join(' ') || '',
-            // Aqui você pode querer usar o CPF do documento do formulário (data.document)
-            identification: {
-              type: data.documentType,
-              number: data.document.replace(/\D/g, ''),
-            }
+            name: payerName,
+            cpf: data.document.replace(/\D/g, ''),
           },
           userId: session.user.id,
           items: items.map(item => ({
@@ -438,100 +420,42 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             quantity: 1,
           })),
           total: amount,
+          frequencyType: 'months',
+          frequency: 1, // Mensal
+          // Dados do cartão para salvar no banco
+          cardData: {
+            cardNumber: cardNumberClean,
+            holderName: data.holderName,
+            expiry: data.expiry,
+            expiryMonth: expiryMonth,
+            expiryYear: expiryYear,
+            brand: paymentMethodId,
+          },
         }),
       });
 
-      const paymentResult = await paymentResponse.json();
+      const subscriptionResult = await subscriptionResponse.json();
 
-      if (!paymentResponse.ok || paymentResult.status === 'rejected' || paymentResult.status === 'cancelled') {
-        throw new Error(paymentResult.status_detail || paymentResult.error || "Pagamento não foi aprovado");
+      if (!subscriptionResponse.ok) {
+        throw new Error(subscriptionResult.error || "Erro ao criar assinatura");
       }
 
-      // Verificar status do pagamento
-      if (paymentResult.status === 'approved') {
-        toast.success("Pagamento aprovado com sucesso!");
-        router.push(`/checkout/success?payment_id=${paymentResult.id}`);
-      } else if (paymentResult.status === 'pending' || paymentResult.status === 'in_process') {
-        // Pagamentos com Cartão são geralmente 'approved' ou 'rejected'. 'Pending' é raro.
-        toast.success("Pagamento em processamento. Aguardando confirmação.");
-        router.push(`/checkout/success?payment_id=${paymentResult.id}`);
+      // Se for transparente e já autorizado, redirecionar para sucesso
+      if (subscriptionResult.isTransparent && subscriptionResult.status === 'authorized') {
+        toast.success("Assinatura criada e autorizada com sucesso!");
+        router.push(`/checkout/success?payment_id=${subscriptionResult.id}`);
+      } else if (subscriptionResult.requiresRedirect && subscriptionResult.init_point) {
+        // Redirecionar para checkout do Mercado Pago
+        window.location.href = subscriptionResult.init_point;
       } else {
-        // Qualquer outro status não tratado (e não rejected/cancelled)
-        throw new Error(`Status de pagamento inesperado: ${paymentResult.status}`);
+        // Assinatura pendente
+        toast.success("Assinatura criada! Aguardando autorização.");
+        router.push(`/checkout/success?payment_id=${subscriptionResult.id}`);
       }
     } catch (error: any) {
-      console.error('Erro no pagamento:', error);
+      console.error('Erro ao criar assinatura:', error);
       // Exibe a mensagem de erro específica, se disponível
-      toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  async function onSubmitPix(data: z.infer<typeof pixSchema>) {
-    if (!session?.user?.id) {
-      toast.error("Você precisa estar logado para finalizar a compra");
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      const payerName = session.user.name || '';
-      const payerEmail = session.user.email;
-
-      if (!payerEmail) {
-        throw new Error("E-mail é obrigatório para o pagamento");
-      }
-
-      // @ts-ignore
-      const deviceId = window.MP_DEVICE_SESSION_ID;
-
-      const paymentResponse = await fetch("/api/mercado-pago/pay", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-meli-session-id": deviceId
-        },
-        body: JSON.stringify({
-          method: 'pix',
-          installments: 1,
-          payer: {
-            email: payerEmail,
-            firstName: payerName.split(' ')[0] || '',
-            lastName: payerName.split(' ').slice(1).join(' ') || '',
-            cpf: data.cpf.replace(/\D/g, ''),
-          },
-          userId: session.user.id,
-          items: items.map(item => ({
-            id: item.id,
-            type: item.type,
-            title: item.title,
-            price: item.price,
-            quantity: 1,
-          })),
-          total: amount,
-        }),
-      });
-
-      const paymentResult = await paymentResponse.json();
-
-      if (!paymentResponse.ok) {
-        throw new Error(paymentResult.error || "Erro ao processar pagamento");
-      }
-
-      // Validate that we have a payment ID
-      if (!paymentResult.id) {
-        console.error('Resposta da API sem ID:', paymentResult);
-        throw new Error("Resposta inválida da API: ID do pagamento não encontrado");
-      }
-
-      // Only pass the payment ID to the success page
-      router.push(`/checkout/success?payment_id=${paymentResult.id}`);
-
-    } catch (error: any) {
-      console.error('Erro no pagamento PIX:', error);
-      toast.error(error.message || "Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
-      // Não redireciona em caso de erro - mantém o usuário na página de checkout
+      toast.error(error.message || "Ocorreu um erro ao processar sua assinatura. Por favor, tente novamente.");
     } finally {
       setProcessing(false);
     }
@@ -544,40 +468,19 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
   return (
     <section className="space-y-4 pt-4">
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-gray-900">Método de pagamento</h2>
-        <p className="text-xs text-gray-500">Escolha um método para concluir sua compra.</p>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMethod("card")}
-            className={`flex items-center rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition hover:scale-105 ${method === "card"
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-gray-200 bg-white text-gray-700"
-              }`}
-          >
-            <FaCreditCard className="mr-2" /> Cartão
-          </button>
-          <button
-            type="button"
-            onClick={() => setMethod("pix")}
-            className={`flex items-center rounded-md border px-3 py-2 text-sm font-medium shadow-sm transition hover:scale-105 ${method === "pix"
-              ? "border-green-600 bg-green-50 text-green-700"
-              : "border-gray-200 bg-white text-gray-700"
-              }`}
-          >
-            <FaPix className="mr-2" /> Pix
-          </button>
-        </div>
+        <h2 className="text-sm font-medium text-gray-900">Assinatura</h2>
+        <p className="text-xs text-gray-500">
+          Complete sua assinatura mensal. O pagamento será cobrado automaticamente todo mês.
+        </p>
       </div>
 
-      {method === "card" && (
-        <form
-          onSubmit={handleSubmit(onSubmitCard)}
-          className="space-y-4 rounded-md border border-gray-200 p-4"
-        >
-          <p className="text-xs text-gray-500">
-            Valor total: <span className="font-semibold">{formatPrice(amount)}</span>
-          </p>
+      <form
+        onSubmit={handleSubmit(onSubmitCard)}
+        className="space-y-4 rounded-md border border-gray-200 p-4"
+      >
+        <p className="text-xs text-gray-500">
+          Valor total: <span className="font-semibold">{formatPrice(amount)}</span>
+        </p>
 
           <div className="relative w-full">
             <input
@@ -883,58 +786,9 @@ export function CheckoutPaymentForm({ amount, items }: CheckoutPaymentFormProps)
             disabled={processing}
             className="mt-2 inline-flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-500 disabled:opacity-60"
           >
-            {processing ? "Processando..." : "Pagar com cartão"}
+            {processing ? "Processando..." : "Assinar agora"}
           </button>
         </form>
-      )}
-
-      {method === "pix" && (
-        <form
-          onSubmit={handleSubmitPix(onSubmitPix)}
-          className="space-y-4 rounded-md border border-gray-200 p-4"
-        >
-          <p className="text-xs text-gray-500">
-            Você receberá um QR Code para pagar o valor de
-            {" "}
-            <span className="font-semibold">{formatPrice(amount)}</span>.
-          </p>
-
-          <div className="relative w-full">
-            <input
-              type="text"
-              maxLength={14}
-              onKeyDown={handleKeyDown}
-              {...registerPix("cpf", {
-                onChange: (e) => {
-                  const masked = maskCpf(e.target.value);
-                  e.target.value = masked;
-                  pixForm.trigger("cpf");
-                },
-              })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 ${pixErrors?.cpf ? "border-red-400" : "border-gray-300"
-                }`}
-              placeholder=" "
-            />
-            <label
-              className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${pixErrors?.cpf ? "text-red-400" : "text-gray-300"
-                }`}
-            >
-              CPF do pagador
-            </label>
-            {pixErrors.cpf && (
-              <span className="text-xs text-red-500">{pixErrors.cpf.message}</span>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={processing}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-500 disabled:opacity-60"
-          >
-            {processing ? "Gerando PIX..." : "Gerar PIX"}
-          </button>
-        </form>
-      )}
     </section>
   );
 }
