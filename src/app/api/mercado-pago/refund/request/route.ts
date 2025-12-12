@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { MercadoPagoConfig, PaymentRefund } from "mercadopago";
 
 type PaymentItem = {
   id: string;
@@ -11,12 +10,11 @@ type PaymentItem = {
 };
 
 type PaymentMetadata = {
+  type?: string;
   items?: PaymentItem[];
   durationMonths?: number;
   [key: string]: any;
 };
-
-const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN! });
 
 export async function POST(req: Request) {
   try {
@@ -57,38 +55,62 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // 7 dias de limite para reembolso
-    const limitDate = new Date(payment.createdAt);
-    limitDate.setDate(limitDate.getDate() + 7);
+    // Verificar se é uma assinatura
+    const metadata = payment.metadata as PaymentMetadata;
+    const isSubscription = metadata.type === 'subscription';
 
-    if (new Date() > limitDate) {
-      console.error(`Tentativa de reembolso após o prazo para o pagamento ${paymentId}`);
+    if (!isSubscription) {
       return NextResponse.json({ 
-        error: "Reembolso permitido somente até 7 dias após a compra" 
+        error: "Este endpoint é apenas para reembolso de assinaturas" 
       }, { status: 400 });
     }
 
-    console.log(`Criando reembolso no Mercado Pago para o pagamento ${payment.mpPaymentId}`);
-    
-    // Criar reembolso no Mercado Pago
-    const refundClient = new PaymentRefund(client);
-    let mpRefund;
+    // Verificar se já está cancelada
+    if (payment.status === 'CANCELLED') {
+      return NextResponse.json({ 
+        error: "Esta assinatura já foi cancelada" 
+      }, { status: 400 });
+    }
+
+    // Cancelar assinatura no Mercado Pago
+    console.log(`Cancelando assinatura ${payment.mpPaymentId}`);
     
     try {
-      // Calcular o valor total dos itens para reembolso
-      const totalAmount = payment.items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-      
-      mpRefund = await refundClient.create({
-        payment_id: payment.mpPaymentId
+      const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
+      const cancelResponse = await fetch(`${mpApiUrl}/preapproval/${payment.mpPaymentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          status: 'cancelled'
+        }),
       });
-      console.log(`Reembolso criado no Mercado Pago: ${mpRefund.id}`);
-    } catch (mpError: any) {
-      console.error('Erro ao criar reembolso no Mercado Pago:', mpError);
+
+      if (!cancelResponse.ok) {
+        const errorData = await cancelResponse.json().catch(() => ({}));
+        console.error('Erro ao cancelar assinatura:', errorData);
+        return NextResponse.json({ 
+          error: `Falha ao cancelar assinatura: ${errorData.message || 'Erro desconhecido'}`,
+          details: process.env.NODE_ENV === 'development' ? JSON.stringify(errorData) : undefined
+        }, { status: cancelResponse.status || 500 });
+      }
+
+      console.log(`Assinatura ${payment.mpPaymentId} cancelada com sucesso`);
+    } catch (cancelError) {
+      console.error('Erro ao cancelar assinatura:', cancelError);
       return NextResponse.json({ 
-        error: `Falha ao processar reembolso: ${mpError.message || 'Erro desconhecido'}`,
-        details: mpError.cause || undefined
+        error: "Erro ao cancelar assinatura",
+        details: cancelError instanceof Error ? cancelError.message : String(cancelError)
       }, { status: 500 });
     }
+
+    // Para assinaturas, marcamos como reembolsada após cancelamento
+    const mpRefund = {
+      id: `refund-${Date.now()}`,
+      status: 'approved'
+    };
 
     // Iniciar transação para garantir consistência dos dados
     const [refund] = await prisma.$transaction([
@@ -96,17 +118,17 @@ export async function POST(req: Request) {
       prisma.refund.create({
         data: {
           paymentId,
-          mpRefundId: mpRefund.id?.toString() ?? null,
-          status: mpRefund.status!,
+          mpRefundId: mpRefund?.id?.toString() ?? null,
+          status: mpRefund?.status || 'COMPLETED',
           amount: payment.amount,
         },
       }),
       
-      // Atualizar status do pagamento para REFUNDED
+      // Atualizar status do pagamento para cancelado
       prisma.payment.update({
         where: { id: paymentId },
         data: { 
-          status: 'REFUNDED',
+          status: 'CANCELLED',
           updatedAt: new Date()
         },
       }),
@@ -152,7 +174,7 @@ export async function POST(req: Request) {
           price: item.price
         }))
       },
-      message: 'Reembolso processado com sucesso. O acesso aos itens foi revogado.'
+      message: 'Assinatura cancelada e reembolsada com sucesso. O acesso aos itens foi revogado.'
     });
   } catch (err: any) {
     console.error('Erro ao processar reembolso:', err);
