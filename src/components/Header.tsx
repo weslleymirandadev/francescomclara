@@ -84,7 +84,7 @@ export function Header() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.id, item.type)}
+                            onClick={() => removeItem(item.id)}
                             className="text-[11px] font-medium text-red-500 hover:text-red-600"
                           >
                             Remover
