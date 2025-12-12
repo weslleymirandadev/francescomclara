@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { formatPrice } from "@/lib/price";
@@ -256,12 +256,22 @@ export default function Home() {
                     )}
 
                     {/* Botão de assinatura */}
-                    <Link
-                      href={`/assinar?planId=${plan.id}`}
+                    <button
+                      onClick={() => {
+                        if (status === "unauthenticated") {
+                          // Redirecionar para login com callbackUrl
+                          void signIn(undefined, { 
+                            callbackUrl: `/assinar?planId=${plan.id}` 
+                          });
+                        } else {
+                          // Se autenticado, redirecionar diretamente
+                          router.push(`/assinar?planId=${plan.id}`);
+                        }
+                      }}
                       className="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
                     >
                       Assinar Agora
-                    </Link>
+                    </button>
                   </div>
                 </div>
               );
