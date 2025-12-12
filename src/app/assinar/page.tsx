@@ -10,13 +10,20 @@ import { formatPrice } from "@/lib/price";
 interface SubscriptionPlan {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number; // em centavos
+  originalPrice?: number;
+  discountPrice: number | null;
+  discountEnabled: boolean;
+  type: 'INDIVIDUAL' | 'FAMILY';
+  period: 'MONTHLY' | 'YEARLY';
+  features: any;
   courses: Array<{
     id: string;
     title: string;
-    price: number;
+    price: number | null;
   }>;
+  active: boolean;
 }
 
 function AssinarPageContent() {
@@ -102,12 +109,12 @@ function AssinarPageContent() {
     );
   }
 
-  const total = plan.price;
+  const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : plan.price;
   const items = plan.courses.map(course => ({
     id: course.id,
     type: 'course' as const,
     title: course.title,
-    price: course.price
+    price: course.price || 0
   }));
 
   return (
@@ -120,7 +127,9 @@ function AssinarPageContent() {
             {plan.description}
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            O pagamento será cobrado automaticamente todo mês.
+            {plan.period === 'YEARLY' 
+              ? 'O pagamento será cobrado anualmente.' 
+              : 'O pagamento será cobrado automaticamente todo mês.'}
           </p>
         </header>
 
@@ -149,10 +158,24 @@ function AssinarPageContent() {
           </div>
 
           <div className="flex items-center justify-between rounded-md bg-gray-50 p-4">
-            <span className="text-sm font-medium text-gray-700">Valor mensal</span>
-            <span className="text-lg font-semibold text-gray-900">
-              {formatPrice(total)}
+            <span className="text-sm font-medium text-gray-700">
+              {plan.period === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}
             </span>
+            <div className="text-right">
+              {plan.discountEnabled && plan.originalPrice && (
+                <span className="text-xs line-through text-gray-400 block">
+                  {formatPrice(plan.originalPrice)}
+                </span>
+              )}
+              <span className="text-lg font-semibold text-gray-900">
+                {formatPrice(total)}
+              </span>
+              {plan.period === 'YEARLY' && (
+                <span className="text-xs text-gray-500 block">
+                  {formatPrice(Math.round(total / 12))} por mês
+                </span>
+              )}
+            </div>
           </div>
         </section>
 
