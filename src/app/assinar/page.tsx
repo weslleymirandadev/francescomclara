@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
-import { CheckoutPaymentForm } from "../../components/CheckoutPaymentForm";
+import { SubscriptionForm } from "@/components/SubscriptionForm";
 import { formatPrice } from "@/lib/price";
 
 export default function CheckoutCartPage() {
@@ -119,7 +119,7 @@ export default function CheckoutCartPage() {
             </button>
           </div>
 
-          <CheckoutPaymentForm 
+          <SubscriptionForm 
             amount={total} 
             items={items.map(item => ({
               id: item.id,
