@@ -12,7 +12,6 @@ const mp = new MercadoPagoConfig({
 
 interface Item {
   id: string;
-  type: 'curso' | 'jornada';
   title: string;
   description?: string;
   quantity: number;
@@ -50,124 +49,40 @@ export async function POST(req: Request) {
     // Log items received
     console.log('Items recebidos do frontend:', JSON.stringify(items, null, 2));
 
-    // Detect item types if not provided by checking the database
-    const itemsWithTypes = await Promise.all(items.map(async (item) => {
-      // If type is already provided, normalize it
-      if (item.type) {
-        const normalizedType = item.type === 'course' ? 'curso' : item.type === 'journey' ? 'jornada' : item.type;
-        
-        // Validate that the item exists with the provided type
-        if (normalizedType === 'curso') {
-          const course = await prisma.course.findUnique({ where: { id: item.id }, select: { id: true } });
-          if (!course) {
-            throw new Error(`Curso com ID ${item.id} não encontrado no banco de dados`);
-          }
-        } else if (normalizedType === 'jornada') {
-          const journey = await prisma.journey.findUnique({ where: { id: item.id }, select: { id: true } });
-          if (!journey) {
-            throw new Error(`Jornada com ID ${item.id} não encontrada no banco de dados`);
-          }
-        }
-        
-        return {
-          ...item,
-          type: normalizedType
-        };
-      }
-
-      // If type is missing, try to detect it by checking both tables
-      console.log(`Tipo não fornecido para item ${item.id}, detectando automaticamente...`);
-      
-      const [course, journey] = await Promise.all([
-        prisma.course.findUnique({ where: { id: item.id }, select: { id: true } }),
-        prisma.journey.findUnique({ where: { id: item.id }, select: { id: true } })
-      ]);
-
-      if (course) {
-        console.log(`Item ${item.id} identificado como CURSO`);
-        return { ...item, type: 'curso' };
-      } else if (journey) {
-        console.log(`Item ${item.id} identificado como JORNADA`);
-        return { ...item, type: 'jornada' };
-      } else {
-        // Tentar buscar em CartItem para ver se é um ID de carrinho incorreto
-        const cartItem = await prisma.cartItem.findUnique({
-          where: { id: item.id },
-          select: { courseId: true, journeyId: true }
-        });
-        
-        if (cartItem) {
-          const actualId = cartItem.courseId || cartItem.journeyId;
-          if (actualId) {
-            throw new Error(`ID fornecido (${item.id}) é um ID de item do carrinho. Use o ID do curso/jornada (${actualId}) em vez disso.`);
-          }
-        }
-        
-        throw new Error(`Item ${item.id} não encontrado nem como curso nem como jornada. Verifique se o ID está correto.`);
-      }
-    }));
-
-    console.log('Items com tipos detectados:', JSON.stringify(itemsWithTypes, null, 2));
-
-    // Normalize item types (frontend sends 'course'/'journey', API expects 'curso'/'jornada')
-    const normalizedItems = itemsWithTypes;
-
-    // Validate that all items exist in the database
-    const courseIds = normalizedItems.filter(item => item.type === 'curso').map(item => item.id);
-    const journeyIds = normalizedItems.filter(item => item.type === 'jornada').map(item => item.id);
+    // Validate that all items exist in the database as courses
+    const courseIds = items.map(item => item.id);
 
     console.log('Course IDs para validar:', courseIds);
-    console.log('Journey IDs para validar:', journeyIds);
 
     // Check if courses exist
-    if (courseIds.length > 0) {
-      const existingCourses = await prisma.course.findMany({
-        where: { id: { in: courseIds } },
-        select: { id: true, title: true, price: true }
-      });
-      
-      const existingCourseIds = new Set(existingCourses.map(c => c.id));
-      const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
-      
-      if (missingCourses.length > 0) {
-        return NextResponse.json(
-          { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
-          { status: 404 }
-        );
-      }
+    const existingCourses = await prisma.course.findMany({
+      where: { id: { in: courseIds } },
+      select: { id: true, title: true, price: true }
+    });
+    
+    const existingCourseIds = new Set(existingCourses.map(c => c.id));
+    const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
+    
+    if (missingCourses.length > 0) {
+      return NextResponse.json(
+        { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
+        { status: 404 }
+      );
     }
 
-    // Check if journeys exist
-    if (journeyIds.length > 0) {
-      console.log('Validando jornadas:', journeyIds);
-      const existingJourneys = await prisma.journey.findMany({
-        where: { id: { in: journeyIds } },
-        select: { id: true, title: true, price: true }
-      });
-      
-      console.log('Jornadas encontradas no banco:', existingJourneys.map(j => j.id));
-      const existingJourneyIds = new Set(existingJourneys.map(j => j.id));
-      const missingJourneys = journeyIds.filter(id => !existingJourneyIds.has(id));
-      
-      if (missingJourneys.length > 0) {
-        console.error('Jornadas não encontradas:', missingJourneys);
-        return NextResponse.json(
-          { error: `Jornadas não encontradas: ${missingJourneys.join(', ')}` },
-          { status: 404 }
-        );
-      }
-    }
+    // Enrich items with course data
+    const normalizedItems = items.map(item => {
+      const course = existingCourses.find(c => c.id === item.id);
+      return {
+        ...item,
+        title: course?.title || item.title,
+        price: course?.price || item.price,
+        quantity: item.quantity || 1,
+        imageUrl: item.imageUrl || ''
+      };
+    });
 
-    // Validate and enrich items with database data
-    const enrichedItems = normalizedItems.map(item => ({
-      ...item,
-      // Ensure required fields have default values
-      title: item.title || (item.type === 'curso' ? 'Curso' : 'Jornada'),
-      price: item.price || 0,
-      quantity: item.quantity || 1,
-      imageUrl: item.imageUrl || ''
-    }));
-
+    const enrichedItems = normalizedItems;
 
     // Calcular o total se não fornecido (em centavos)
     const calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
@@ -216,7 +131,6 @@ export async function POST(req: Request) {
         userId,
         items: enrichedItems.map(item => ({
           id: item.id,
-          type: item.type,
           title: item.title,
           price: item.price,
           quantity: 1
@@ -226,11 +140,11 @@ export async function POST(req: Request) {
         items: enrichedItems.map(item => ({
           id: item.id,
           title: item.title,
-          description: item.type === 'curso' ? 'Curso' : 'Jornada',
+          description: 'Curso',
           quantity: item.quantity,
           // Mercado Pago espera valores em reais, converter de centavos
           unit_price: item.price! / 100,
-          category_id: item.type,
+          category_id: 'curso',
           ...(item.imageUrl && { picture_url: item.imageUrl }),
         })),
       },
@@ -291,110 +205,63 @@ export async function POST(req: Request) {
 
     const mpPaymentId = response.id?.toString()!;
 
-    // Double-check that all items still exist before creating payment
-    console.log('Revalidando itens antes de criar pagamento...');
-    for (const item of enrichedItems) {
-      if (item.type === 'curso') {
-        const course = await prisma.course.findUnique({
-          where: { id: item.id },
-          select: { id: true }
-        });
-        if (!course) {
-          console.error(`Curso não encontrado antes de criar pagamento: ${item.id}`);
-          return NextResponse.json(
-            { error: `Curso não encontrado: ${item.id}` },
-            { status: 404 }
-          );
-        }
-      } else if (item.type === 'jornada') {
-        const journey = await prisma.journey.findUnique({
-          where: { id: item.id },
-          select: { id: true }
-        });
-        if (!journey) {
-          console.error(`Jornada não encontrada antes de criar pagamento: ${item.id}`);
-          return NextResponse.json(
-            { error: `Jornada não encontrada: ${item.id}` },
-            { status: 404 }
-          );
-        }
-      }
-    }
-
-    // Create payment record with items in a transaction
-    let paymentRecord;
-    
-    // Preparar metadata com o método correto
-    const paymentMetadata = {
-      userId,
-      method: method, // Garantir que o método seja salvo corretamente
-      installments,
-      items: enrichedItems,
-      ...(response.point_of_interaction?.transaction_data && {
-        qr_code: response.point_of_interaction.transaction_data.qr_code,
-        qr_code_base64: response.point_of_interaction.transaction_data.qr_code_base64,
-        ticket_url: response.point_of_interaction.transaction_data.ticket_url
-      })
-    };
-    
-    console.log('Metadata que será salvo no pagamento:', JSON.stringify(paymentMetadata, null, 2));
-    console.log('Método do pagamento:', method);
-    
-    paymentRecord = await prisma.$transaction(async (prisma) => {
-      // 1. Create the payment
-      const payment = await prisma.payment.create({
+    // Create payment record and enroll user in courses
+    await prisma.$transaction([
+      // Create payment record
+      prisma.payment.create({
         data: {
           userId,
-          mpPaymentId,
-          status: "PENDING",
+          mpPaymentId: response.id.toString(),
+          status: response.status || 'pending',
           amount: calculatedTotalInCents,
-          metadata: paymentMetadata,
-          // Create related payment items
+          metadata: {
+            paymentMethod: method,
+            installments: method !== 'pix' ? installments : 1,
+          },
           items: {
-            create: enrichedItems.map(item => {
-              const isCourse = item.type === 'curso';
-              const price = Number(item.price); // Ensure it's a number
-              if (isNaN(price)) {
-                throw new Error(`Preço inválido para ${isCourse ? 'curso' : 'jornada'}: ${item.id}`);
-              }
-
-              const paymentItemData: any = {
-                itemType: (isCourse ? 'COURSE' : 'JOURNEY') as 'COURSE' | 'JOURNEY',
-                ...(isCourse
-                  ? { courseId: item.id }
-                  : { journeyId: item.id }
-                ),
-                quantity: item.quantity,
-                price: price, // Now definitely a number
-                title: item.title,
-                description: isCourse ? 'Curso' : 'Jornada',
-              };
-
-              console.log(`Criando PaymentItem:`, {
-                type: isCourse ? 'COURSE' : 'JOURNEY',
-                id: item.id,
-                courseId: isCourse ? item.id : undefined,
-                journeyId: !isCourse ? item.id : undefined,
-              });
-
-              return paymentItemData;
-            })
-          }
+            create: enrichedItems.map(item => ({
+              courseId: item.id,
+              price: item.price,
+              quantity: item.quantity,
+              title: item.title,
+              description: item.description || `Curso: ${item.title}`,
+            })),
+          },
         },
-        include: {
-          items: true // Include the created items in the response
-        }
-      });
-
-      return payment;
-    });
+      }),
+      
+      // Enroll user in courses
+      ...enrichedItems.map(item => 
+        prisma.enrollment.upsert({
+          where: {
+            userId_courseId: {
+              userId,
+              courseId: item.id,
+            },
+          },
+          create: {
+            userId,
+            courseId: item.id,
+            startDate: new Date(),
+          },
+          update: {},
+        })
+      ),
+      
+      // Clear user's cart after successful purchase
+      prisma.cartItem.deleteMany({
+        where: {
+          cart: { userId },
+          courseId: { in: courseIds },
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       id: response.id,
       status: response.status,
       status_detail: response.status_detail,
       point_of_interaction: response.point_of_interaction,
-      payment_record: paymentRecord
     });
 
   } catch (err) {

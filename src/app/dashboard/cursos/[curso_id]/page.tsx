@@ -44,9 +44,8 @@ interface Payment {
   status: string;
   amount: number;
   createdAt: Date;
-  itemType: 'COURSE' | 'JOURNEY';
+  itemType: 'COURSE';
   courseId: string | null;
-  journeyId: string | null;
   refunds: Array<{
     id: string;
     status: string;

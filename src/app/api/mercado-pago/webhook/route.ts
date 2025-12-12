@@ -3,8 +3,7 @@ import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
-type PaymentItemType = 'COURSE' | 'JOURNEY';
-type ItemType = 'course' | 'journey';
+type ItemType = 'course';
 
 interface PaymentMetadata {
   userId?: string;
@@ -13,6 +12,7 @@ interface PaymentMetadata {
     type: ItemType;
     quantity?: number;
     title?: string;
+    description?: string;
     price?: number;
   }>;
   durationMonths?: number;
@@ -21,11 +21,12 @@ interface PaymentMetadata {
 
 interface PaymentItem {
   id: string;
-  type: ItemType;
-  quantity?: number;
-  price?: number;
-  title?: string;
-  description?: string;
+  type: 'course';
+  quantity: number;
+  price: number;
+  title: string;
+  description: string;
+  courseId: string;
 }
 
 const client = new MercadoPagoConfig({
@@ -104,19 +105,12 @@ async function getPaymentWithFallback(mpPaymentId: string) {
 async function revokeUserAccess(userId: string, items: PaymentItem[]) {
   for (const item of items) {
     try {
-      if (item.type === 'course') {
-        await prisma.enrollment.deleteMany({
-          where: { userId, courseId: item.id }
-        });
-        console.log(`Acesso removido do curso ${item.id} para o usuário ${userId}`);
-      } else if (item.type === 'journey') {
-        await prisma.enrollment.deleteMany({
-          where: { userId, journeyId: item.id }
-        });
-        console.log(`Acesso removido da jornada ${item.id} para o usuário ${userId}`);
-      }
+      await prisma.enrollment.deleteMany({
+        where: { userId, courseId: item.id }
+      });
+      console.log(`Acesso removido do curso ${item.id} para o usuário ${userId}`);
     } catch (error) {
-      console.error(`Erro ao remover acesso para ${item.type} ${item.id}:`, error);
+      console.error(`Erro ao remover acesso para o curso ${item.id}:`, error);
     }
   }
 }
@@ -169,37 +163,18 @@ async function processApprovedPayment(
   try {
     await ensureUserExists(userId);
 
-    // Normalize item types to 'course'/'journey' format (metadata can have 'curso'/'jornada')
-    const normalizedItems = items.map(item => {
-      const itemTypeStr = String(item.type).toLowerCase();
-      let normalizedType: ItemType;
-      
-      if (itemTypeStr === 'curso' || itemTypeStr === 'course') {
-        normalizedType = 'course';
-      } else if (itemTypeStr === 'jornada' || itemTypeStr === 'journey') {
-        normalizedType = 'journey';
-      } else {
-        // Fallback: assume it's already in the correct format
-        normalizedType = item.type;
-      }
-      
-      return {
-        ...item,
-        type: normalizedType
-      };
-    });
-
-    // Ensure items have required fields
-    const validatedItems = normalizedItems.map(item => ({
-      ...item,
+    // Create payment items for courses
+    const paymentItems = items.map(item => ({
+      paymentId: paymentId,
+      courseId: item.id,
+      price: item.price || 0,
       quantity: item.quantity || 1,
-      price: item.price || Math.round((amount * 100) / items.length),
-      title: item.title || (item.type === 'course' ? 'Curso' : 'Jornada')
+      title: item.title || 'Curso',
+      description: item.description || 'Acesso ao curso',
+      itemType: 'COURSE' as const
     }));
 
-    console.log('Items normalizados para enrollments:', JSON.stringify(validatedItems, null, 2));
-
-    const totalAmount = validatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    const totalAmount = items.reduce((sum, item) => sum + (item.price || 0), 0);
 
     // Buscar metadata existente para preservar o método
     const existingPayment = await prisma.payment.findUnique({
@@ -212,7 +187,7 @@ async function processApprovedPayment(
     // Preservar método e outros campos do metadata existente
     const updatedMetadata = {
       ...existingMetadata,
-      items: validatedItems,
+      items: items,
       durationMonths,
       // Preservar método se existir
       ...(existingMetadata.method && { method: existingMetadata.method }),
@@ -233,21 +208,11 @@ async function processApprovedPayment(
         status: 'APPROVED',
         amount: totalAmount,
         metadata: { 
-          items: validatedItems,
+          items: items,
           durationMonths 
-        },
+        } as PaymentMetadata,
         items: {
-          create: validatedItems.map(item => {
-            const isCourse = item.type === 'course';
-            return {
-              itemType: isCourse ? 'COURSE' : 'JOURNEY',
-              [isCourse ? 'courseId' : 'journeyId']: item.id,
-              quantity: item.quantity,
-              price: item.price || 0,
-              title: item.title,
-              description: isCourse ? 'Curso' : 'Jornada',
-            };
-          })
+          create: paymentItems
         }
       },
       update: {
@@ -260,53 +225,26 @@ async function processApprovedPayment(
       }
     });
 
-    // Create enrollments
-    console.log('Criando enrollments para:', validatedItems.length, 'itens');
+    // Create course enrollments
     await Promise.all(
-      validatedItems.map(async (item) => {
-        if (item.type === 'course') {
-          console.log(`Criando enrollment para curso: ${item.id}`);
-          await prisma.enrollment.upsert({
-            where: { 
-              userId_courseId: { 
-                userId, 
-                courseId: item.id 
-              } 
-            },
-            create: { 
-              userId, 
-              courseId: item.id, 
-              endDate: null 
-            },
-            update: {}
-          });
-          console.log(`Enrollment criado para curso: ${item.id}`);
-        } else if (item.type === 'journey') {
-          const endDate = new Date();
-          endDate.setMonth(endDate.getMonth() + durationMonths);
-          
-          console.log(`Criando enrollment para jornada: ${item.id}, endDate: ${endDate.toISOString()}`);
-          await prisma.enrollment.upsert({
-            where: { 
-              userId_journeyId: { 
-                userId, 
-                journeyId: item.id 
-              } 
-            },
-            create: { 
-              userId, 
-              journeyId: item.id, 
-              endDate 
-            },
-            update: { endDate }
-          });
-          console.log(`Enrollment criado para jornada: ${item.id}`);
-        } else {
-          console.warn(`Tipo de item desconhecido: ${item.type} para item ${item.id}`);
-        }
-      })
+      items.map(item => 
+        prisma.enrollment.upsert({
+          where: {
+            userId_courseId: { userId, courseId: item.id }
+          },
+          create: {
+            userId,
+            courseId: item.id,
+            startDate: new Date(),
+            endDate: new Date(new Date().setMonth(new Date().getMonth() + durationMonths))
+          },
+          update: {
+            // Keep existing endDate or extend it
+            endDate: new Date(new Date().setMonth(new Date().getMonth() + durationMonths))
+          }
+        })
+      )
     );
-    console.log('Todos os enrollments foram criados com sucesso');
 
     return payment;
   } catch (error) {
@@ -380,23 +318,42 @@ export async function POST(req: Request) {
       return sendOK({ error: "missing_user_id", details: "Nenhum userId encontrado no pagamento" });
     }
 
-
-    // Normalize items from metadata (can be 'curso'/'jornada' or 'course'/'journey')
-    const rawItems = Array.isArray(metadata.items) && metadata.items.length > 0
+    // Normalize items from metadata (can be 'curso' or 'course')
+    const rawItems = (Array.isArray(metadata.items) && metadata.items.length > 0
       ? metadata.items
       : metadata.type && metadata.id
-      ? [{ id: metadata.id, type: metadata.type, quantity: 1 }]
-      : [];
+      ? [{
+          id: metadata.id,
+          type: metadata.type,
+          quantity: 1,
+          title: 'Curso',
+          description: 'Acesso ao curso',
+          price: 0
+        }]
+      : []) as Array<{
+          id: string;
+          type: ItemType;
+          quantity: number;
+          title?: string;
+          description?: string;
+          price?: number;
+        }>;
 
     if (rawItems.length === 0) {
       console.error("Pagamento sem items");
       return sendOK({ error: "missing_items" });
     }
 
-    // Normalize item types to 'course'/'journey' format
-    const items: PaymentItem[] = rawItems.map(item => ({
+    // Convert items to PaymentItem format with proper typing
+    const items: PaymentItem[] = rawItems.map((item) => ({
       ...item,
-      type: item.type === 'curso' ? 'course' : item.type === 'jornada' ? 'journey' : item.type
+      type: 'course', // Only handle courses now
+      courseId: item.id, // Ensure courseId is set
+      id: item.id,
+      title: item.title!,
+      description: item.description!,
+      quantity: item.quantity,
+      price: item.price!
     }));
 
     const mappedStatus = paymentStatusMap[status] || "PENDING";
@@ -454,36 +411,37 @@ export async function POST(req: Request) {
     try {
       await ensureUserExists(userId);
 
-      // Calculate amount in cents
-      const amount = payment.transaction_amount
-        ? Math.round(payment.transaction_amount * 100)
-        : 0;
-
-      // Prepare items data
-      const itemsData = items.map(item => ({
-        ...item,
+      // Create payment items for courses
+      const paymentItems = items.map(item => ({
+        paymentId: payment.id,
+        courseId: item.id,
+        price: item.price || 0,
         quantity: item.quantity || 1,
-        price: item.price || Math.round(amount / Math.max(1, items.length)),
-        title: item.title || (item.type === 'course' ? 'Curso' : 'Jornada')
+        title: item.title || 'Curso',
+        description: item.description || 'Acesso ao curso',
+        itemType: 'COURSE' as const
       }));
 
-      // Buscar metadata existente para preservar o método
       const existingPayment = await prisma.payment.findUnique({
         where: { mpPaymentId: mpPaymentId.toString() },
-        select: { metadata: true }
+        select: { metadata: true, amount: true }
       });
 
-      const existingMetadata = existingPayment?.metadata as any || {};
+      const existingMetadata = (existingPayment?.metadata as any) || {};
+      const paymentAmount = existingPayment?.amount || 0;
       
-      // Preservar método e outros campos do metadata existente
+      // Preserve existing metadata fields
       const updatedMetadata = {
         ...existingMetadata,
-        items: itemsData,
-        // Preservar método se existir
+        items: items.map(item => ({
+          id: item.id,
+          type: 'course',
+          quantity: item.quantity,
+          price: item.price,
+          title: item.title
+        })),
         ...(existingMetadata.method && { method: existingMetadata.method }),
-        // Preservar installments se existir
         ...(existingMetadata.installments && { installments: existingMetadata.installments }),
-        // Preservar QR code se existir
         ...(existingMetadata.qr_code && { qr_code: existingMetadata.qr_code }),
         ...(existingMetadata.qr_code_base64 && { qr_code_base64: existingMetadata.qr_code_base64 }),
         ...(existingMetadata.ticket_url && { ticket_url: existingMetadata.ticket_url }),
@@ -496,25 +454,21 @@ export async function POST(req: Request) {
           mpPaymentId: mpPaymentId.toString(),
           userId,
           status: mappedStatus,
-          amount,
-          metadata: { items: itemsData },
+          amount: paymentAmount,
+          metadata: updatedMetadata,
           items: {
-            create: itemsData.map(item => {
-              const isCourse = item.type === 'course';
-              return {
-                itemType: isCourse ? 'COURSE' : 'JOURNEY',
-                [isCourse ? 'courseId' : 'journeyId']: item.id,
-                quantity: item.quantity,
-                price: item.price || 0,
-                title: item.title,
-                description: isCourse ? 'Curso' : 'Jornada',
-              };
-            })
+            create: items.map(item => ({
+              courseId: item.id,
+              quantity: item.quantity || 1,
+              price: item.price || 0,
+              title: item.title || 'Curso',
+              description: item.description || 'Acesso ao curso',
+              itemType: 'COURSE' as const
+            }))
           }
         },
         update: {
           status: mappedStatus,
-          amount,
           metadata: updatedMetadata
         },
         include: { items: true }

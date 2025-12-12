@@ -20,20 +20,9 @@ type Course = {
   public: boolean;
 };
 
-type Journey = {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string | null;
-  price: number | null;
-  public: boolean;
-  courses: { id: string }[];
-};
-
 export default function Home() {
   const { data: session, status } = useSession();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [journeys, setJourneys] = useState<Journey[]>([]);
   const [loading, setLoading] = useState(true);
   const { addItem } = useCart();
   const router = useRouter();
@@ -57,28 +46,14 @@ export default function Home() {
           }
         }));
 
-        // Check access for each journey
-        await Promise.all(journeys.map(async (journey) => {
-          const itemKey = `journey-${journey.id}`;
-          try {
-            const response = await fetch(`/api/user/has-access?type=journey&id=${journey.id}`);
-            const { hasAccess } = await response.json();
-            newAccessMap[itemKey] = { hasAccess };
-          } catch (error) {
-            console.error("Error checking access for journey:", journey.id, error);
-            newAccessMap[itemKey] = { hasAccess: false };
-          }
-        }));
-
         setAccessMap(prev => ({ ...prev, ...newAccessMap }));
       }
     }
 
-    if (courses.length > 0 || journeys.length > 0) {
+    if (courses.length > 0) {
       checkAccess();
     }
-  }, [session, courses, journeys]);
-
+  }, [session, courses]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,14 +63,7 @@ export default function Home() {
         const coursesRes = await fetch('/api/courses?public=true');
         if (!coursesRes.ok) throw new Error('Failed to fetch courses');
         const coursesData = await coursesRes.json();
-
-        // Fetch public journeys with their courses
-        const journeysRes = await fetch('/api/journeys?public=true');
-        if (!journeysRes.ok) throw new Error('Failed to fetch journeys');
-        const journeysData = await journeysRes.json();
-
         setCourses(coursesData);
-        setJourneys(journeysData);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Erro ao carregar os dados');
@@ -107,7 +75,7 @@ export default function Home() {
     fetchData();
   }, []);
 
-  const handleAddToCart = (item: { id: string; title: string; price: number | null; type: 'curso' | 'jornada' }) => {
+  const handleAddToCart = (item: { id: string; title: string; price: number | null; type: 'curso' }) => {
     if (!item.price) {
       toast.error('Este item não pode ser adicionado ao carrinho');
       return;
@@ -118,22 +86,21 @@ export default function Home() {
       id: item.id,
       title: item.title,
       price: item.price, // Store in cents
-      type: item.type,
     });
-    toast.success(`${item.type === 'curso' ? 'Curso' : 'Jornada'} adicionado ao carrinho`);
+    toast.success("Curso adicionado ao carrinho");
   };
 
-  const renderAccessButton = (item: Course | Journey, type: 'curso' | 'jornada') => {
-    const itemId = `${type === 'curso' ? 'course' : 'journey'}-${item.id}`;
+  const renderAccessButton = (item: Course) => {
+    const itemId = `course-${item.id}`;
     const hasAccess = accessMap[itemId]?.hasAccess || false;
 
     if (session && hasAccess) {
       return (
         <Link
-          href={`/dashboard/${type}s/${item.id}`}
+          href={`/dashboard/cursos/${item.id}`}
           className="w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
         >
-          Acessar {type === 'curso' ? 'Curso' : 'Jornada'}
+          Acessar Curso
         </Link>
       );
     }
@@ -142,16 +109,12 @@ export default function Home() {
       <button
         onClick={(e) => {
           e.preventDefault();
-          handleAddToCart(
-            {
-              id: item.id,
-              title: item.title,
-              price: type === 'curso'
-                ? (item as Course).discountPrice || (item as Course).price || 0
-                : (item as Journey).price || 0,
-              type: type
-            }
-          );
+          handleAddToCart({
+            id: item.id,
+            title: item.title,
+            price: item.discountPrice || item.price || 0,
+            type: 'curso'
+          });
         }}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors"
         disabled={loading}
@@ -160,7 +123,6 @@ export default function Home() {
       </button>
     );
   };
-
 
   if (loading) {
     return (
@@ -176,7 +138,6 @@ export default function Home() {
         <h1 className="text-4xl font-bold mb-6">Cursos Disponíveis</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
-
             <div key={course.id} className="border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
               {course.imageUrl && (
                 <Link
@@ -214,47 +175,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-
                   <div className="mt-4">
-                    {renderAccessButton(course, "curso")}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h1 className="text-4xl font-bold mb-6">Jornadas de Aprendizado</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {journeys.map((journey) => (
-            <div key={journey.id} className="border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-              {journey.imageUrl && (
-                <img
-                  src={journey.imageUrl}
-                  alt={journey.title}
-                  className="w-full h-48 object-cover"
-                />
-              )}
-              <div className="p-4">
-                <h2 className="text-xl font-semibold mb-2">{journey.title}</h2>
-                <p className="text-gray-600 mb-3 line-clamp-2 h-12">{journey.description}</p>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm text-gray-500">
-                    {journey.courses.length} {journey.courses.length === 1 ? 'curso' : 'cursos'} incluídos
-                  </span>
-                  <span className="font-bold">{formatPrice(journey.price!)}</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Link
-                    href={`/jornadas/${journey.id}`}
-                    className="text-center bg-primary text-white py-2 rounded hover:bg-primary/90 transition-colors"
-                  >
-                    Ver Jornada
-                  </Link>
-                  <div className="mt-4">
-                    {renderAccessButton(journey, "jornada")}
+                    {renderAccessButton(course)}
                   </div>
                 </div>
               </div>

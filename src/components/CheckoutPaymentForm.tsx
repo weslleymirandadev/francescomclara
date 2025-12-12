@@ -199,7 +199,7 @@ const pixSchema = z.object({
 
 export interface CartItem {
   id: string;
-  type: 'course' | 'journey';
+  type: 'course';
   title: string;
   price: number;
 }
