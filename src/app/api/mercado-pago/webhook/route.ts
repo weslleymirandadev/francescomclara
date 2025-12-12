@@ -73,28 +73,12 @@ async function sendOK(obj: any = { ok: true }) {
   });
 }
 
-async function getPaymentWithFallback(mpPaymentId: string) {
+/**
+ * Busca informações de um pagamento recorrente do Mercado Pago
+ */
+async function getPayment(mpPaymentId: string) {
   try {
     const payment = await new MPPayment(client).get({ id: mpPaymentId });
-    
-    // Se não tiver userId no metadata, tenta buscar do banco de dados
-    if (!payment.metadata?.userId) {
-      console.log('Buscando userId do banco de dados para o pagamento:', mpPaymentId);
-      const dbPayment = await prisma.payment.findUnique({
-        where: { mpPaymentId: mpPaymentId.toString() },
-        select: { userId: true, metadata: true }
-      });
-      
-      if (dbPayment?.userId) {
-        console.log('UserId encontrado no banco de dados:', dbPayment.userId);
-        payment.metadata = {
-          ...(payment.metadata || {}),
-          ...(dbPayment.metadata as any || {}),
-          userId: dbPayment.userId
-        };
-      }
-    }
-    
     return payment;
   } catch (err) {
     console.error("Erro ao buscar pagamento:", err);
@@ -115,119 +99,100 @@ async function revokeUserAccess(userId: string, items: PaymentItem[]) {
   }
 }
 
-async function handlePaymentStatusUpdate(
-  paymentId: string,
-  status: PaymentStatus,
-  userId: string,
-  items: PaymentItem[]
-) {
+
+/**
+ * Busca informações de uma assinatura (Preapproval) do Mercado Pago
+ */
+async function getPreapproval(preapprovalId: string) {
   try {
-    await ensureUserExists(userId);
-    
-    // Atualizar status do pagamento
-    await prisma.payment.update({
-      where: { mpPaymentId: paymentId },
-      data: { status },
-      include: { refunds: true }
+    const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
+    const response = await fetch(`${mpApiUrl}/preapproval/${preapprovalId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      },
     });
 
-    // Se for um reembolso ou cancelamento, remover acesso aos itens
-    if (status === 'REFUNDED' || status === 'CANCELLED') {
-      await revokeUserAccess(userId, items);
-      
-      // Atualizar status dos reembolsos pendentes
-      await prisma.refund.updateMany({
-        where: { 
-          payment: { mpPaymentId: paymentId },
-          status: 'PENDING'
-        },
-        data: { 
-          status: 'COMPLETED',
-        }
-      });
-      console.log(`Status do reembolso atualizado para COMPLETED para o pagamento ${paymentId}`);
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar assinatura: ${response.status}`);
     }
-  } catch (error) {
-    console.error('Erro ao processar atualização de status de pagamento:', error);
-    throw error;
+
+    return await response.json();
+  } catch (err) {
+    console.error("Erro ao buscar assinatura:", err);
+    throw err;
   }
 }
 
-async function processApprovedPayment(
-  paymentId: string,
+/**
+ * Processa uma assinatura autorizada
+ */
+async function processAuthorizedSubscription(
+  preapprovalId: string,
   userId: string,
-  amount: number,
   items: PaymentItem[],
-  durationMonths: number = 12
+  metadata: any
 ) {
   try {
     await ensureUserExists(userId);
 
-    // Create payment items for courses
-    const paymentItems = items.map(item => ({
-      paymentId: paymentId,
-      courseId: item.id,
-      price: item.price || 0,
-      quantity: item.quantity || 1,
-      title: item.title || 'Curso',
-      description: item.description || 'Acesso ao curso',
-      itemType: 'COURSE' as const
-    }));
-
-    const totalAmount = items.reduce((sum, item) => sum + (item.price || 0), 0);
-
-    // Buscar metadata existente para preservar o método
-    const existingPayment = await prisma.payment.findUnique({
-      where: { mpPaymentId: paymentId },
-      select: { metadata: true }
-    });
-
-    const existingMetadata = existingPayment?.metadata as any || {};
+    const frequency = metadata.frequency || 1;
+    const frequencyType = metadata.frequencyType || 'months';
     
-    // Preservar método e outros campos do metadata existente
-    const updatedMetadata = {
-      ...existingMetadata,
-      items: items,
-      durationMonths,
-      // Preservar método se existir
-      ...(existingMetadata.method && { method: existingMetadata.method }),
-      // Preservar installments se existir
-      ...(existingMetadata.installments && { installments: existingMetadata.installments }),
-      // Preservar QR code se existir
-      ...(existingMetadata.qr_code && { qr_code: existingMetadata.qr_code }),
-      ...(existingMetadata.qr_code_base64 && { qr_code_base64: existingMetadata.qr_code_base64 }),
-      ...(existingMetadata.ticket_url && { ticket_url: existingMetadata.ticket_url }),
-    };
+    // Calcular data de término baseada na frequência (padrão: 12 meses)
+    const endDate = new Date();
+    if (frequencyType === 'months') {
+      endDate.setMonth(endDate.getMonth() + (12 * frequency));
+    } else {
+      endDate.setDate(endDate.getDate() + (365 * frequency));
+    }
 
-    // Create or update payment
-    const payment = await prisma.payment.upsert({
-      where: { mpPaymentId: paymentId },
+    // Criar ou atualizar pagamento/assinatura
+    await prisma.payment.upsert({
+      where: { mpPaymentId: preapprovalId },
       create: {
-        mpPaymentId: paymentId,
+        mpPaymentId: preapprovalId,
         userId,
         status: 'APPROVED',
-        amount: totalAmount,
-        metadata: { 
-          items: items,
-          durationMonths 
-        } as PaymentMetadata,
+        amount: items.reduce((sum, item) => sum + (item.price || 0), 0),
+        metadata: {
+          type: 'subscription',
+          ...metadata,
+          items: items.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+          })),
+        },
         items: {
-          create: paymentItems
-        }
+          create: items.map(item => ({
+            courseId: item.id,
+            price: item.price || 0,
+            quantity: item.quantity || 1,
+            title: item.title || 'Curso',
+            description: item.description || 'Acesso ao curso',
+          })),
+        },
       },
       update: {
         status: 'APPROVED',
-        amount: totalAmount,
-        metadata: updatedMetadata
+        metadata: {
+          type: 'subscription',
+          ...metadata,
+          items: items.map(item => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            quantity: item.quantity
+          })),
+        },
       },
-      include: { 
-        items: true 
-      }
     });
 
-    // Create course enrollments
+    // Criar ou atualizar matrículas com data de término baseada na assinatura
     await Promise.all(
-      items.map(item => 
+      items.map(item =>
         prisma.enrollment.upsert({
           where: {
             userId_courseId: { userId, courseId: item.id }
@@ -236,19 +201,73 @@ async function processApprovedPayment(
             userId,
             courseId: item.id,
             startDate: new Date(),
-            endDate: new Date(new Date().setMonth(new Date().getMonth() + durationMonths))
+            endDate: endDate,
           },
           update: {
-            // Keep existing endDate or extend it
-            endDate: new Date(new Date().setMonth(new Date().getMonth() + durationMonths))
+            // Estender data de término se necessário
+            endDate: endDate,
           }
         })
       )
     );
 
-    return payment;
+    console.log(`Assinatura ${preapprovalId} autorizada e acesso concedido ao usuário ${userId}`);
   } catch (error) {
-    console.error('Error in processApprovedPayment:', error);
+    console.error('Erro ao processar assinatura autorizada:', error);
+    throw error;
+  }
+}
+
+/**
+ * Processa um pagamento recorrente de uma assinatura
+ */
+async function processRecurringPayment(
+  paymentId: string,
+  preapprovalId: string,
+  userId: string
+) {
+  try {
+    // Buscar a assinatura no banco
+    const subscription = await prisma.payment.findUnique({
+      where: { mpPaymentId: preapprovalId },
+      include: { items: true }
+    });
+
+    if (!subscription) {
+      console.error(`Assinatura ${preapprovalId} não encontrada no banco`);
+      return;
+    }
+
+    const metadata = subscription.metadata as any;
+    const frequency = metadata.frequency || 1;
+    const frequencyType = metadata.frequencyType || 'months';
+
+    // Estender data de término das matrículas
+    const endDate = new Date();
+    if (frequencyType === 'months') {
+      endDate.setMonth(endDate.getMonth() + (12 * frequency));
+    } else {
+      endDate.setDate(endDate.getDate() + (365 * frequency));
+    }
+
+    // Atualizar matrículas para estender o acesso
+    await Promise.all(
+      subscription.items.map(item =>
+        prisma.enrollment.updateMany({
+          where: {
+            userId,
+            courseId: item.courseId || ''
+          },
+          data: {
+            endDate: endDate,
+          }
+        })
+      )
+    );
+
+    console.log(`Pagamento recorrente ${paymentId} processado para assinatura ${preapprovalId}`);
+  } catch (error) {
+    console.error('Erro ao processar pagamento recorrente:', error);
     throw error;
   }
 }
@@ -264,225 +283,148 @@ export async function POST(req: Request) {
 
     console.log("Webhook recebido:", JSON.stringify(body, null, 2));
 
-    const validTypes = ["payment", "refund", "chargeback", "merchant_order"];
-    if (!validTypes.includes(body.type)) {
-      console.log("Ignorando evento:", body.type);
-      return sendOK({ ignored: true });
+    const eventType = body.type;
+    const mpId = body?.data?.id;
+
+    if (!mpId) {
+      console.error("Webhook sem ID");
+      return sendOK({ error: "missing_id" });
     }
 
-    const mpPaymentId = body?.data?.id;
-    if (!mpPaymentId) {
-      console.error("Webhook sem paymentId");
-      return sendOK({ error: "missing_payment_id" });
-    }
+    // Processar eventos de assinatura (Preapproval)
+    if (eventType === "preapproval") {
+      console.log('Processando evento de assinatura:', mpId);
 
-    console.log('Processando webhook para pagamento ID:', mpPaymentId);
-    
-    let payment;
-    try {
-      payment = await getPaymentWithFallback(mpPaymentId);
-    } catch (err) {
-      console.error("Erro ao buscar pagamento:", err);
-      return sendOK({ error: "payment_fetch_failed" });
-    }
-
-    console.log("Detalhes do pagamento:", {
-      paymentId: payment.id,
-      status: payment.status,
-      hasMetadata: !!payment.metadata,
-      metadataKeys: payment.metadata ? Object.keys(payment.metadata) : []
-    });
-
-    const status = String(payment.status || "").toLowerCase();
-    const metadata: PaymentMetadata = payment.metadata || {};
-    
-    // Tenta obter o userId de várias fontes
-    const userId = metadata.userId || 
-                  (payment as any)?.external_reference || 
-                  (payment as any)?.metadata?.user_id;
-
-    console.log('Dados do usuário encontrados:', {
-      fromMetadata: metadata.userId ? 'metadata' : 'not_found',
-      fromExternalRef: (payment as any)?.external_reference ? 'external_reference' : 'not_found',
-      fromNestedMetadata: (payment as any)?.metadata?.user_id ? 'nested_metadata' : 'not_found',
-      userId
-    });
-
-    if (!userId) {
-      console.error('Pagamento sem userId:', {
-        mpPaymentId,
-        metadata: payment.metadata,
-        external_reference: (payment as any)?.external_reference,
-        rawPayment: JSON.stringify(payment, null, 2)
-      });
-      return sendOK({ error: "missing_user_id", details: "Nenhum userId encontrado no pagamento" });
-    }
-
-    // Normalize items from metadata (can be 'curso' or 'course')
-    const rawItems = (Array.isArray(metadata.items) && metadata.items.length > 0
-      ? metadata.items
-      : metadata.type && metadata.id
-      ? [{
-          id: metadata.id,
-          type: metadata.type,
-          quantity: 1,
-          title: 'Curso',
-          description: 'Acesso ao curso',
-          price: 0
-        }]
-      : []) as Array<{
-          id: string;
-          type: ItemType;
-          quantity: number;
-          title?: string;
-          description?: string;
-          price?: number;
-        }>;
-
-    if (rawItems.length === 0) {
-      console.error("Pagamento sem items");
-      return sendOK({ error: "missing_items" });
-    }
-
-    // Convert items to PaymentItem format with proper typing
-    const items: PaymentItem[] = rawItems.map((item) => ({
-      ...item,
-      type: 'course', // Only handle courses now
-      courseId: item.id, // Ensure courseId is set
-      id: item.id,
-      title: item.title!,
-      description: item.description!,
-      quantity: item.quantity,
-      price: item.price!
-    }));
-
-    const mappedStatus = paymentStatusMap[status] || "PENDING";
-
-    // REFUNDED / CANCELLED / FAILED
-    if (["refunded", "cancelled", "rejected", "charged_back"].includes(status)) {
-      console.log(`Processando status negativo: ${status}`);
-      
-      // Update payment status
-      await prisma.payment.update({
-        where: { mpPaymentId: mpPaymentId.toString() },
-        data: { status: mappedStatus }
-      });
-      
-      // Revoke user access for refunded items
-      if (status === 'refunded') {
-        await revokeUserAccess(userId, items);
-      }
-      
-      return sendOK();
-    }
-
-    // APPROVED
-    if (status === "approved") {
-      await processApprovedPayment(
-        mpPaymentId.toString(),
-        userId,
-        payment.transaction_amount!,
-        items,
-        metadata.durationMonths ? metadata.durationMonths : 12
-      );
-      
-      // Limpar carrinho do usuário após pagamento aprovado
+      let preapproval;
       try {
-        const cart = await prisma.cart.findUnique({
-          where: { userId },
-          select: { id: true }
-        });
-        
-        if (cart) {
-          await prisma.cartItem.deleteMany({
-            where: { cartId: cart.id }
-          });
-          console.log(`Carrinho limpo para usuário ${userId} após pagamento aprovado`);
-        }
-      } catch (error) {
-        console.error('Erro ao limpar carrinho após pagamento aprovado:', error);
-        // Não falhar o webhook se houver erro ao limpar o carrinho
+        preapproval = await getPreapproval(mpId.toString());
+      } catch (err) {
+        console.error("Erro ao buscar assinatura:", err);
+        return sendOK({ error: "preapproval_fetch_failed" });
       }
-      
-      return sendOK();
-    }
 
-    // PENDING / IN_PROCESS / MEDIATION
-    try {
-      await ensureUserExists(userId);
+      // Buscar assinatura no banco
+      const dbSubscription = await prisma.payment.findUnique({
+        where: { mpPaymentId: mpId.toString() },
+        select: { userId: true, metadata: true }
+      });
 
-      // Create payment items for courses
-      const paymentItems = items.map(item => ({
-        paymentId: payment.id,
+      if (!dbSubscription) {
+        console.error(`Assinatura ${mpId} não encontrada no banco`);
+        return sendOK({ error: "subscription_not_found" });
+      }
+
+      const metadata = dbSubscription.metadata as any;
+      const userId = dbSubscription.userId;
+      const status = preapproval.status?.toLowerCase();
+
+      // Extrair items do metadata
+      const rawItems = metadata.items || [];
+      const items: PaymentItem[] = rawItems.map((item: any) => ({
+        id: item.id,
+        type: 'course',
         courseId: item.id,
-        price: item.price || 0,
-        quantity: item.quantity || 1,
         title: item.title || 'Curso',
         description: item.description || 'Acesso ao curso',
-        itemType: 'COURSE' as const
+        quantity: item.quantity || 1,
+        price: item.price || 0,
       }));
 
-      const existingPayment = await prisma.payment.findUnique({
-        where: { mpPaymentId: mpPaymentId.toString() },
-        select: { metadata: true, amount: true }
-      });
+      if (items.length === 0) {
+        console.error("Assinatura sem items");
+        return sendOK({ error: "missing_items" });
+      }
 
-      const existingMetadata = (existingPayment?.metadata as any) || {};
-      const paymentAmount = existingPayment?.amount || 0;
-      
-      // Preserve existing metadata fields
-      const updatedMetadata = {
-        ...existingMetadata,
-        items: items.map(item => ({
-          id: item.id,
-          type: 'course',
-          quantity: item.quantity,
-          price: item.price,
-          title: item.title
-        })),
-        ...(existingMetadata.method && { method: existingMetadata.method }),
-        ...(existingMetadata.installments && { installments: existingMetadata.installments }),
-        ...(existingMetadata.qr_code && { qr_code: existingMetadata.qr_code }),
-        ...(existingMetadata.qr_code_base64 && { qr_code_base64: existingMetadata.qr_code_base64 }),
-        ...(existingMetadata.ticket_url && { ticket_url: existingMetadata.ticket_url }),
-      };
-
-      // Create or update payment with items
-      await prisma.payment.upsert({
-        where: { mpPaymentId: mpPaymentId.toString() },
-        create: {
-          mpPaymentId: mpPaymentId.toString(),
-          userId,
-          status: mappedStatus,
-          amount: paymentAmount,
-          metadata: updatedMetadata,
-          items: {
-            create: items.map(item => ({
-              courseId: item.id,
-              quantity: item.quantity || 1,
-              price: item.price || 0,
-              title: item.title || 'Curso',
-              description: item.description || 'Acesso ao curso',
-              itemType: 'COURSE' as const
-            }))
-          }
-        },
-        update: {
-          status: mappedStatus,
-          metadata: updatedMetadata
-        },
-        include: { items: true }
-      });
-    } catch (error) {
-      console.error('Erro ao processar pagamento:', error);
-      return sendOK({
-        error: 'user_not_found',
-        message: 'Falha ao processar pagamento: Usuário não encontrado',
-        details: error instanceof Error ? error.message : String(error)
-      });
+      // Processar diferentes status de assinatura
+      if (status === "authorized") {
+        await processAuthorizedSubscription(mpId.toString(), userId, items, metadata);
+        return sendOK();
+      } else if (status === "cancelled" || status === "paused") {
+        // Cancelar assinatura e remover acesso
+        await prisma.payment.update({
+          where: { mpPaymentId: mpId.toString() },
+          data: { status: 'CANCELLED' }
+        });
+        await revokeUserAccess(userId, items);
+        return sendOK();
+      } else {
+        // Atualizar status da assinatura
+        await prisma.payment.update({
+          where: { mpPaymentId: mpId.toString() },
+          data: { status: status?.toUpperCase() || 'PENDING' }
+        });
+        return sendOK();
+      }
     }
 
-    return sendOK();
+    // Processar eventos de pagamento recorrente (apenas para assinaturas)
+    if (eventType === "payment") {
+      console.log('Processando evento de pagamento recorrente:', mpId);
+
+      let payment;
+      try {
+        payment = await getPayment(mpId.toString());
+      } catch (err) {
+        console.error("Erro ao buscar pagamento:", err);
+        return sendOK({ error: "payment_fetch_failed" });
+      }
+
+      // Verificar se é um pagamento de assinatura
+      const preapprovalId = (payment as any).preapproval_id;
+      if (!preapprovalId) {
+        // Não é um pagamento de assinatura, ignorar
+        console.log('Pagamento não é de assinatura, ignorando');
+        return sendOK({ ignored: "not_subscription_payment" });
+      }
+
+      // Buscar assinatura relacionada
+      const subscription = await prisma.payment.findUnique({
+        where: { mpPaymentId: preapprovalId.toString() },
+        select: { userId: true, metadata: true, items: true }
+      });
+
+      if (!subscription) {
+        console.error(`Assinatura ${preapprovalId} não encontrada para pagamento ${mpId}`);
+        return sendOK({ error: "subscription_not_found" });
+      }
+
+      const userId = subscription.userId;
+      const metadata = subscription.metadata as any;
+      const rawItems = metadata.items || [];
+      const items: PaymentItem[] = rawItems.map((item: any) => ({
+        id: item.id,
+        type: 'course',
+        courseId: item.id,
+        title: item.title || 'Curso',
+        description: item.description || 'Acesso ao curso',
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+      }));
+
+      const status = String(payment.status || "").toLowerCase();
+
+      // Se o pagamento foi aprovado, estender acesso
+      if (status === "approved") {
+        await processRecurringPayment(mpId.toString(), preapprovalId.toString(), userId);
+      } else if (["refunded", "cancelled", "rejected"].includes(status)) {
+        // Se o pagamento falhou, pode ser necessário pausar a assinatura
+        console.log(`Pagamento recorrente ${mpId} falhou com status: ${status}`);
+        // Nota: Não removemos acesso imediatamente, apenas registramos
+      }
+
+      return sendOK();
+    }
+
+    // Outros tipos de eventos (refund, chargeback, etc.)
+    const validTypes = ["refund", "chargeback", "merchant_order"];
+    if (validTypes.includes(eventType)) {
+      console.log(`Processando evento ${eventType}:`, mpId);
+      // Processar conforme necessário
+      return sendOK();
+    }
+
+    console.log("Tipo de evento não suportado:", eventType);
+    return sendOK({ ignored: true, type: eventType });
   } catch (err) {
     console.error("Erro geral webhook:", err);
     return sendOK({ error: "internal" });
