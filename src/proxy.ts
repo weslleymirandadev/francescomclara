@@ -43,6 +43,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/curso/") ||
     pathname.startsWith("/cursos/") ||
+    pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
     isPublicApiRoute;
