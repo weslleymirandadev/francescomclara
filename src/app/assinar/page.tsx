@@ -69,18 +69,35 @@ function AssinarPageContent() {
 
   // Se o usuário não estiver autenticado, redirecionar para login
   useEffect(() => {
-    if (status === "unauthenticated" && plan && !authRedirecting) {
+    if (status === "unauthenticated" && !authRedirecting) {
       setAuthRedirecting(true);
+      // Redirecionar para login com callbackUrl preservando o planId
       void signIn(undefined, { callbackUrl: `/assinar?planId=${planId}` });
     }
-  }, [status, plan, planId, authRedirecting]);
+  }, [status, planId, authRedirecting]);
 
-  if (status === "loading" || authRedirecting || loading) {
+  // Se não autenticado, mostrar loading enquanto redireciona
+  if (status === "unauthenticated" || authRedirecting) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
         <div className="mx-auto max-w-lg space-y-4 text-center">
           <h1 className="text-2xl font-semibold text-gray-900">
-            {loading ? "Carregando plano..." : "Redirecionando para login"}
+            Redirecionando para login
+          </h1>
+          <p className="text-sm text-gray-500">
+            Você precisa estar logado para assinar um plano.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === "loading" || loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-10">
+        <div className="mx-auto max-w-lg space-y-4 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Carregando plano...
           </h1>
           <p className="text-sm text-gray-500">
             Aguarde, estamos preparando sua assinatura.

@@ -28,7 +28,6 @@ export async function GET(
         discountPrice: true,
         discountEnabled: true,
         level: true,
-        public: true,
       },
     });
 
@@ -84,7 +83,6 @@ export async function PATCH(
         discountPrice: data.discountPrice !== undefined ? Number(data.discountPrice) : 0,
         discountEnabled: data.discountEnabled !== undefined ? Boolean(data.discountEnabled) : false,
         level: data.level || 'iniciante',
-        public: Boolean(data.public),
       },
     });
 

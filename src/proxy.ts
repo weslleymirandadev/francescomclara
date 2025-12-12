@@ -43,6 +43,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/curso/") ||
     pathname.startsWith("/cursos/") ||
+    pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
     isPublicApiRoute;
@@ -68,7 +69,7 @@ export async function proxy(req: NextRequest) {
 
   // 7. Permissões para /admin
   if (pathname.startsWith("/admin")) {
-    if (!token || !["ADMIN", "MODERATOR"].includes(token.role as string)) {
+    if (!token || token.role != "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   }
