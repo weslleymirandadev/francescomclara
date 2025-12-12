@@ -8,10 +8,19 @@ const mp = new MercadoPagoConfig({
 /**
  * Gera um token de cartão do Mercado Pago
  * Esta rota recebe os dados do cartão e retorna um token seguro
+ * Necessário para checkout transparente de assinaturas
  */
 export async function POST(req: Request) {
   try {
-    const { cardNumber, cardholderName, cardExpirationMonth, cardExpirationYear, securityCode, identificationType, identificationNumber } = await req.json();
+    const { 
+      cardNumber, 
+      cardholderName, 
+      cardExpirationMonth, 
+      cardExpirationYear, 
+      securityCode, 
+      identificationType, 
+      identificationNumber 
+    } = await req.json();
 
     if (!cardNumber || !cardholderName || !cardExpirationMonth || !cardExpirationYear || !securityCode || !identificationType || !identificationNumber) {
       return NextResponse.json(

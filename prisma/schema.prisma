@@ -24,6 +24,7 @@ model User {
   forumPosts       ForumPost[]
   lessonProgresses LessonProgress[]
   payments         Payment[]
+  paymentMethods   PaymentMethod[]
   sessions         Session[]
   passwords        UserPassword?
 }
@@ -210,6 +211,7 @@ model Payment {
   updatedAt   DateTime      @updatedAt
   items       PaymentItem[]
   refunds     Refund[]
+  paymentMethod PaymentMethod?
 
   @@index([status])
   @@index([createdAt])
@@ -242,5 +244,34 @@ model Refund {
   payment    Payment  @relation(fields: [paymentId], references: [id])
 
   @@index([paymentId])
+}
+
+model PaymentMethod {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId     String?   @unique
+  payment       Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  
+  last4Digits   String
+  brand         String    // visa, mastercard, amex, etc
+  holderName    String
+  expiryMonth   Int
+  expiryYear    Int
+  
+  mpCardToken   String?   // Token do cartão no Mercado Pago (se disponível)
+  mpCardId      String?   // ID do cartão salvo no Mercado Pago
+  
+  isDefault     Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  metadata      Json?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([paymentId])
+  @@index([isDefault])
+  @@index([isActive])
 }
 

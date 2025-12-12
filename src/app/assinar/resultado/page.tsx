@@ -45,7 +45,7 @@ function SuccessPageContent() {
   useEffect(() => {
     const fetchPayment = async () => {
       if (!paymentId) {
-        setError('ID do pagamento não encontrado');
+        setError('ID da assinatura não encontrado');
         setLoading(false);
         return;
       }
@@ -60,18 +60,17 @@ function SuccessPageContent() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Erro ao buscar informações do pagamento');
+          throw new Error(errorData.error || 'Erro ao buscar informações da assinatura');
         }
 
         const data = await response.json();
-        console.log('Dados do pagamento recebidos:', data);
-        console.log('Metadata do pagamento:', data.metadata);
-        console.log('Método do pagamento:', data.metadata?.method);
+        console.log('Dados da assinatura recebidos:', data);
+        console.log('Metadata da assinatura:', data.metadata);
         setPayment(data);
         setError(null);
       } catch (err: any) {
         console.error('Erro ao buscar pagamento:', err);
-        setError(err.message || 'Não foi possível carregar as informações do pagamento');
+        setError(err.message || 'Não foi possível carregar as informações da assinatura');
       } finally {
         setLoading(false);
       }
@@ -79,7 +78,7 @@ function SuccessPageContent() {
 
     fetchPayment();
 
-    // Set up polling to check payment status
+    // Set up polling to check subscription status
     const intervalId = setInterval(fetchPayment, 10000); // Check every 10 seconds
 
     return () => clearInterval(intervalId);
@@ -93,9 +92,9 @@ function SuccessPageContent() {
   const cartClearedRef = useRef(false);
   
   useEffect(() => {
-    // Limpar carrinho quando o pagamento for aprovado (verificar tanto 'approved' quanto 'APPROVED')
+    // Limpar carrinho quando a assinatura for aprovada (verificar tanto 'approved' quanto 'APPROVED')
     // Usar ref para evitar múltiplas chamadas
-    if ((payment?.status === "approved" || payment?.status === "APPROVED") && !cartClearedRef.current) {
+    if ((payment?.status === "approved" || payment?.status === "APPROVED" || payment?.status === "authorized") && !cartClearedRef.current) {
       cartClearedRef.current = true;
       clearCart();
     }
@@ -107,7 +106,7 @@ function SuccessPageContent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando informações do pagamento...</p>
+          <p className="text-gray-600">Carregando informações da assinatura...</p>
         </div>
       </div>
     );
@@ -121,7 +120,7 @@ function SuccessPageContent() {
             <FaExclamationTriangle className="h-8 w-8" />
           </div>
           <h1 className="mt-4 text-2xl font-semibold text-gray-900">Erro</h1>
-          <p className="mt-2 text-gray-600">{error || 'Pagamento não encontrado'}</p>
+          <p className="mt-2 text-gray-600">{error || 'Assinatura não encontrada'}</p>
           <div className="mt-6">
             <Link
               href="/"
@@ -135,28 +134,14 @@ function SuccessPageContent() {
     );
   }
 
-  // Check if payment method is PIX (handle both string and object metadata)
+  // Parse metadata
   const metadata = typeof payment.metadata === 'string' 
     ? JSON.parse(payment.metadata) 
     : (payment.metadata || {});
   
-  // Verificar se é PIX: pelo método no metadata OU pela presença de QR code
-  const isPix = metadata?.method === 'pix' || 
-                metadata?.method === 'PIX' || 
-                !!(metadata?.qr_code || metadata?.qr_code_base64);
-  
-  const isPending = payment.status === 'PENDING' || payment.status === 'IN_PROCESS';
-  const isApproved = payment.status === 'APPROVED';
-  
-  console.log('Verificação PIX:', {
-    rawMetadata: payment.metadata,
-    parsedMetadata: metadata,
-    method: metadata?.method,
-    isPix,
-    hasQrCode: !!metadata?.qr_code,
-    hasQrCodeBase64: !!metadata?.qr_code_base64,
-    detectedByQrCode: !!(metadata?.qr_code || metadata?.qr_code_base64) && !metadata?.method
-  });
+  const isSubscription = metadata?.type === 'subscription';
+  const isPending = payment.status === 'PENDING' || payment.status === 'pending';
+  const isApproved = payment.status === 'APPROVED' || payment.status === 'authorized';
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -164,12 +149,12 @@ function SuccessPageContent() {
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:px-6">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
-              {isApproved ? 'Pagamento Aprovado!' : 'Aguardando Confirmação do Pagamento'}
+              {isApproved ? 'Assinatura Ativada!' : 'Aguardando Confirmação da Assinatura'}
             </h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
               {isApproved
-                ? 'Seu pagamento foi aprovado com sucesso!'
-                : 'Estamos aguardando a confirmação do seu pagamento.'}
+                ? 'Sua assinatura foi ativada com sucesso! Você já tem acesso aos cursos.'
+                : 'Estamos aguardando a confirmação da sua assinatura.'}
             </p>
           </div>
 
@@ -190,46 +175,11 @@ function SuccessPageContent() {
                 </dd>
               </div>
 
-              {isPix && isPending && metadata?.qr_code && (
+              {isSubscription && (
                 <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">PIX</dt>
+                  <dt className="text-sm font-medium text-gray-500">Tipo</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <div className="flex flex-col items-center space-y-4">
-                      {metadata?.qr_code_base64 && (
-                        <div className="p-4 bg-white rounded-lg border border-gray-200">
-                          <img
-                            src={`data:image/png;base64,${metadata.qr_code_base64}`}
-                            alt="QR Code PIX"
-                            className="w-64 h-64"
-                          />
-                        </div>
-                      )}
-
-                      {metadata?.qr_code && (
-                        <div className="w-full">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Código PIX (copie e cole no seu banco)
-                          </label>
-                          <div className="mt-1 flex rounded-md shadow-sm">
-                            <div className="relative flex-1">
-                              <input
-                                type="text"
-                                readOnly
-                                value={metadata.qr_code}
-                                className="focus:ring-blue-500 focus:border-blue-500 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(metadata.qr_code || '')}
-                              className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-r-md"
-                            >
-                              <FaCopy className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    Assinatura Mensal
                   </dd>
                 </div>
               )}
@@ -237,7 +187,7 @@ function SuccessPageContent() {
               <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Método de pagamento</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {isPix ? 'PIX' : 'Cartão de Crédito'}
+                  Cartão de Crédito
                 </dd>
               </div>
 
