@@ -33,16 +33,14 @@ export async function proxy(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   const isPublicApiRoute =
-    (pathname === "/api/courses") &&
+    (pathname === "/api/tracks") &&
     req.method === "GET";
 
   const isPublicRoute =
     pathname.startsWith("/signin") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/curso/") ||
-    pathname.startsWith("/cursos/") ||
+    pathname.startsWith("/registrar") ||
+    pathname.startsWith("/esqueci-minha-senha") ||
+    pathname.startsWith("/redefinir-senha") ||
     pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
@@ -56,11 +54,11 @@ export async function proxy(req: NextRequest) {
   }
 
   if (token) {
-    // Verificar acesso a cursos
-    if (pathname.startsWith('/dashboard/cursos/')) {
+    // Verificar acesso a trilhas
+    if (pathname.startsWith('/dashboard/trilhas/')) {
       const parts = pathname.split('/');
-      const courseId = parts[3]; // Pega o ID do curso da URL
-      if (courseId && !await hasCourseAccess(token.sub!, courseId)) {
+      const trackId = parts[3]; // Pega o ID da trilha da URL
+      if (trackId && !await hasTrackAccess(token.sub!, trackId)) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
@@ -82,11 +80,11 @@ export async function proxy(req: NextRequest) {
   return NextResponse.next();
 }
 
-async function hasCourseAccess(userId: string, courseId: string): Promise<boolean> {
+async function hasTrackAccess(userId: string, trackId: string): Promise<boolean> {
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       userId,
-      courseId,
+      trackId,
       OR: [
         { endDate: null }, // Acesso vitalício
         { endDate: { gte: new Date() } } // Acesso ativo
