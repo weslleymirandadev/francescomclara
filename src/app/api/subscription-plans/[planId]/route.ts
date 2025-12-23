@@ -16,15 +16,14 @@ export async function GET(
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId },
       include: {
-        courses: {
+        tracks: {
           include: {
-            course: {
+            track: {
               select: {
                 id: true,
-                title: true,
+                name: true,
                 description: true,
                 imageUrl: true,
-                price: true,
               },
             },
           },
@@ -51,14 +50,13 @@ export async function GET(
       type: plan.type,
       period: plan.period,
       features: plan.features,
-      courses: plan.courses
-        .filter(spc => spc.course)
-        .map(spc => ({
-          id: spc.course!.id,
-          title: spc.course!.title,
-          price: spc.course!.price || 0,
-          description: spc.course!.description,
-          imageUrl: spc.course!.imageUrl,
+      tracks: plan.tracks
+        .filter(spt => spt.track)
+        .map(spt => ({
+          id: spt.track!.id,
+          name: spt.track!.name,
+          description: spt.track!.description,
+          imageUrl: spt.track!.imageUrl,
         })),
       active: plan.active,
       createdAt: plan.createdAt,
@@ -115,7 +113,7 @@ export async function PATCH(
       type,
       period,
       features,
-      courseIds,
+      trackIds,
       active,
     } = body;
 
@@ -165,15 +163,14 @@ export async function PATCH(
       where: { id: planId },
       data: updateData,
       include: {
-        courses: {
+        tracks: {
           include: {
-            course: {
+            track: {
               select: {
                 id: true,
-                title: true,
+                name: true,
                 description: true,
                 imageUrl: true,
-                price: true,
               },
             },
           },
@@ -181,36 +178,35 @@ export async function PATCH(
       },
     });
 
-    // Atualizar cursos se fornecido
-    if (courseIds !== undefined && Array.isArray(courseIds)) {
-      // Remover todos os cursos atuais
-      await prisma.subscriptionPlanCourse.deleteMany({
+    // Atualizar trilhas se fornecido
+    if (trackIds !== undefined && Array.isArray(trackIds)) {
+      // Remover todas as trilhas atuais
+      await prisma.subscriptionPlanTrack.deleteMany({
         where: { subscriptionPlanId: planId },
       });
 
-      // Adicionar novos cursos
-      if (courseIds.length > 0) {
-        await prisma.subscriptionPlanCourse.createMany({
-          data: courseIds.map((courseId: string) => ({
+      // Adicionar novas trilhas
+      if (trackIds.length > 0) {
+        await prisma.subscriptionPlanTrack.createMany({
+          data: trackIds.map((trackId: string) => ({
             subscriptionPlanId: planId,
-            courseId,
+            trackId,
           })),
         });
       }
 
-      // Buscar plano atualizado com cursos
+      // Buscar plano atualizado com trilhas
       const updatedPlan = await prisma.subscriptionPlan.findUnique({
         where: { id: planId },
         include: {
-          courses: {
+          tracks: {
             include: {
-              course: {
+              track: {
                 select: {
                   id: true,
-                  title: true,
+                  name: true,
                   description: true,
                   imageUrl: true,
-                  price: true,
                 },
               },
             },

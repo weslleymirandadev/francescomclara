@@ -3,30 +3,15 @@ import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
-type ItemType = 'course';
-
-interface PaymentMetadata {
-  userId?: string;
-  items?: Array<{
-    id: string;
-    type: ItemType;
-    quantity?: number;
-    title?: string;
-    description?: string;
-    price?: number;
-  }>;
-  durationMonths?: number;
-  [key: string]: any;
-}
 
 interface PaymentItem {
   id: string;
-  type: 'course';
+  type: 'track';
   quantity: number;
   price: number;
   title: string;
   description: string;
-  courseId: string;
+  trackId: string;
 }
 
 const client = new MercadoPagoConfig({
@@ -90,11 +75,11 @@ async function revokeUserAccess(userId: string, items: PaymentItem[]) {
   for (const item of items) {
     try {
       await prisma.enrollment.deleteMany({
-        where: { userId, courseId: item.id }
+        where: { userId, trackId: item.id }
       });
-      console.log(`Acesso removido do curso ${item.id} para o usuário ${userId}`);
+      console.log(`Acesso removido da trilha ${item.id} para o usuário ${userId}`);
     } catch (error) {
-      console.error(`Erro ao remover acesso para o curso ${item.id}:`, error);
+      console.error(`Erro ao remover acesso para a trilha ${item.id}:`, error);
     }
   }
 }
@@ -167,11 +152,11 @@ async function processAuthorizedSubscription(
         },
         items: {
           create: items.map(item => ({
-            courseId: item.id,
+            trackId: item.id,
             price: item.price || 0,
             quantity: item.quantity || 1,
-            title: item.title || 'Curso',
-            description: item.description || 'Acesso ao curso',
+            title: item.title || 'Trilha',
+            description: item.description || 'Acesso à trilha',
           })),
         },
       },
@@ -195,11 +180,11 @@ async function processAuthorizedSubscription(
       items.map(item =>
         prisma.enrollment.upsert({
           where: {
-            userId_courseId: { userId, courseId: item.id }
+            userId_trackId: { userId, trackId: item.id }
           },
           create: {
             userId,
-            courseId: item.id,
+            trackId: item.id,
             startDate: new Date(),
             endDate: endDate,
           },
@@ -256,7 +241,7 @@ async function processRecurringPayment(
         prisma.enrollment.updateMany({
           where: {
             userId,
-            courseId: item.courseId || ''
+            trackId: item.trackId || ''
           },
           data: {
             endDate: endDate,
@@ -322,10 +307,10 @@ export async function POST(req: Request) {
       const rawItems = metadata.items || [];
       const items: PaymentItem[] = rawItems.map((item: any) => ({
         id: item.id,
-        type: 'course',
-        courseId: item.id,
-        title: item.title || 'Curso',
-        description: item.description || 'Acesso ao curso',
+        type: 'track',
+        trackId: item.id,
+        title: item.title || 'Trilha',
+        description: item.description || 'Acesso à trilha',
         quantity: item.quantity || 1,
         price: item.price || 0,
       }));
@@ -393,10 +378,10 @@ export async function POST(req: Request) {
       const rawItems = metadata.items || [];
       const items: PaymentItem[] = rawItems.map((item: any) => ({
         id: item.id,
-        type: 'course',
-        courseId: item.id,
-        title: item.title || 'Curso',
-        description: item.description || 'Acesso ao curso',
+        type: 'track',
+        trackId: item.id,
+        title: item.title || 'Trilha',
+        description: item.description || 'Acesso à trilha',
         quantity: item.quantity || 1,
         price: item.price || 0,
       }));

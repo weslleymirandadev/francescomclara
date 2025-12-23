@@ -11,7 +11,7 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Get user with their enrollments and courses
+    // Get user with their enrollments and tracks
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
       include: {
@@ -21,10 +21,10 @@ export async function GET() {
               { endDate: null },
               { endDate: { gte: new Date() } }
             ],
-            courseId: { not: null } // Garante que só retorne matrículas de cursos
+            trackId: { not: undefined } // Garante que só retorne matrículas de trilhas
           },
           include: {
-            course: {
+            track: {
               include: {
                 modules: {
                   include: {
@@ -32,6 +32,7 @@ export async function GET() {
                       select: {
                         id: true,
                         title: true,
+                        type: true,
                         order: true
                       },
                       orderBy: { order: 'asc' }
@@ -50,11 +51,11 @@ export async function GET() {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    const courses = user.enrollments
-      .filter(e => e.course)
-      .map(e => e.course!);
+    const tracks = user.enrollments
+      .filter(e => e.track)
+      .map(e => e.track!);
 
-    return NextResponse.json({ courses });
+    return NextResponse.json({ tracks });
 
   } catch (error) {
     console.error('Error fetching enrollments:', error);

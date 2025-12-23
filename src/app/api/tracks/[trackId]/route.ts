@@ -16,16 +16,17 @@ export async function GET(
     const track = await prisma.track.findUnique({
       where: { id: trackId },
       include: {
-        courses: {
+        modules: {
           include: {
-            course: {
+            lessons: {
               select: {
                 id: true,
                 title: true,
-                description: true,
-                imageUrl: true,
-                price: true,
-                level: true,
+                type: true,
+                order: true,
+              },
+              orderBy: {
+                order: 'asc',
               },
             },
           },
@@ -92,7 +93,6 @@ export async function PATCH(
       objective,
       imageUrl, 
       active,
-      courseIds,
     } = body;
 
     // Verificar se a trilha existe
@@ -129,16 +129,17 @@ export async function PATCH(
       where: { id: trackId },
       data: updateData,
       include: {
-        courses: {
+        modules: {
           include: {
-            course: {
+            lessons: {
               select: {
                 id: true,
                 title: true,
-                description: true,
-                imageUrl: true,
-                price: true,
-                level: true,
+                type: true,
+                order: true,
+              },
+              orderBy: {
+                order: 'asc',
               },
             },
           },
@@ -148,51 +149,6 @@ export async function PATCH(
         },
       },
     });
-
-    // Atualizar cursos se fornecido
-    if (courseIds !== undefined && Array.isArray(courseIds)) {
-      // Remover todos os cursos atuais
-      await prisma.trackCourse.deleteMany({
-        where: { trackId: trackId },
-      });
-
-      // Adicionar novos cursos
-      if (courseIds.length > 0) {
-        await prisma.trackCourse.createMany({
-          data: courseIds.map((courseId: string, index: number) => ({
-            trackId: trackId,
-            courseId,
-            order: index,
-          })),
-        });
-      }
-
-      // Buscar trilha atualizada com cursos
-      const updatedTrack = await prisma.track.findUnique({
-        where: { id: trackId },
-        include: {
-          courses: {
-            include: {
-              course: {
-                select: {
-                  id: true,
-                  title: true,
-                  description: true,
-                  imageUrl: true,
-                  price: true,
-                  level: true,
-                },
-              },
-            },
-            orderBy: {
-              order: 'asc',
-            },
-          },
-        },
-      });
-
-      return NextResponse.json(updatedTrack);
-    }
 
     return NextResponse.json(track);
   } catch (error) {
