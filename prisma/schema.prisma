@@ -16,9 +16,6 @@ model User {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   accounts         Account[]
-  cart             Cart?
-  coursesOwned     Course[]
-  coursePosts      CoursePost[]
   enrollments      Enrollment[]
   forumComments    ForumComment[]
   forumPosts       ForumPost[]
@@ -27,6 +24,7 @@ model User {
   paymentMethods   PaymentMethod[]
   sessions         Session[]
   passwords        UserPassword?
+  flashcards       Flashcard[]
 }
 
 model UserPassword {
@@ -87,73 +85,71 @@ enum TrackObjective {
 }
 
 model Track {
-  id          String          @id @default(cuid())
-  name        String
-  description String
-  objective   TrackObjective  // Objetivo da trilha (viagens, trabalho, família, conhecimento)
-  imageUrl    String?
-  active      Boolean         @default(true)
-  courses     TrackCourse[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id                String                  @id @default(cuid())
+  name              String
+  description       String
+  objective         TrackObjective          // Objetivo da trilha (viagens, trabalho, família, conhecimento)
+  imageUrl          String?
+  active            Boolean                 @default(true)
+  modules           Module[]
+  enrollments       Enrollment[]
+  paymentItems      PaymentItem[]
+  subscriptionPlans SubscriptionPlanTrack[]
+  forumPosts        ForumPost[]
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
   @@index([objective])
   @@index([active])
 }
 
-model TrackCourse {
-  id        String   @id @default(cuid())
-  trackId   String
-  courseId  String
-  order     Int      @default(0) // Ordem do curso dentro da trilha
-  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([trackId, courseId])
-  @@index([trackId])
-  @@index([courseId])
-}
-
-model Course {
-  id              String                  @id @default(cuid())
-  title           String
-  description     String
-  imageUrl        String?
-  price           Int?
-  discountPrice   Int                     @default(0)
-  discountEnabled Boolean                 @default(false)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  level           String
-  cartItems       CartItem[]
-  posts           CoursePost[]
-  enrollments     Enrollment[]
-  forumPosts      ForumPost[]
-  modules         Module[]
-  paymentItems    PaymentItem[]
-  subscriptionPlans SubscriptionPlanCourse[]
-  tracks          TrackCourse[]
-
-  users User[]
-}
-
 model Module {
-  id       String   @id @default(cuid())
-  courseId String
-  title    String
-  order    Int
-  lessons  Lesson[]
-  course   Course   @relation(fields: [courseId], references: [id])
+  id        String   @id @default(cuid())
+  trackId  String
+  title     String
+  order     Int
+  lessons   Lesson[]
+  cefrLevel   CEFRLevel?
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([trackId])
+  @@index([order])
+}
+
+enum LessonType {
+  CLASS      // Aula (vídeo/teoria)
+  FLASHCARD  // Flashcard do módulo
+  STORY      // Historinha (vídeos simulando contextos reais)
+  READING    // Leitura
+}
+
+enum CEFRLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
 }
 
 model Lesson {
-  id       String           @id @default(cuid())
-  moduleId String
-  title    String
-  content  Json
-  order    Int
-  module   Module           @relation(fields: [moduleId], references: [id])
-  progress LessonProgress[]
+  id          String           @id @default(cuid())
+  moduleId    String
+  title       String
+  type        LessonType
+  content     Json
+  order       Int
+  // Campos específicos para leitura
+  readingText String?          // Texto da leitura
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+  flashcards  Flashcard[]      // Flashcards que podem ser adicionados a partir desta lição
+
+  @@index([moduleId])
+  @@index([type])
+  @@index([order])
 }
 
 model LessonProgress {
@@ -162,34 +158,40 @@ model LessonProgress {
   lessonId  String
   completed Boolean  @default(false)
   updatedAt DateTime @updatedAt
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
 }
 
 model Enrollment {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  courseId  String?
-  startDate DateTime  @default(now())
+  trackId   String
+  startDate DateTime @default(now())
   endDate   DateTime?
-  createdAt DateTime  @default(now())
-  course    Course?   @relation(fields: [courseId], references: [id])
-  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, courseId])
+  @@unique([userId, trackId])
+  @@index([userId])
+  @@index([trackId])
 }
 
-model CoursePost {
-  id        String   @id @default(cuid())
-  courseId  String
-  authorId  String
-  content   Json
-  isPinned  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  author    User     @relation(fields: [authorId], references: [id])
-  course    Course   @relation(fields: [courseId], references: [id])
+model Flashcard {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String?  // Opcional: pode ser criado a partir de uma lição ou manualmente
+  front       String   // Frente do flashcard
+  back        String   // Verso do flashcard
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model ForumPost {
@@ -197,12 +199,14 @@ model ForumPost {
   authorId  String
   title     String
   content   Json
-  cursoId   String?
+  trackId   String?       // Opcional: pode estar relacionado a uma trilha
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   comments  ForumComment[]
   author    User           @relation(fields: [authorId], references: [id])
-  curso     Course?        @relation(fields: [cursoId], references: [id])
+  track     Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+
+  @@index([trackId])
 }
 
 model ForumComment {
@@ -212,27 +216,7 @@ model ForumComment {
   content   Json
   createdAt DateTime  @default(now())
   author    User      @relation(fields: [authorId], references: [id])
-  post      ForumPost @relation(fields: [postId], references: [id])
-}
-
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  updatedAt DateTime   @updatedAt
-  user      User       @relation(fields: [userId], references: [id])
-  items     CartItem[]
-}
-
-model CartItem {
-  id        String          @id @default(cuid())
-  cartId    String
-  courseId  String?
-  quantity  Int             @default(1)
-  createdAt DateTime        @default(now())
-  cart      Cart            @relation(fields: [cartId], references: [id])
-  course    Course?         @relation(fields: [courseId], references: [id])
-
-  @@index([cartId])
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
@@ -254,20 +238,20 @@ model Payment {
 }
 
 model PaymentItem {
-  id          String          @id @default(cuid())
+  id          String   @id @default(cuid())
   paymentId   String
-  courseId    String?
-  quantity    Int             @default(1)
+  trackId     String?  // Agora os itens de pagamento referenciam trilhas
+  quantity    Int      @default(1)
   price       Int
   title       String
   description String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  payment     Payment         @relation(fields: [paymentId], references: [id])
-  course      Course?         @relation(fields: [courseId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  track       Track?   @relation(fields: [trackId], references: [id], onDelete: SetNull)
 
   @@index([paymentId])
-  @@index([courseId])
+  @@index([trackId])
 }
 
 model Refund {
@@ -277,7 +261,7 @@ model Refund {
   status     String
   amount     Int
   createdAt  DateTime @default(now())
-  payment    Payment  @relation(fields: [paymentId], references: [id])
+  payment    Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@index([paymentId])
 }
@@ -331,7 +315,7 @@ model SubscriptionPlan {
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
   period          SubscriptionPlanPeriod   // MONTHLY ou YEARLY
   features        Json?                   // Lista de features do plano
-  courses         SubscriptionPlanCourse[]
+  tracks          SubscriptionPlanTrack[]
   active          Boolean                 @default(true)
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
@@ -341,15 +325,14 @@ model SubscriptionPlan {
   @@index([active])
 }
 
-model SubscriptionPlanCourse {
+model SubscriptionPlanTrack {
   id                 String            @id @default(cuid())
-  subscriptionPlanId  String
-  courseId           String?
+  subscriptionPlanId String
+  trackId            String?
   subscriptionPlan   SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
-  course             Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  track              Track?            @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
-  @@unique([subscriptionPlanId, courseId])
+  @@unique([subscriptionPlanId, trackId])
   @@index([subscriptionPlanId])
-  @@index([courseId])
+  @@index([trackId])
 }
-

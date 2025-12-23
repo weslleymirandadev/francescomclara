@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const courseId = searchParams.get('courseId');
+    const trackId = searchParams.get('trackId');
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
@@ -25,10 +25,10 @@ export async function GET(request: Request) {
     const payments = await prisma.payment.findMany({
       where: {
         userId: user.id,
-        ...(courseId ? {
+        ...(trackId ? {
           items: {
             some: {
-              courseId: courseId
+              trackId: trackId
             }
           }
         } : {})

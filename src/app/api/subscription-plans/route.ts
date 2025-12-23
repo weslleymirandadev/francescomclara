@@ -34,15 +34,14 @@ export async function GET(request: Request) {
     const plans = await prisma.subscriptionPlan.findMany({
       where,
       include: {
-        courses: {
+        tracks: {
           include: {
-            course: {
+            track: {
               select: {
                 id: true,
-                title: true,
+                name: true,
                 description: true,
                 imageUrl: true,
-                price: true,
               },
             },
           },
@@ -103,7 +102,7 @@ export async function POST(request: Request) {
       type,
       period,
       features,
-      courseIds = [],
+      trackIds = [],
     } = body;
 
     // Validações
@@ -128,7 +127,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Criar plano com cursos
+    // Criar plano com trilhas
     const plan = await prisma.subscriptionPlan.create({
       data: {
         name,
@@ -139,22 +138,21 @@ export async function POST(request: Request) {
         type,
         period,
         features: features || [],
-        courses: {
-          create: courseIds.map((courseId: string) => ({
-            courseId,
+        tracks: {
+          create: trackIds.map((trackId: string) => ({
+            trackId,
           })),
         },
       },
       include: {
-        courses: {
+        tracks: {
           include: {
-            course: {
+            track: {
               select: {
                 id: true,
-                title: true,
+                name: true,
                 description: true,
                 imageUrl: true,
-                price: true,
               },
             },
           },

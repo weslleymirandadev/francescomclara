@@ -76,30 +76,30 @@ export async function POST(req: Request) {
     console.log(`Criando assinatura ${isTransparent ? 'transparente' : 'com redirecionamento'}`);
     console.log('Items recebidos:', JSON.stringify(items, null, 2));
 
-    // Validar que todos os cursos existem
-    const courseIds = items.map(item => item.id);
-    const existingCourses = await prisma.course.findMany({
-      where: { id: { in: courseIds } },
-      select: { id: true, title: true, price: true }
+    // Validar que todas as trilhas existem
+    const trackIds = items.map(item => item.id);
+    const existingTracks = await prisma.track.findMany({
+      where: { id: { in: trackIds } },
+      select: { id: true, name: true }
     });
     
-    const existingCourseIds = new Set(existingCourses.map(c => c.id));
-    const missingCourses = courseIds.filter(id => !existingCourseIds.has(id));
+    const existingTrackIds = new Set(existingTracks.map(t => t.id));
+    const missingTracks = trackIds.filter(id => !existingTrackIds.has(id));
     
-    if (missingCourses.length > 0) {
+    if (missingTracks.length > 0) {
       return NextResponse.json(
-        { error: `Cursos não encontrados: ${missingCourses.join(', ')}` },
+        { error: `Trilhas não encontradas: ${missingTracks.join(', ')}` },
         { status: 404 }
       );
     }
 
-    // Enriquecer items com dados dos cursos
+    // Enriquecer items com dados das trilhas
     const enrichedItems = items.map(item => {
-      const course = existingCourses.find(c => c.id === item.id);
+      const track = existingTracks.find(t => t.id === item.id);
       return {
         ...item,
-        title: course?.title || item.title,
-        price: course?.price || item.price,
+        title: track?.name || item.title,
+        price: item.price || 0, // Trilhas podem não ter preço direto
         quantity: item.quantity || 1,
         imageUrl: item.imageUrl || ''
       };
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     
     const description = enrichedItems.length === 1
       ? `Assinatura: ${enrichedItems[0].title}`
-      : `Assinatura: ${enrichedItems.length} cursos`;
+      : `Assinatura: ${enrichedItems.length} trilhas`;
 
     // Preparar dados para Preapproval
     const externalReference = `subscription-${userId}-${Date.now()}`;
@@ -248,11 +248,11 @@ export async function POST(req: Request) {
         },
         items: {
           create: enrichedItems.map(item => ({
-            courseId: item.id,
+            trackId: item.id,
             price: item.price,
             quantity: item.quantity,
             title: item.title,
-            description: item.description || `Curso: ${item.title}`,
+            description: item.description || `Trilha: ${item.title}`,
           })),
         },
       },
@@ -306,34 +306,27 @@ export async function POST(req: Request) {
       }
     }
 
-    // Conceder acesso e limpar carrinho
-    await prisma.$transaction([
-      // Se autorizado imediatamente (transparente), conceder acesso aos cursos
-      ...(isAuthorized ? enrichedItems.map(item =>
-        prisma.enrollment.upsert({
-          where: {
-            userId_courseId: { userId, courseId: item.id }
-          },
-          create: {
-            userId,
-            courseId: item.id,
-            startDate: new Date(),
-            endDate: enrollmentEndDate,
-          },
-          update: {
-            endDate: enrollmentEndDate,
-          }
-        })
-      ) : []),
-      
-      // Limpar carrinho
-      prisma.cartItem.deleteMany({
-        where: {
-          cart: { userId },
-          courseId: { in: courseIds },
-        },
-      }),
-    ]);
+    // Conceder acesso
+    if (isAuthorized) {
+      await Promise.all(
+        enrichedItems.map(item =>
+          prisma.enrollment.upsert({
+            where: {
+              userId_trackId: { userId, trackId: item.id }
+            },
+            create: {
+              userId,
+              trackId: item.id,
+              startDate: new Date(),
+              endDate: enrollmentEndDate,
+            },
+            update: {
+              endDate: enrollmentEndDate,
+            }
+          })
+        )
+      );
+    }
 
     return NextResponse.json({
       id: preapprovalResponse.id,
