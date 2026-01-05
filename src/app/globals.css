@@ -1,7 +1,52 @@
 @import "tailwindcss";
 
-@theme {
-  --color-primary: #1C464E;
-  --color-secondary: #BDEAD2;
-  --color-soft-white: #FCFFFD;
+@font-face {
+  font-family: 'frenchpress';
+  src: url('/fonts/frenchpress.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
 }
+
+:root {
+  --lien: #F7EDE2;
+  --honey-bronze: #F6BD60;
+  --cotton-blue: #95cfff;
+  --muted-teal: #84A59D;
+  --light-coral: #82bef2;
+
+  --ivory: #f6f7eb;
+  --fiery-terracotta: #e94f37;
+  --gunmetal: #393e41;
+  --steel-blue: #3f88c5;
+  --ocean-mist: #44bba4;
+  
+  --font-frenchpress: 'frenchpress', sans-serif;
+}
+
+@theme {
+  --color-lien: var(--lien);
+  --color-honey-bronze: var(--honey-bronze);
+  --color-cotton-blue: var(--cotton-blue);
+  --color-muted-teal: var(--muted-teal);
+  --color-light-coral: var(--light-coral);
+  --color-ivory: var(--ivory);
+  --color-fiery-terracotta: var(--fiery-terracotta);
+  --color-gunmetal: var(--gunmetal);
+  --color-steel-blue: var(--steel-blue);
+  --color-ocean-mist: var(--ocean-mist);
+  --font-frenchpress: var(--font-frenchpress);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-frenchpress);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
