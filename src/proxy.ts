@@ -37,10 +37,7 @@ export async function proxy(req: NextRequest) {
     req.method === "GET";
 
   const isPublicRoute =
-    pathname.startsWith("/signin") ||
-    pathname.startsWith("/registrar") ||
-    pathname.startsWith("/esqueci-minha-senha") ||
-    pathname.startsWith("/redefinir-senha") ||
+    pathname.startsWith("/auth") ||
     pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
     pathname === "/" ||
@@ -48,7 +45,7 @@ export async function proxy(req: NextRequest) {
 
   // 5. Proteger rotas autenticadas
   if (!isPublicRoute && !token) {
-    const url = new URL("/signin", req.url);
+    const url = new URL("/auth/login", req.url);
     url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
@@ -72,8 +69,8 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // 8. Redirecionar usuário logado que tenta ir para signin/register
-  if (token && (pathname === "/signin" || pathname === "/register")) {
+  // 8. Redirecionar usuário logado que tenta ir para login/registrar
+  if (token && (pathname === "/auth/login" || pathname === "/auth/registrar")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
