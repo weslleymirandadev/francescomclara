@@ -22,10 +22,10 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden md:flex md:w-64 md:flex-col">
+    <div className="hidden md:flex w-[325px] md:flex-col">
       <div className="flex flex-col grow pt-5 overflow-y-auto bg-white border-r border-gray-200">
         <div className="flex items-center shrink-0 px-4">
-          <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-xl text-gray-900">Admin Dashboard</h1>
         </div>
         <div className="flex flex-col grow mt-5">
           <nav className="flex-1 px-2 space-y-1">
