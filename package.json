@@ -1,6 +1,6 @@
 {
   "name": "francescomclara.com.br",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -29,7 +29,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.25",
     "mercadopago": "^2.11.0",
-    "next": "16.0.7",
+    "next": "16.0.10",
     "next-auth": "^4.24.13",
     "next-themes": "latest",
     "pg": "^8.16.3",

@@ -77,14 +77,14 @@ export async function POST(req: Request) {
       data: { status: 'CANCELLED' }
     });
 
-    // Remover acesso aos cursos
+    // Remover acesso às trilhas
     await Promise.all(
       subscription.items.map(item => {
-        if (item.courseId) {
+        if (item.trackId) {
           return prisma.enrollment.deleteMany({
             where: {
               userId,
-              courseId: item.courseId
+              trackId: item.trackId
             }
           });
         }

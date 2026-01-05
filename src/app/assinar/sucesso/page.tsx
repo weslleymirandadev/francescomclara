@@ -1,11 +1,10 @@
 'use client';
 
-import { Suspense, useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaCopy, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
-import { useCart } from "@/context/CartContext";
 
 interface Payment {
   id: string;
@@ -38,7 +37,6 @@ function SuccessPageContent() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { clearCart } = useCart();
 
   const paymentId = searchParams.get('payment_id');
 
@@ -88,17 +86,6 @@ function SuccessPageContent() {
     navigator.clipboard.writeText(text);
     toast.success('Código copiado para a área de transferência!');
   };
-
-  const cartClearedRef = useRef(false);
-  
-  useEffect(() => {
-    // Limpar carrinho quando a assinatura for aprovada (verificar tanto 'approved' quanto 'APPROVED')
-    // Usar ref para evitar múltiplas chamadas
-    if ((payment?.status === "approved" || payment?.status === "APPROVED" || payment?.status === "authorized") && !cartClearedRef.current) {
-      cartClearedRef.current = true;
-      clearCart();
-    }
-  }, [payment?.status, clearCart]);
 
 
   if (loading) {

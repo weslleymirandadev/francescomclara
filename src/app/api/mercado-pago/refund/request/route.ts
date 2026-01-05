@@ -142,12 +142,12 @@ export async function POST(req: Request) {
       
       await Promise.all(
         payment.items.map(async (item) => {
-          if (item.courseId) {
-            console.log(`Removendo acesso ao curso ${item.courseId} para o usuário ${userId}`);
+          if (item.trackId) {
+            console.log(`Removendo acesso à trilha ${item.trackId} para o usuário ${userId}`);
             await prisma.enrollment.deleteMany({
-              where: { userId, courseId: item.courseId }
+              where: { userId, trackId: item.trackId }
             });
-            console.log(`Acesso ao curso ${item.courseId} removido com sucesso`);
+            console.log(`Acesso à trilha ${item.trackId} removido com sucesso`);
           }
         })
       );
@@ -167,8 +167,8 @@ export async function POST(req: Request) {
         amount: refund.amount,
         paymentId: refund.paymentId,
         items: payment.items.map(item => ({
-          id: item.courseId,
-          type: 'course',
+          id: item.trackId,
+          type: 'track',
           title: item.title,
           quantity: item.quantity,
           price: item.price

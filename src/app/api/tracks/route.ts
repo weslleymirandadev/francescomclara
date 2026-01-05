@@ -28,16 +28,17 @@ export async function GET(request: Request) {
     const tracks = await prisma.track.findMany({
       where,
       include: {
-        courses: {
+        modules: {
           include: {
-            course: {
+            lessons: {
               select: {
                 id: true,
                 title: true,
-                description: true,
-                imageUrl: true,
-                price: true,
-                level: true,
+                type: true,
+                order: true,
+              },
+              orderBy: {
+                order: 'asc',
               },
             },
           },
@@ -96,7 +97,6 @@ export async function POST(request: Request) {
       objective,
       imageUrl,
       active = true,
-      courseIds = [],
     } = body;
 
     // Validações
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Criar trilha com cursos
+    // Criar trilha
     const track = await prisma.track.create({
       data: {
         name,
@@ -122,24 +122,19 @@ export async function POST(request: Request) {
         objective,
         imageUrl,
         active,
-        courses: {
-          create: courseIds.map((courseId: string, index: number) => ({
-            courseId: courseId,
-            order: index,
-          })),
-        },
       },
       include: {
-        courses: {
+        modules: {
           include: {
-            course: {
+            lessons: {
               select: {
                 id: true,
                 title: true,
-                description: true,
-                imageUrl: true,
-                price: true,
-                level: true,
+                type: true,
+                order: true,
+              },
+              orderBy: {
+                order: 'asc',
               },
             },
           },

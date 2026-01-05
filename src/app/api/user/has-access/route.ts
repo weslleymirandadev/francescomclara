@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const id = searchParams.get('id');
 
   if (!id) {
-    return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
+    return NextResponse.json({ error: "Track ID is required" }, { status: 400 });
   }
 
   const session = await getServerSession(authOptions);
@@ -20,12 +20,12 @@ export async function GET(request: Request) {
     const userId = session.user.id;
     const now = new Date();
 
-    // Verifica se o usuário tem acesso ao curso
+    // Verifica se o usuário tem acesso à trilha
     // endDate pode ser null (acesso vitalício) ou maior que hoje (acesso ativo)
     const enrollment = await prisma.enrollment.findFirst({
       where: {
         userId,
-        courseId: id,
+        trackId: id,
         OR: [
           { endDate: null }, // Acesso vitalício
           { endDate: { gte: now } } // Acesso ativo (não expirado)
@@ -35,9 +35,9 @@ export async function GET(request: Request) {
     
     const hasAccess = !!enrollment;
     
-    console.log('Verificação de acesso ao curso:', {
+    console.log('Verificação de acesso à trilha:', {
       userId,
-      courseId: id,
+      trackId: id,
       hasAccess,
       enrollment: enrollment ? { id: enrollment.id, endDate: enrollment.endDate } : null
     });

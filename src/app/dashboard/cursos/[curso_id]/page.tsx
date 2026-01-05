@@ -93,7 +93,7 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/signin');
+      router.push('/auth/login');
       return;
     }
 
