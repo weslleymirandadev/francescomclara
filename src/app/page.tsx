@@ -7,25 +7,30 @@ import { toast } from "react-hot-toast";
 import { formatPrice } from "@/lib/price";
 import { useRouter } from "next/navigation";
 
+type Lesson = {
+  id: string;
+  title: string;
+  type: string;
+  order: number;
+};
+
+type Module = {
+  id: string;
+  title: string;
+  order: number;
+  lessons: Lesson[];
+};
+
 type Track = {
   id: string;
   name: string;
   description: string;
   objective: 'TRAVEL' | 'WORK' | 'FAMILY' | 'KNOWLEDGE';
   imageUrl: string | null;
-  order: number;
   active: boolean;
-  courses: Array<{
-    order: number;
-    course: {
-      id: string;
-      title: string;
-      description: string;
-      imageUrl: string | null;
-      price: number | null;
-      level: string;
-    };
-  }>;
+  modules: Module[];
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SubscriptionPlan = {
@@ -39,10 +44,11 @@ type SubscriptionPlan = {
   type: 'INDIVIDUAL' | 'FAMILY';
   period: 'MONTHLY' | 'YEARLY';
   features: any;
-  courses: Array<{
+  tracks: Array<{
     id: string;
-    title: string;
-    price: number | null;
+    name: string;
+    description: string;
+    imageUrl: string | null;
   }>;
   active: boolean;
 };
@@ -60,19 +66,15 @@ export default function Home() {
       if (session?.user?.id && tracks.length > 0) {
         const newAccessMap: Record<string, { hasAccess: boolean }> = {};
 
-        // Check access for each course in all tracks
-        const allCourses = tracks.flatMap(track => 
-          track.courses.map(tc => tc.course)
-        );
-
-        await Promise.all(allCourses.map(async (course) => {
-          const itemKey = `course-${course.id}`;
+        // Check access for each track
+        await Promise.all(tracks.map(async (track) => {
+          const itemKey = `track-${track.id}`;
           try {
-            const response = await fetch(`/api/user/has-access?type=course&id=${course.id}`);
+            const response = await fetch(`/api/user/has-access?id=${track.id}`);
             const { hasAccess } = await response.json();
             newAccessMap[itemKey] = { hasAccess };
           } catch (error) {
-            console.error("Error checking access for course:", course.id, error);
+            console.error("Error checking access for track:", track.id, error);
             newAccessMap[itemKey] = { hasAccess: false };
           }
         }));
@@ -125,24 +127,24 @@ export default function Home() {
     return labels[objective] || objective;
   };
 
-  const renderAccessButton = (course: Track['courses'][0]['course']) => {
-    const itemId = `course-${course.id}`;
+  const renderAccessButton = (track: Track) => {
+    const itemId = `track-${track.id}`;
     const hasAccess = accessMap[itemId]?.hasAccess || false;
 
     if (session && hasAccess) {
       return (
         <Link
-          href={`/dashboard/cursos/${course.id}`}
+          href={`/dashboard/tracks/${track.id}`}
           className="w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors text-sm"
         >
-          Acessar Curso
+          Acessar Trilha
         </Link>
       );
     }
 
     return (
       <Link
-        href={`/cursos/${course.id}`}
+        href={`/tracks/${track.id}`}
         className="w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors text-sm"
       >
         Ver Detalhes
@@ -166,6 +168,16 @@ export default function Home() {
     return type === 'INDIVIDUAL' ? 'Individual' : 'Família';
   };
 
+  const getLessonTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      CLASS: 'Aula',
+      FLASHCARD: 'Flashcard',
+      STORY: 'Historinha',
+      READING: 'Leitura',
+    };
+    return labels[type] || type;
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
       {/* Seção de Planos de Assinatura */}
@@ -174,7 +186,7 @@ export default function Home() {
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Planos de Assinatura</h1>
             <p className="text-gray-600 text-lg">
-              Escolha o plano ideal para você e tenha acesso completo aos nossos cursos
+              Escolha o plano ideal para você e tenha acesso completo às nossas trilhas
             </p>
           </div>
 
@@ -248,10 +260,10 @@ export default function Home() {
                       </ul>
                     )}
 
-                    {/* Número de cursos */}
-                    {plan.courses && plan.courses.length > 0 && (
+                    {/* Número de trilhas */}
+                    {plan.tracks && plan.tracks.length > 0 && (
                       <p className="text-sm text-gray-600 mb-6">
-                        <span className="font-semibold">{plan.courses.length}</span> curso{plan.courses.length > 1 ? 's' : ''} incluído{plan.courses.length > 1 ? 's' : ''}
+                        <span className="font-semibold">{plan.tracks.length}</span> trilha{plan.tracks.length > 1 ? 's' : ''} incluída{plan.tracks.length > 1 ? 's' : ''}
                       </p>
                     )}
 
@@ -291,76 +303,90 @@ export default function Home() {
           </div>
 
           <div className="space-y-12">
-            {tracks.map((track) => (
-              <div key={track.id} className="border rounded-lg overflow-hidden shadow-lg bg-white">
-                {/* Header da Trilha */}
-                <div className="bg-linear-to-r from-blue-600 to-blue-800 p-6 text-white">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm font-semibold mb-2">
-                        {getObjectiveLabel(track.objective)}
-                      </span>
-                      <h3 className="text-2xl font-bold mb-2">{track.name}</h3>
-                      <p className="text-blue-100">{track.description}</p>
+            {tracks.map((track) => {
+              const totalLessons = track.modules.reduce((sum, module) => sum + module.lessons.length, 0);
+              return (
+                <div key={track.id} className="border rounded-lg overflow-hidden shadow-lg bg-white">
+                  {/* Header da Trilha */}
+                  <div className="bg-linear-to-r from-blue-600 to-blue-800 p-6 text-white">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-sm font-semibold mb-2">
+                          {getObjectiveLabel(track.objective)}
+                        </span>
+                        <h3 className="text-2xl font-bold mb-2">{track.name}</h3>
+                        <p className="text-blue-100">{track.description}</p>
+                      </div>
+                      {track.imageUrl && (
+                        <img
+                          src={track.imageUrl}
+                          alt={track.name}
+                          className="w-24 h-24 object-cover rounded-lg ml-4"
+                        />
+                      )}
                     </div>
-                    {track.imageUrl && (
-                      <img
-                        src={track.imageUrl}
-                        alt={track.name}
-                        className="w-24 h-24 object-cover rounded-lg ml-4"
-                      />
-                    )}
                   </div>
-                </div>
 
-                {/* Cursos da Trilha */}
-                <div className="p-6">
-                  <h4 className="text-lg font-semibold mb-4 text-gray-900">
-                    Cursos desta trilha ({track.courses.length})
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {track.courses.map((trackCourse) => {
-                      const course = trackCourse.course;
-                      return (
+                  {/* Módulos da Trilha */}
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        Módulos desta trilha ({track.modules.length})
+                      </h4>
+                      <span className="text-sm text-gray-500">
+                        {totalLessons} lições
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      {track.modules.map((module) => (
                         <div
-                          key={course.id}
+                          key={module.id}
                           className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-gray-50"
                         >
-                          {course.imageUrl && (
-                            <Link href={`/cursos/${course.id}`}>
-                              <img
-                                src={course.imageUrl}
-                                alt={course.title}
-                                className="w-full h-32 object-cover"
-                              />
-                            </Link>
-                          )}
                           <div className="p-4">
-                            <Link href={`/cursos/${course.id}`}>
-                              <h5 className="font-semibold mb-1 text-gray-900 line-clamp-2">
-                                {course.title}
-                              </h5>
-                            </Link>
-                            <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                              {course.description}
-                            </p>
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-xs text-gray-500">{course.level}</span>
-                              {course.price && (
-                                <span className="text-sm font-semibold text-gray-900">
-                                  {formatPrice(course.price)}
-                                </span>
-                              )}
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-gray-900 mb-1">
+                                  {module.title}
+                                </h5>
+                                <p className="text-xs text-gray-500">
+                                  {module.lessons.length} lição{module.lessons.length > 1 ? 'ões' : 'ão'}
+                                </p>
+                              </div>
                             </div>
-                            {renderAccessButton(course)}
+                            
+                            {/* Lista de lições do módulo */}
+                            {module.lessons.length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                <p className="text-xs font-semibold text-gray-600 mb-2">Lições:</p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                  {module.lessons.map((lesson) => (
+                                    <div
+                                      key={lesson.id}
+                                      className="text-xs px-2 py-1 bg-white rounded border border-gray-200"
+                                    >
+                                      <span className="text-gray-700">{lesson.title}</span>
+                                      <span className="ml-1 text-gray-400">
+                                        ({getLessonTypeLabel(lesson.type)})
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+
+                    {/* Botão de acesso */}
+                    <div className="mt-6">
+                      {renderAccessButton(track)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}
