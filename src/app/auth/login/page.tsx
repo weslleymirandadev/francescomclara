@@ -1,11 +1,15 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@/components/ui/input";
+import { FaGoogle } from "react-icons/fa";
+import Link from "next/link";
+import Image from "next/image";
 
 const signInSchema = z.object({
   email: z.string().email("Informe um e-mail válido"),
@@ -25,16 +29,25 @@ export default function SignIn() {
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/minha-conta";
 
   const { status } = useSession();
+  const hasSyncedRef = useRef(false);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (status === "authenticated") {
-      router.replace(callbackUrl);
+    if (status === "authenticated" && !hasSyncedRef.current) {
+      // Se a callbackUrl é relacionada ao checkout, sincronizar carrinho antes de redirecionar
+      const isCheckoutFlow = callbackUrl.startsWith("/checkout");
+      
+      if (isCheckoutFlow) {
+        hasSyncedRef.current = true;
+        router.replace(callbackUrl);
+      } else {
+        router.replace(callbackUrl);
+      }
     }
   }, [status, router, callbackUrl]);
 
@@ -72,51 +85,46 @@ function SignInForm() {
     }
   }
 
-  function handleSocialLogin(provider: "google" | "github") {
+  function handleSocialLogin(provider: "google") {
     void signIn(provider, { callbackUrl });
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <section className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-black">Entrar</h1>
+        <div className="space-y-2 text-center relative z-10">
+          <h2 className="text-4xl font-semibold tracking-tight text-black">Entrar</h2>
           <p className="text-sm text-gray-500">
-            Acesse com seu e-mail e senha ou use uma conta social.
+            Acesse com seu e-mail e senha ou acesse com o Google.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              E-mail
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              {...register("email")}
-            />
-            {errors.email && (
-              <p className="text-xs text-red-500">{errors.email.message}</p>
-            )}
-          </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative bg-white z-10">
+          <Input
+            id="email"
+            type="email"
+            label="E-mail"
+            autoComplete="email"
+            error={errors.email}
+            {...register("email")}
+          />
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              {...register("password")}
-            />
-            {errors.password && (
-              <p className="text-xs text-red-500">{errors.password.message}</p>
-            )}
+          <Input
+            id="password"
+            type="password"
+            label="Senha"
+            autoComplete="current-password"
+            error={errors.password}
+            {...register("password")}
+          />
+
+          <div className="text-right">
+            <a
+              href="/auth/esqueci-a-senha"
+              className="text-sm text-black hover:text-gray-500"
+            >
+              Esqueceu sua senha?
+            </a>
           </div>
 
           {formError && (
@@ -126,13 +134,23 @@ function SignInForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 disabled:opacity-60"
+            className="flex cursor-pointer w-full items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow disabled:opacity-60"
           >
             {isSubmitting ? "Entrando..." : "Entrar"}
           </button>
         </form>
 
-        <div className="flex items-center gap-2">
+        <div className="text-center text-sm text-gray-500 relative z-10">
+          Não tem uma conta?{" "}
+          <Link 
+            href={`/auth/registrar${callbackUrl ? `?callbackUrl=${encodeURIComponent(callbackUrl)}` : ''}`}
+            className="font-medium text-gray-900 hover:underline"
+          >
+            Cadastre-se
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2 relative z-10">
           <div className="h-px flex-1 bg-gray-200" />
           <span className="text-xs uppercase text-gray-400">ou</span>
           <div className="h-px flex-1 bg-gray-200" />
@@ -142,17 +160,10 @@ function SignInForm() {
           <button
             type="button"
             onClick={() => handleSocialLogin("google")}
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="flex cursor-pointer w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
           >
+            <FaGoogle className="h-5 w-5" />
             <span>Continuar com Google</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSocialLogin("github")}
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-          >
-            <span>Continuar com GitHub</span>
           </button>
         </div>
       </section>
