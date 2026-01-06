@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
+import path from "path";
 
 // Rotas que devem ser ignoradas completamente pelo middleware
 const IGNORED_ROUTES = [
@@ -19,7 +20,7 @@ export async function proxy(req: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/assets") ||
-    pathname.includes(".") // imagens, svg, etc
+    pathname.includes(".") 
   ) {
     return NextResponse.next();
   }
@@ -40,6 +41,7 @@ export async function proxy(req: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
     pathname.startsWith("/api/public") ||
+    pathname.startsWith("/public") ||
     pathname === "/" ||
     isPublicApiRoute;
 
