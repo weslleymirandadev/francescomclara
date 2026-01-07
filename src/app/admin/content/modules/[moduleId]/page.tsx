@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Lesson } from "@prisma/client";
 import { 
   ChevronLeft, Save, Video, 
   Layers, FileText, GripVertical, Settings2
@@ -85,7 +86,7 @@ export default async function ModuleEditPage({ params }: PageProps) {
             </div>
 
             <div className="space-y-4">
-              {module.lessons.map((lesson) => (
+              {module.lessons.map((lesson: Lesson) => (
                 <Link 
                   key={lesson.id}
                   href={`/admin/content/modules/${module.id}/lessons/${lesson.id}`}
