@@ -1,6 +1,6 @@
 import { 
   PrismaClient, 
-  TrackObjective, 
+  Objective, 
   LessonType, 
   SubscriptionPlanType, 
   SubscriptionPlanPeriod 
@@ -58,13 +58,44 @@ async function main() {
     plans.push(plan);
   }
 
-  // 2. TRILHAS COM TODOS OS OBJETIVOS (TrackObjective)
+  const travelObj = await prisma.objective.upsert({
+    where: { name: 'TRAVEL' },
+    update: {},
+    create: { 
+      name: 'TRAVEL',
+      imageUrl: "https://exemplo.com/viagem.jpg" }
+  });
+
+  const workObj = await prisma.objective.upsert({
+    where: { name: 'WORK' },
+    update: {},
+    create: { 
+      name: 'WORK',
+      imageUrl: "https://exemplo.com/work.jpg" }
+  });
+
+  const familyOBJ = await prisma.objective.upsert({
+    where: { name: 'FAMILY' },
+    update: {},
+    create: { 
+      name: 'FAMILY',
+      imageUrl: "https://exemplo.com/family.jpg" }
+  })
+
+  const knowledgeOBJ = await prisma.objective.upsert({
+    where: { name: 'KNOWLEDGE'},
+    update: {},
+    create: { 
+      name: 'KNOWLEDGE',
+      imageUrl: "https://exemplo.com/knowledge.jpg" }
+  })
+
   const tracksData = [
     {
       id: 'trilha-viagem',
       name: 'Sobrevivência em Paris',
       description: 'Focado em situações reais de viagem: hotel, restaurante e passeios.',
-      objective: TrackObjective.TRAVEL,
+      objective: travelObj.id,
       modules: [
         {
           title: 'No Aeroporto e Alfândega',
@@ -80,7 +111,7 @@ async function main() {
       id: 'trilha-trabalho',
       name: 'Francês para Negócios',
       description: 'Aprenda a redigir e-mails e participar de reuniões em multinacionais.',
-      objective: TrackObjective.WORK,
+      objective: workObj.id,
       modules: [
         {
           title: 'E-mails e Comunicação',
@@ -96,7 +127,7 @@ async function main() {
       id: 'trilha-familia',
       name: 'Conversação em Família',
       description: 'Ideal para quem tem parentes francófonos ou quer morar fora.',
-      objective: TrackObjective.FAMILY,
+      objective: familyOBJ.id,
       modules: [
         {
           title: 'Vida Cotidiana',
@@ -111,7 +142,7 @@ async function main() {
       id: 'trilha-conhecimento',
       name: 'Cultura e Literatura',
       description: 'Para amantes da língua que desejam ler clássicos no original.',
-      objective: TrackObjective.KNOWLEDGE,
+      objective: knowledgeOBJ.id,
       modules: [
         {
           title: 'Grandes Autores',
@@ -125,31 +156,33 @@ async function main() {
   ];
 
   for (const t of tracksData) {
-    const { modules, ...trackInfo } = t;
+    const { modules, objective, ...trackInfo } = t;
     const track = await prisma.track.upsert({
-      where: { id: t.id },
-      update: {},
-      create: {
-        ...trackInfo,
-        active: true,
-        modules: {
-          create: modules.map(m => ({
-            title: m.title,
-            order: m.order,
-            lessons: {
-              create: m.lessons.map(l => ({
-                title: l.title,
-                type: l.type,
-                order: l.order,
-                content: l.content
-              }))
-            }
-          }))
-        }
+    where: { id: t.id },
+    update: {},
+    create: {
+      ...trackInfo,
+      active: true,
+      objective: {
+        connect: { id: objective }
+      },
+      modules: {
+        create: modules.map(m => ({
+          title: m.title,
+          order: m.order,
+          lessons: {
+            create: m.lessons.map(l => ({
+              title: l.title,
+              type: l.type,
+              order: l.order,
+              content: l.content as any
+            }))
+          }
+        }))
       }
-    });
+    }
+  });
 
-    // Vincular cada trilha a todos os planos criados
     for (const plan of plans) {
       await prisma.subscriptionPlanTrack.upsert({
         where: {
