@@ -23,7 +23,7 @@ export function AdminSidebar() {
 
   return (
     <div className="hidden md:flex w-[280px] md:flex-col">
-      <div className="flex flex-col grow pt-5 overflow-y-auto bg-white border-r-2 border-[var(--color-s-800)]">
+      <div className="flex flex-col grow pt-5 overflow-y-auto bg-white border-r-2 border-[var(--color-s-200)]">
         <div className="flex items-center gap-2 px-6 mb-10">
           <h1 className="text-lg font-bold text-[var(--interface-accent)] tracking-wider uppercase">
             Admin

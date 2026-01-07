@@ -67,9 +67,9 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl">Painel de Controle</h1>
-        </div>
+        <h1 className="text-lg font-bold text-[var(--interface-accent)]">
+          Tableau de Bord
+        </h1>
         <div className="text-center py-8">
           <p className="text-gunmetal">Carregando estatísticas...</p>
         </div>
@@ -80,9 +80,9 @@ export default function AdminDashboard() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl">Painel de Controle</h1>
-        </div>
+        <h1 className="text-lg font-bold text-[var(--interface-accent)]">
+          Tableau de Bord
+        </h1>
         <div className="text-center py-8">
           <p className="text-destructive">Erro: {error}</p>
         </div>
