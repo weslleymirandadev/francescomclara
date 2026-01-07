@@ -7,15 +7,17 @@ import {
   FaBookOpen as BookOpen,
   FaCog as Settings,
   FaUsers as Users,
-  FaChartBar as BarChart2
+  FaChartBar as BarChart2,
+  FaDollarSign as DollarSign
 } from 'react-icons/fa';
 
 const navigation = [
   { name: 'Visão Geral', href: '/admin', icon: Home },
   { name: 'Conteúdo', href: '/admin/content', icon: BookOpen },
   { name: 'Usuários', href: '/admin/users', icon: Users },
+  { name: 'Planos', href: '/admin/subscriptions', icon: DollarSign },
   { name: 'Relatórios', href: '/admin/analytics', icon: BarChart2 },
-  { name: 'Configurações', href: '/admin/settings', icon: Settings },
+  { name: 'Configurações', href: '/admin/settings', icon: Settings }
 ];
 
 export function AdminSidebar() {
