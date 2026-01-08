@@ -9,33 +9,49 @@
 }
 
 :root {
-  --lien: #F7EDE2;
-  --honey-bronze: #F6BD60;
-  --cotton-blue: #95cfff;
-  --muted-teal: #84A59D;
-  --light-coral: #82bef2;
+  /* Escala Slate Completa (Para você usar em tudo: texto, bg, bordas) */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b; 
+  --slate-900: #0f172a; 
 
-  --ivory: #f6f7eb;
-  --fiery-terracotta: #e94f37;
-  --gunmetal: #393e41;
-  --steel-blue: #3f88c5;
-  --ocean-mist: #44bba4;
+  /* As cores de nuance (identidade) */
+  --interface-accent: #0055A4;
+  --clara-rose: #D44D8C;
+  --ivory: #FCFBF7;
   
   --font-frenchpress: 'frenchpress', sans-serif;
 }
 
 @theme {
-  --color-lien: var(--lien);
-  --color-honey-bronze: var(--honey-bronze);
-  --color-cotton-blue: var(--cotton-blue);
-  --color-muted-teal: var(--muted-teal);
-  --color-light-coral: var(--light-coral);
+  --color-s-50: var(--slate-50);
+  --color-s-100: var(--slate-100);
+  --color-s-200: var(--slate-200);
+  --color-s-300: var(--slate-300);
+  --color-s-400: var(--slate-400);
+  --color-s-500: var(--slate-500);
+  --color-s-600: var(--slate-600);
+  --color-s-700: var(--slate-700);
+  --color-s-800: var(--slate-800);
+  --color-s-900: var(--slate-900);
+
+  --color-interface-accent: var(--interface-accent);
+  --color-clara-rose: var(--clara-rose);
   --color-ivory: var(--ivory);
-  --color-fiery-terracotta: var(--fiery-terracotta);
-  --color-gunmetal: var(--gunmetal);
-  --color-steel-blue: var(--steel-blue);
-  --color-ocean-mist: var(--ocean-mist);
+
   --font-frenchpress: var(--font-frenchpress);
+}
+
+@layer utilities {
+  .card-france-gradient {
+    background: linear-gradient(135deg, rgba(0,35,149,0.05) 0%, rgba(255,255,255,1) 50%, rgba(237,41,57,0.05) 100%);
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {

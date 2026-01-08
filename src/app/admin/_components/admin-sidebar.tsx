@@ -7,52 +7,51 @@ import {
   FaBookOpen as BookOpen,
   FaCog as Settings,
   FaUsers as Users,
-  FaChartBar as BarChart2
+  FaChartBar as BarChart2,
+  FaDollarSign as DollarSign
 } from 'react-icons/fa';
 
 const navigation = [
   { name: 'Visão Geral', href: '/admin', icon: Home },
-  { name: 'Cursos', href: '/admin/courses', icon: BookOpen },
+  { name: 'Conteúdo', href: '/admin/content', icon: BookOpen },
   { name: 'Usuários', href: '/admin/users', icon: Users },
+  { name: 'Planos', href: '/admin/subscriptions', icon: DollarSign },
   { name: 'Relatórios', href: '/admin/analytics', icon: BarChart2 },
-  { name: 'Configurações', href: '/admin/settings', icon: Settings },
+  { name: 'Configurações', href: '/admin/settings', icon: Settings }
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden md:flex w-[325px] md:flex-col">
-      <div className="flex flex-col grow pt-5 overflow-y-auto bg-white border-r border-gray-200">
-        <div className="flex items-center shrink-0 px-4">
-          <h1 className="text-xl text-gray-900">Admin Dashboard</h1>
+    <div className="hidden md:flex w-[280px] md:flex-col">
+      <div className="flex flex-col grow pt-5 overflow-y-auto bg-white border-r-2 border-[var(--color-s-200)]">
+        <div className="flex items-center gap-2 px-6 mb-10">
+          <h1 className="text-lg font-bold text-[var(--interface-accent)] tracking-wider uppercase">
+            Admin
+          </h1>
         </div>
-        <div className="flex flex-col grow mt-5">
-          <nav className="flex-1 px-2 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon
-                    className={`mr-3 h-6 w-6 shrink-0 ${
-                      isActive ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        
+        <nav className="flex-1 px-4 space-y-2">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`
+                  group flex items-center px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200
+                  ${isActive 
+                    ? 'bg-[var(--interface-accent)] text-white shadow-md' 
+                    : 'text-[var(--color-s-600)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)]'}
+                `}
+              >
+                <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'group-hover:text-[var(--interface-accent)]'}`} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

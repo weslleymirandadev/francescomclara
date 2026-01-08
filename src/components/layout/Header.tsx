@@ -1,0 +1,130 @@
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+
+import { FaRegClone } from "react-icons/fa";
+import { FiUser as User, FiLogOut } from "react-icons/fi";
+import { HiOutlineCog, HiMenu, HiX } from "react-icons/hi";
+import { RiSecurePaymentFill } from "react-icons/ri";
+import { BiDirections } from "react-icons/bi";
+
+const navigationItems = [
+  { href: "/perfil", icon: User, text: "Perfil" },
+  { href: "/flashcards", icon: FaRegClone, text: "Flashcards" },
+  { href: "/minha-trilha", icon: BiDirections, text: "Minha Trilha" },
+  { href: "/configuracoes", icon: HiOutlineCog, text: "Configurações" },
+  { href: "/admin", icon: RiSecurePaymentFill, text: "Admin" },
+];
+
+export function Header() {
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: session } = useSession();
+
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  const filteredNavItems = navigationItems.filter(item => {
+    if (item.href === "/admin") return isAdmin;
+    return true;
+  });
+
+  return (
+    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-50">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
+        
+        {/* Branding */}
+        <Link href="/" className="flex items-center gap-2 group">
+          <Image
+            src="/static/frança.png"
+            alt="Bandeira França"
+            width={28}
+            height={20}
+            className="rounded-sm shadow-sm"
+          />
+          <span className="font-bold text-lg tracking-tight text-[var(--color-s-800)] uppercase flex items-center">
+              Francês com 
+              <span className="relative ml-1 text-[var(--clara-rose)]">
+              Clara
+              <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+                  🌸
+              </span>
+            </span>
+          </span>
+        </Link>
+
+        {/* Navegação Desktop */}
+        <nav className="hidden md:flex items-center gap-6">
+          {filteredNavItems.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            const Icon = item.icon;
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="group relative flex flex-col items-center py-1"
+              >
+                <div className={`flex items-center gap-2 font-medium text-sm transition-colors 
+                  ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-600)] group-hover:text-[var(--interface-accent)]"}`}>
+                  
+                  <Icon 
+                    size={20} 
+                    className={`transition-all duration-300 
+                      ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)]"}
+                    `} 
+                  />
+                  <span>{item.text}</span>
+                </div>
+                
+                {isActive && (
+                  <div className="absolute -bottom-[22px] w-full h-1 bg-[var(--interface-accent)]" />
+                )}
+              </Link>
+            );
+          })}
+
+          {session && (
+            <button 
+              onClick={() => signOut()}
+              className="ml-4 p-2 text-[var(--color-s-400)] hover:text-red-600 transition-colors"
+            >
+              <FiLogOut size={20} />
+            </button>
+          )}
+
+          {!session && (
+            <Link href="/login" className="font-bold text-[var(--color-s-700)]">
+              Entrar
+            </Link>
+          )}
+        </nav>
+
+        {/* Botão Mobile */}
+        <button className="md:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+          {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
+        </button>
+      </div>
+
+      {/* Menu Mobile */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-white border-t p-4 space-y-2 shadow-lg">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex items-center gap-3 p-3 font-bold text-[var(--color-s-700)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)] rounded-lg"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <item.icon size={20} className="text-[var(--interface-accent)]" />
+              {item.text}
+            </Link>
+          ))}
+        </div>
+      )}
+    </header>
+  );
+}

@@ -3,6 +3,12 @@ import { redirect } from 'next/navigation';
 import { AdminSidebar } from './_components/admin-sidebar';
 import { authOptions } from '@/lib/auth';
 import { Toaster } from '@/components/ui/toaster';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Administração - Francês com Clara",
+  description: "Painel de administração da plataforma Francês com Clara.",
+};
 
 export default async function AdminLayout({
   children,
@@ -18,7 +24,7 @@ export default async function AdminLayout({
   return (
     <div className="flex h-[calc(100dvh-60px)] mt-[10px] bg-third">
       <AdminSidebar />
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-x-hidden">
         <main className="p-8">
           {children}
           <Toaster />
