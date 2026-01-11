@@ -27,16 +27,21 @@ export function Header() {
 
   const isAdmin = session?.user?.role === "ADMIN";
 
-  const filteredNavItems = navigationItems.filter(item => {
-    if (item.href === "/admin") return isAdmin;
+ const filteredNavItems = navigationItems.filter(item => {
+    if (item.href === "/admin") {
+      return isAdmin;
+    }
+
+    if (!session && item.href !== "/") {
+      return false;
+    }
+
     return true;
   });
 
   return (
-    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-50">
+    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-60">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-        
-        {/* Branding */}
         <Link href="/" className="flex items-center gap-2 group">
           <Image
             src="/static/frança.png"
@@ -56,7 +61,6 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Navegação Desktop */}
         <nav className="hidden md:flex items-center gap-6">
           {filteredNavItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
@@ -89,30 +93,29 @@ export function Header() {
 
           {session && (
             <button 
-              onClick={() => signOut()}
+              onClick={() => signOut({ callbackUrl: '/' })}
               className="ml-4 p-2 text-[var(--color-s-400)] hover:text-red-600 transition-colors"
+              title="Sair"
             >
               <FiLogOut size={20} />
             </button>
           )}
 
           {!session && (
-            <Link href="/login" className="font-bold text-[var(--color-s-700)]">
+            <Link href="/auth/login" className="font-bold text-sm text-[var(--color-s-700)] hover:text-[var(--interface-accent)] transition-colors">
               Entrar
             </Link>
           )}
         </nav>
 
-        {/* Botão Mobile */}
-        <button className="md:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <button className="md:hidden text-[var(--color-s-800)]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
         </button>
       </div>
 
-      {/* Menu Mobile */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t p-4 space-y-2 shadow-lg">
-          {navigationItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -123,6 +126,26 @@ export function Header() {
               {item.text}
             </Link>
           ))}
+
+          <div className="h-[1px] bg-[var(--color-s-100)] my-2" />
+
+          {session ? (
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="w-full flex items-center gap-3 p-3 font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <FiLogOut size={20} />
+              Sair da conta
+            </button>
+          ) : (
+            <Link
+              href="/auth/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center p-3 font-bold text-white bg-[var(--interface-accent)] rounded-lg"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       )}
     </header>

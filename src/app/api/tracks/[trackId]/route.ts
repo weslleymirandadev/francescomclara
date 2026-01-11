@@ -148,6 +148,9 @@ export async function PATCH(
           },
         },
       },
+      orderBy: {
+        order: 'asc',
+      },
     });
 
     return NextResponse.json(track);

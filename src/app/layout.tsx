@@ -1,28 +1,29 @@
-import { Metadata } from "next";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import "./globals.css";
+import { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "Frances com Clara - Aprenda Idiomas",
   description: "Página de início do aplicativo de aprendizado de idiomas.",
+  icons: {
+    icon: '/static/favicon.svg',
+    shortcut: '/static/favicon.svg',
+    apple: '/static/favicon.svg',
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="pt-br">
-      <body suppressHydrationWarning={true}>
+    <html lang="pt-BR">
+      <body>
         <Providers>
-          <Header />
-            <main className="pt-12">
-              {children}
-            </main>
-          <Footer />
+          <Toaster position="top-center" />
+          {children}
         </Providers>
       </body>
     </html>

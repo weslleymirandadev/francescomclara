@@ -1,8 +1,21 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FaInstagram, FaYoutube, FaWhatsapp } from "react-icons/fa";
+import { FaInstagram, FaYoutube, FaWhatsapp, FaTiktok } from "react-icons/fa";
 
-export function Footer() {
+interface FooterProps {
+  settings?: {
+    instagramActive: boolean;
+    instagramUrl: string;
+    youtubeActive: boolean;
+    youtubeUrl: string;
+    whatsappActive: boolean;
+    whatsappUrl: string;
+    tiktokActive: boolean;
+    tiktokUrl: string;
+  }
+}
+
+export function Footer({ settings }: FooterProps) {
   return (
     <footer className="w-full bg-[var(--color-s-50)] border-t border-[var(--color-s-200)] pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6">
@@ -56,24 +69,47 @@ export function Footer() {
 
           {/* Coluna 4: Social com efeito Hover Tricolor */}
           <div>
-            <h4 className="font-bold text-[var(--color-s-900)] mb-6 uppercase text-xs tracking-widest">Redes Sociais</h4>
+            <h4 className="font-bold text-[var(--color-s-900)] mb-6 uppercase text-xs tracking-widest">
+              Redes Sociais
+            </h4>
             <div className="flex gap-4">
-            {[
-                { icon: FaInstagram, color: "#E4405F", href: "#" },
-                { icon: FaYoutube, color: "#FF0000", href: "#" },
-                { icon: FaWhatsapp, color: "#25D366", href: "#" }
-            ].map((social, index) => (
-                <a
-                key={index}
-                href={social.href}
-                className="group relative p-3 bg-white border border-[var(--color-s-200)] rounded-xl transition-all duration-300 hover:border-[var(--interface-accent)] hover:drop-shadow-[-4px_4px_0_var(--interface-accent)]"
-                >
-                <social.icon 
-                    size={20} 
-                    className="text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)] transition-colors" 
-                />
-                </a>
-            ))}
+              {[
+                { 
+                  icon: FaInstagram, 
+                  active: settings?.instagramActive, 
+                  href: settings?.instagramUrl 
+                },
+                { 
+                  icon: FaYoutube, 
+                  active: settings?.youtubeActive, 
+                  href: settings?.youtubeUrl 
+                },
+                { 
+                  icon: FaWhatsapp, 
+                  active: settings?.whatsappActive, 
+                  href: settings?.whatsappUrl 
+                },
+                { 
+                  icon: FaTiktok, 
+                  active: settings?.tiktokActive, 
+                  href: settings?.tiktokUrl
+                }
+              ]
+                .filter(social => social.active) 
+                .map((social, index) => (
+                  <a
+                    key={index}
+                    href={social.href as string || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative p-3 bg-white border border-[var(--color-s-200)] rounded-xl transition-all duration-300 hover:border-[var(--interface-accent)] hover:drop-shadow-[-4px_4px_0_var(--interface-accent)]"
+                  >
+                    <social.icon 
+                      size={20} 
+                      className="text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)] transition-colors" 
+                    />
+                  </a>
+                ))}
             </div>
           </div>
         </div>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect x="25" y="45" width="40" height="110" fill="#002395" rx="4"/>
+  <rect x="65" y="45" width="40" height="110" fill="#ffffff" rx="0"/>
+  <rect x="105" y="45" width="40" height="110" fill="#ed2939" rx="4"/>
+  
+  <filter id="pop" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+    <feOffset dx="4" dy="4" result="offsetblur"/>
+    <feComponentTransfer>
+      <feFuncA type="linear" slope="0.2"/>
+    </feComponentTransfer>
+    <feMerge>
+      <feMergeNode/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+
+  <text x="125" y="60" font-size="95" filter="url(#pop)" text-anchor="middle" dominant-baseline="middle">🌸</text>
+</svg>
