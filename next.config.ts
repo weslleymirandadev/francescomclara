@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // @ts-ignore
+  allowedDevOrigins: ["*"], 
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+      allowedOrigins: ["*"],
+    },
+  },
   images: {
     remotePatterns: [
       {
