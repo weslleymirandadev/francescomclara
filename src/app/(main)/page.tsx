@@ -265,8 +265,8 @@ export default function Home() {
   }, {});
 
   const SectionDivider = () => (
-    <div className="relative w-screen left-1/2 -translate-x-1/2 h-12 md:h-32 z-[45] pointer-events-none overflow-visible mb-10 mt-18">
-      <div className="absolute left-1/2 -translate-x-1/2 w-[115vw] -translate-y-1/2 -rotate-[2deg]">
+    <div className="relative w-screen left-1/2 -translate-x-1/2 h-12 md:h-32 z-45 pointer-events-none overflow-visible mb-10 mt-18">
+      <div className="absolute left-1/2 -translate-x-1/2 w-[115vw] -translate-y-1/2 -rotate-2">
         <svg 
           className="w-full h-60 md:h-100 overflow-visible" 
           preserveAspectRatio="none" 
@@ -312,15 +312,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-s-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--color-s-50)] overflow-x-hidden">
-      <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-[var(--color-s-900)]">
+    <main className="min-h-screen bg-s-50 overflow-x-hidden">
+      <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-s-900">
         <div className="absolute inset-0 z-0"
           style={{  transform: `translateY(${scrollY * 0.3}px)` }}
         >
@@ -339,7 +339,7 @@ export default function Home() {
             <source src="/hero-video.mp4" type="video/mp4" />
           </video>
           
-          <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 via-[var(--color-s-900)]/60 to-[var(--color-s-900)] z-10"></div>
+          <div className="absolute inset-0 bg-linear-to-b from-blue-900/40 via-s-900/60 to-s-900 z-10"></div>
         </div>
 
         <div className="container mx-auto px-4 relative z-20">
@@ -382,8 +382,8 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <div className="relative w-full h-0 z-[46] pointer-events-none overflow-visible">
-        <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 rotate-[-2deg]">
+      <div className="relative w-full h-0 z-46 pointer-events-none overflow-visible">
+        <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 rotate-2">
           <svg 
             className="w-full h-32 overflow-visible" 
             preserveAspectRatio="none" 
@@ -406,7 +406,7 @@ export default function Home() {
           <div className="absolute top-[25%] right-[8%] rotate-12" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
             <Icon icon="ph:briefcase-fill" className="w-[100px] md:w-[200px]" />
           </div>
-          <div className="absolute top-[44%] left-[10%] rotate-[25deg]" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
+          <div className="absolute top-[44%] left-[10%] rotate-25" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
             <Icon icon="ph:graduation-cap-fill" className="w-[110px] md:w-[220px]" />
           </div>
           <div className="absolute top-[65%] right-[5%] -rotate-6" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
@@ -434,10 +434,10 @@ export default function Home() {
                       
                       <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-s-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
                         <div 
-                          className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-[2000ms] group-hover/sep:scale-110"
+                          className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
                           style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
                         
                         <div className="absolute bottom-8 left-8 md:bottom-12 md:left-20 z-20">
                           <span className="text-[10px] font-black uppercase text-interface-accent tracking-[0.5em] block mb-2 drop-shadow-md">Objectif</span>
@@ -445,10 +445,10 @@ export default function Home() {
                         </div>
 
                         <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
-                          <Icon icon={objective.icon} width={80} height={80} className="rotate-[25deg]" />
+                          <Icon icon={objective.icon} width={80} height={80} className="rotate-25" />
                         </div>
                         <div className="absolute top-2 right-20 z-20 text-white block md:hidden">
-                          <Icon icon={objective.icon} width={50} height={50} className="rotate-[25deg]" />
+                          <Icon icon={objective.icon} width={50} height={50} className="rotate-25" />
                         </div>
                       </div>
 
@@ -502,7 +502,7 @@ export default function Home() {
                                 <Icon icon="ph:book-open-thin" width={300} />
                               </div>
                               <h4 className="text-[10px] font-black text-s-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
-                                <span className="w-8 h-[1px] bg-s-200"></span>
+                                <span className="w-8 h-px bg-s-200"></span>
                                 Programme de formation
                               </h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
@@ -523,7 +523,7 @@ export default function Home() {
                                       ))}
                                       
                                       {module.lessons.length > 3 && (
-                                        <li className="text-[9px] text-[var(--interface-accent)] font-bold uppercase tracking-widest pl-6">
+                                        <li className="text-[9px] text-interface-accent font-bold uppercase tracking-widest pl-6">
                                           + {module.lessons.length - 3} atividades
                                         </li>
                                       )}
@@ -543,30 +543,30 @@ export default function Home() {
           })}
       </div>
 
-        <section id="planos" className="py-12 border-t border-[var(--color-s-200)]">
+        <section id="planos" className="py-12 border-t border-(--color-s-200)">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-4xl font-black text-[var(--color-s-900)] mb-4 tracking-tight">Assinaturas</h2>
-            <p className="text-[var(--color-s-50)]0">Invista no seu futuro com planos que cabem no seu bolso.</p>
+            <h2 className="text-4xl font-black text-s-900 mb-4 tracking-tight">Assinaturas</h2>
+            <p className="text-s-500">Invista no seu futuro com planos que cabem no seu bolso.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {subscriptionPlans.map((plan) => (
-              <div key={plan.id} className="relative p-8 rounded-3xl bg-white border border-[var(--color-s-200)] shadow-sm hover:border-blue-500 transition-all group">
+              <div key={plan.id} className="relative p-8 rounded-3xl bg-white border border-(--color-s-200) shadow-sm hover:border-blue-500 transition-all group">
                 {plan.period === 'YEARLY' && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg">
                     Melhor Valor
                   </div>
                 )}
                 
-                <h3 className="text-xl font-bold text-[var(--color-s-900)] mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-s-900 mb-2">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-6">
                   <span className="text-4xl font-black">{formatPrice(plan.price / (plan.period === 'YEARLY' ? 12 : 1))}</span>
-                  <span className="text-[var(--color-s-50)]0 text-sm font-medium">/mês</span>
+                  <span className="text-s-500 text-sm font-medium">/mês</span>
                 </div>
 
                 <ul className="space-y-4 mb-8">
                   {plan.features.map((feature: any, i: number) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-[var(--color-s-600)]">
+                    <li key={i} className="flex items-start gap-3 text-sm text-s-600">
                       <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
                       <span>{feature}</span>
                     </li>
@@ -577,7 +577,7 @@ export default function Home() {
                   onClick={() => {
                     handleRedirect(`/assinar?planId=${plan.id}`);
                   }}
-                  className="w-full py-4 rounded-xl font-bold bg-[var(--color-s-900)] text-white hover:bg-blue-800 transition-all shadow-md"
+                  className="w-full py-4 rounded-xl font-bold bg-s-900 text-white hover:bg-blue-800 transition-all shadow-md"
                 >
                   {loading ? (
                     <Icon icon="line-md:loading-twotone-loop" width={24} />
