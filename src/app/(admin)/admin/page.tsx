@@ -66,18 +66,18 @@ export default function AdminDashboard() {
 
   if (loading) return (
     <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="animate-pulse font-bold text-[var(--slate-400)] uppercase tracking-widest">Carregando...</div>
+      <div className="animate-pulse font-bold text-s-400 uppercase tracking-widest">Carregando...</div>
     </div>
   );
 
   return (
     <div className="space-y-10 max-w-[1600px] mx-auto p-6 lg:p-10 bg-white min-h-screen">
-      <header className="flex justify-between items-end border-b border-[var(--slate-100)] pb-8">
+      <header className="flex justify-between items-end border-b border-(--color-s-100) pb-8">
         <div>
-          <h1 className="text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter flex items-center gap-3">
+          <h1 className="text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter flex items-center gap-3">
             Tableau de Bord 🌸
           </h1>
-          <p className="text-[var(--slate-500)] font-medium mt-1">Francês com Clara • Gestão de Dados Reais</p>
+          <p className="text-s-500 font-medium mt-1">Francês com Clara • Gestão de Dados Reais</p>
         </div>
       </header>
 
@@ -110,35 +110,35 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2 overflow-hidden border-[var(--slate-200)] bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-[var(--slate-100)] p-6">
-            <h3 className="text-sm font-black text-[var(--slate-800)] uppercase tracking-widest">Últimos Alunos</h3>
+        <Card className="lg:col-span-2 overflow-hidden border-(--color-s-200) bg-white shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-(--color-s-100) p-6">
+            <h3 className="text-sm font-black text-s-800 uppercase tracking-widest">Últimos Alunos</h3>
           </CardHeader>
           <Table>
-            <TableHeader className="bg-[var(--slate-50)]">
+            <TableHeader className="bg-s-50">
               <TableRow>
-                <TableHead className="text-[var(--slate-500)] uppercase text-[10px] font-black">Estudante</TableHead>
-                <TableHead className="text-center text-[var(--slate-500)] uppercase text-[10px] font-black">Plano</TableHead>
-                <TableHead className="text-right text-[var(--slate-500)] uppercase text-[10px] font-black">Data</TableHead>
+                <TableHead className="text-s-500 uppercase text-[10px] font-black">Estudante</TableHead>
+                <TableHead className="text-center text-s-500 uppercase text-[10px] font-black">Plano</TableHead>
+                <TableHead className="text-right text-s-500 uppercase text-[10px] font-black">Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentStudents.map((student) => (
-                <TableRow key={student.id} className="border-b border-[var(--slate-50)]">
+                <TableRow key={student.id} className="border-b border-(--color-s-50)">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--slate-100)] flex items-center justify-center text-[var(--interface-accent)] font-bold">
+                      <div className="w-8 h-8 rounded-full bg-s-100 flex items-center justify-center text-interface-accent font-bold">
                         {student.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-bold text-[var(--slate-700)]">{student.name}</span>
+                      <span className="font-bold text-s-700">{student.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-[9px] font-black px-2 py-1 bg-[var(--slate-100)] text-[var(--slate-600)] rounded uppercase">
+                    <span className="text-[9px] font-black px-2 py-1 bg-s-100 text-s-600 rounded uppercase">
                       {student.planType}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-[var(--slate-400)] text-xs font-medium">
+                  <TableCell className="text-right text-s-400 text-xs font-medium">
                     {new Date(student.createdAt).toLocaleDateString('pt-BR')}
                   </TableCell>
                 </TableRow>
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="p-8 border-none bg-gradient-to-br from-[var(--clara-rose)] to-[var(--slate-800)] text-white shadow-xl relative overflow-hidden">
+          <Card className="p-8 border-none bg-linear-to-br from-clara-rose to-s-800 text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
@@ -177,15 +177,15 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <Button className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95">
+              <Button className="w-full bg-white text-clara-rose hover:bg-s-50 border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95">
                 <FiDownload size={16} className="mr-2" />
                 BAIXAR PDF
               </Button>
             </div>
           </Card>
 
-          <Card className="p-8 border-[var(--slate-200)] bg-white shadow-sm">
-            <h3 className="text-[10px] font-black text-[var(--slate-400)] uppercase tracking-[0.2em] mb-8">Distribuição de Planos</h3>
+          <Card className="p-8 border-(--color-s-200) bg-white shadow-sm">
+            <h3 className="text-[10px] font-black text-s-400 uppercase tracking-[0.2em] mb-8">Distribuição de Planos</h3>
             <div className="space-y-6">
               <PlanRow label="Individual" value={stats?.plans.individual} color="bg-[var(--interface-accent)]" total={stats?.users.total} />
               <PlanRow label="Família" value={stats?.plans.family} color="bg-[var(--clara-rose)]" total={stats?.users.total} />
@@ -201,15 +201,15 @@ export default function AdminDashboard() {
 
 function MetricCard({ title, value, sub, icon, highlight = false }: any) {
   return (
-    <Card className={`p-8 border-[var(--slate-200)] shadow-sm transition-all hover:border-[var(--slate-300)] ${highlight ? 'bg-[var(--interface-accent)] text-white border-none shadow-[var(--interface-accent)]/20 shadow-lg' : 'bg-white'}`}>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-6 ${highlight ? 'bg-white/20 text-white' : 'bg-[var(--slate-50)] text-[var(--interface-accent)]'}`}>
+    <Card className={`p-8 border-(--color-s-200) shadow-sm transition-all hover:border-(--color-s-300) ${highlight ? 'bg-interface-accent text-white border-none shadow-interface-accent/20 shadow-lg' : 'bg-white'}`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-6 ${highlight ? 'bg-white/20 text-white' : 'bg-s-50 text-interface-accent'}`}>
         {icon}
       </div>
       <div className="text-4xl font-black tracking-tighter mb-1">{value}</div>
-      <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${highlight ? 'text-white/60' : 'text-[var(--slate-400)]'}`}>
+      <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${highlight ? 'text-white/60' : 'text-s-400'}`}>
         {title}
       </p>
-      <div className={`mt-6 inline-block px-3 py-1 rounded-md text-[9px] font-black uppercase ${highlight ? 'bg-white/10 text-white' : 'bg-[var(--slate-50)] text-[var(--slate-500)]'}`}>
+      <div className={`mt-6 inline-block px-3 py-1 rounded-md text-[9px] font-black uppercase ${highlight ? 'bg-white/10 text-white' : 'bg-s-50 text-s-500'}`}>
         {sub}
       </div>
     </Card>
@@ -220,11 +220,11 @@ function PlanRow({ label, value, color, total }: any) {
   const percentage = total ? (value / total) * 100 : 0;
   return (
     <div className="space-y-3">
-      <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-[var(--slate-600)]">
+      <div className="flex justify-between text-[10px] font-black uppercase tracking-tighter text-s-600">
         <span>{label}</span>
-        <span className="text-[var(--slate-900)]">{value}</span>
+        <span className="text-s-900">{value}</span>
       </div>
-      <div className="h-1.5 w-full bg-[var(--slate-100)] rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-s-100 rounded-full overflow-hidden">
         <div className={`h-full ${color} transition-all duration-1000 ease-in-out`} style={{ width: `${percentage}%` }} />
       </div>
     </div>

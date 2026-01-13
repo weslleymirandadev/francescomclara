@@ -66,7 +66,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
         
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
               Paramètres 🌸
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
@@ -88,7 +88,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
             
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm relative overflow-hidden">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-[var(--interface-accent)]">
+                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-interface-accent">
                   <Palette size={20} />
                 </div>
                 <h2 className="text-xl font-frenchpress text-slate-800 uppercase tracking-tight">Identidade Visual</h2>
@@ -111,7 +111,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       onChange={e => setFormData({...formData, supportEmail: e.target.value})}
                       className="h-12 rounded-xl bg-slate-50 border-none font-bold text-slate-700" 
                     />
-                    <div className="w-12 h-12 rounded-xl bg-[var(--interface-accent)] shrink-0 shadow-inner" />
+                    <div className="w-12 h-12 rounded-xl bg-interface-accent shrink-0 shadow-inner" />
                   </div>
                 </div>
               </div>
@@ -212,7 +212,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between group">
                     <div>
-                      <p className="text-xs font-bold text-slate-700 group-hover:text-[var(--interface-accent)] transition-colors">{item.label}</p>
+                      <p className="text-xs font-bold text-slate-700 group-hover:text-interface-accent transition-colors">{item.label}</p>
                       <p className="text-[9px] text-slate-400">{item.desc}</p>
                     </div>
                     <Switch />

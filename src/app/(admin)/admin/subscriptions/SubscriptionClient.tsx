@@ -86,7 +86,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
         
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
               Abonnements 🏷️
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
@@ -197,7 +197,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                     </div>
                   ))}
                 </div>
-                <Button variant="ghost" onClick={addFeature} className="w-full text-[10px] font-black uppercase text-slate-400 hover:text-[var(--interface-accent)]">
+                <Button variant="ghost" onClick={addFeature} className="w-full text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
                   + Adicionar Vantagem
                 </Button>
               </div>

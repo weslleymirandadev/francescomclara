@@ -75,7 +75,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "peer-placeholder-shown:top-[12px] peer-placeholder-shown:text-sm peer-placeholder-shown:font-medium peer-placeholder-shown:tracking-normal peer-placeholder-shown:bg-transparent",
               "peer-focus:top-[-9px] peer-focus:text-xs peer-focus:font-bold peer-focus:tracking-widest peer-focus:bg-white",
               colorClasses.label,
-              hasError ? "text-rose-500 peer-focus:text-rose-500" : "text-[var(--color-s-400)]"
+              hasError ? "text-rose-500 peer-focus:text-rose-500" : "text-s-400"
             )}
           >
             {label}
@@ -86,7 +86,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <button
             type="button"
             onClick={handleTogglePassword}
-            className="absolute p-2 right-3 top-1/2 -translate-y-1/2 text-[var(--color-s-400)] hover:text-[var(--color-s-700)] transition-colors"
+            className="absolute p-2 right-3 top-1/2 -translate-y-1/2 text-s-400 hover:text-s-700 transition-colors"
             tabIndex={-1}
           >
             {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}

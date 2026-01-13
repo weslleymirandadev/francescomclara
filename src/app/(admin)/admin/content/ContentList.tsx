@@ -384,8 +384,8 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-s-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
       </div>
     );
   }
@@ -393,7 +393,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   return (
     <>
       {hasChanges && (
-        <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-1 md:gap-2 bg-s-900 border border-white/10 p-1.5 md:p-2 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 w-[90%] md:w-auto justify-center">
+        <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-100 flex items-center gap-1 md:gap-2 bg-s-900 border border-white/10 p-1.5 md:p-2 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 w-[90%] md:w-auto justify-center">
           <button
             onClick={handleDiscardChanges}
             disabled={isSaving}
@@ -403,7 +403,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
             <span className="hidden xs:inline">Descartar</span>
           </button>
 
-          <div className="w-[1px] h-6 bg-white/10 mx-1" />
+          <div className="w-px h-6 bg-white/10 mx-1" />
 
           <button
             onClick={handleSaveAll}
@@ -448,7 +448,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                           objectivesLength={localObjectives.length}
                         />
                       ))}
-                      <div className="flex-shrink-0 pr-4">
+                      <div className="shrink-0 pr-4">
                         <StaticAddButton onClick={handleAddObjective} />
                       </div>
                     </div>
