@@ -76,7 +76,7 @@ export function Header() {
                   ${isActive ? "text-interface-accent" : "text-s-600 group-hover:text-interface-accent"}`}>
                   
                   <Icon 
-                    size={20} 
+                    size={item.text === "Flashcards" ? 16 : 20} 
                     className={`transition-all duration-300 
                       ${isActive ? "text-interface-accent" : "text-s-400 group-hover:text-interface-accent"}
                     `} 
@@ -94,10 +94,10 @@ export function Header() {
           {session && (
             <button 
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="ml-4 p-2 text-s-400 hover:text-red-600 transition-colors"
+              className="ml-4 p-2 flex items-center gap-2 cursor-pointer text-s-400 hover:text-red-600 transition-colors"
               title="Sair"
             >
-              <FiLogOut size={20} />
+              <FiLogOut size={20} /> Sair
             </button>
           )}
 
@@ -122,7 +122,7 @@ export function Header() {
               className="flex items-center gap-3 p-3 font-bold text-s-700 hover:bg-s-50 hover:text-interface-accent rounded-lg"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <item.icon size={20} className="text-interface-accent" />
+              <item.icon size={item.text === "Flashcards" ? 16 : 20} className="text-interface-accent" />
               {item.text}
             </Link>
           ))}
