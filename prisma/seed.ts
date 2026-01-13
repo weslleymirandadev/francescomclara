@@ -15,8 +15,6 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as any);
 
 async function main() {
-  console.log("🚀 Iniciando seed profissional...");
-
   // 1. PLANOS DE ASSINATURA (Individuais e Família / Mensal e Anual)
   const plansData = [
     {
@@ -199,6 +197,13 @@ async function main() {
       });
     }
   }
+
+  // Criar SiteSettings se não existir
+  await prisma.siteSettings.upsert({
+    where: { id: 'settings' },
+    update: {},
+    create: {},
+  });
 
   console.log('✅ Banco de dados populado com todos os labels e objetivos!');
 }
