@@ -40,21 +40,21 @@ export function Header() {
   });
 
   return (
-    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-60">
+    <header className="fixed w-full border-b-2 border-(--color-s-200) bg-white z-60">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
         <Link href="/" className="flex items-center gap-2 group">
           <Image
-            src="/static/frança.png"
+            src="/static/franca.png"
             alt="Bandeira França"
             width={28}
             height={20}
             className="rounded-sm shadow-sm"
           />
-          <span className="font-bold text-lg tracking-tight text-[var(--color-s-800)] uppercase flex items-center">
+          <span className="font-bold text-lg tracking-tight text-s-800 uppercase flex items-center">
               Francês com 
-              <span className="relative ml-1 text-[var(--clara-rose)]">
+              <span className="relative ml-1 text-clara-rose">
               Clara
-              <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+              <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
                   🌸
               </span>
             </span>
@@ -73,19 +73,19 @@ export function Header() {
                 className="group relative flex flex-col items-center py-1"
               >
                 <div className={`flex items-center gap-2 font-medium text-sm transition-colors 
-                  ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-600)] group-hover:text-[var(--interface-accent)]"}`}>
+                  ${isActive ? "text-interface-accent" : "text-s-600 group-hover:text-interface-accent"}`}>
                   
                   <Icon 
                     size={20} 
                     className={`transition-all duration-300 
-                      ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)]"}
+                      ${isActive ? "text-interface-accent" : "text-s-400 group-hover:text-interface-accent"}
                     `} 
                   />
                   <span>{item.text}</span>
                 </div>
                 
                 {isActive && (
-                  <div className="absolute -bottom-[22px] w-full h-1 bg-[var(--interface-accent)]" />
+                  <div className="absolute -bottom-[22px] w-full h-1 bg-interface-accent" />
                 )}
               </Link>
             );
@@ -94,7 +94,7 @@ export function Header() {
           {session && (
             <button 
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="ml-4 p-2 text-[var(--color-s-400)] hover:text-red-600 transition-colors"
+              className="ml-4 p-2 text-s-400 hover:text-red-600 transition-colors"
               title="Sair"
             >
               <FiLogOut size={20} />
@@ -102,13 +102,13 @@ export function Header() {
           )}
 
           {!session && (
-            <Link href="/auth/login" className="font-bold text-sm text-[var(--color-s-700)] hover:text-[var(--interface-accent)] transition-colors">
+            <Link href="/auth/login" className="font-bold text-sm text-s-700 hover:text-interface-accent transition-colors">
               Entrar
             </Link>
           )}
         </nav>
 
-        <button className="md:hidden text-[var(--color-s-800)]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <button className="md:hidden text-s-800" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
         </button>
       </div>
@@ -119,15 +119,15 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 p-3 font-bold text-[var(--color-s-700)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)] rounded-lg"
+              className="flex items-center gap-3 p-3 font-bold text-s-700 hover:bg-s-50 hover:text-interface-accent rounded-lg"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <item.icon size={20} className="text-[var(--interface-accent)]" />
+              <item.icon size={20} className="text-interface-accent" />
               {item.text}
             </Link>
           ))}
 
-          <div className="h-[1px] bg-[var(--color-s-100)] my-2" />
+          <div className="h-px bg-s-100 my-2" />
 
           {session ? (
             <button
@@ -141,7 +141,7 @@ export function Header() {
             <Link
               href="/auth/login"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center justify-center p-3 font-bold text-white bg-[var(--interface-accent)] rounded-lg"
+              className="flex items-center justify-center p-3 font-bold text-white bg-interface-accent rounded-lg"
             >
               Entrar
             </Link>
