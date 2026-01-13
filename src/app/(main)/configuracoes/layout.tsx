@@ -11,7 +11,7 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--color-s-50)] pb-12 px-6">
+    <div className="min-h-screen bg-s-50 pb-12 px-6">
       {children}
     </div>
   );
