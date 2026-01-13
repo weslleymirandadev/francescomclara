@@ -29,7 +29,7 @@ export default function SignIn() {
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/minha-conta";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/perfil";
 
   const { status } = useSession();
   const hasSyncedRef = useRef(false);

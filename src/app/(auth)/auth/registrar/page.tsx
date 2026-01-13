@@ -16,7 +16,7 @@ export default function RegisterPage() {
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/minha-conta";
+  const callbackUrl = searchParams.get("callbackUrl") || "/perfil";
   const [formData, setFormData] = useState({
     name: "",
     email: "",
