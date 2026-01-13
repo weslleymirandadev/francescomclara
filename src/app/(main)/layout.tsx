@@ -17,7 +17,7 @@ export default async function MainPageLayout({
         <main className="pt-12">
           {children}
         </main>
-      <Footer settings={settings} />
+      <Footer settings={settings!} />
     </div>
   );
 }
