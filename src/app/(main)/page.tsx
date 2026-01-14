@@ -368,13 +368,13 @@ export default function Home() {
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 shadow-xl"
+                className="cursor-pointer bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-blue-900 hover:text-white transition-all transform hover:scale-105 shadow-xl"
               >
                 Explorar Trilhas
               </button>
               <button
                 onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
+                className="cursor-pointer bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
                 >
                 Ver Planos
               </button>
