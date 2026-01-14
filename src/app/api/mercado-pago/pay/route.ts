@@ -83,7 +83,7 @@ export async function POST(req: Request) {
       select: { id: true, name: true }
     });
     
-    const existingTrackIds = new Set(existingTracks.map(t => t.id));
+    const existingTrackIds = new Set(existingTracks.map((t: any) => t.id));
     const missingTracks = trackIds.filter(id => !existingTrackIds.has(id));
     
     if (missingTracks.length > 0) {
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
 
     // Enriquecer items com dados das trilhas
     const enrichedItems = items.map(item => {
-      const track = existingTracks.find(t => t.id === item.id);
+      const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
         title: track?.name || item.title,
