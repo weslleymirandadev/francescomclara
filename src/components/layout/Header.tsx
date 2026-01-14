@@ -94,7 +94,7 @@ export function Header() {
           {session && (
             <button 
               onClick={() => signOut({ callbackUrl: '/' })}
-              className="ml-4 p-2 text-[var(--color-s-400)] hover:text-red-600 transition-colors"
+              className="ml-4 p-2 text-[var(--color-s-400)] hover:text-red-600 transition-colors cursor-pointer"
               title="Sair"
             >
               <FiLogOut size={20} />
@@ -102,7 +102,7 @@ export function Header() {
           )}
 
           {!session && (
-            <Link href="/auth/login" className="font-bold text-sm text-[var(--color-s-700)] hover:text-[var(--interface-accent)] transition-colors">
+            <Link href="/auth/login" className="font-bold text-sm text-[var(--color-s-700)] hover:text-[var(--interface-accent)] transition-colors cursor-pointer">
               Entrar
             </Link>
           )}
