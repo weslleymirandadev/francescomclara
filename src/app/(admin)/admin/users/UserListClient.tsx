@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { FiSearch, FiArrowRight } from "react-icons/fi"
 import { LuUserCheck, LuUsers } from "react-icons/lu"
+import { Loading } from '@/components/ui/loading'
 
 interface User {
   id: string
@@ -18,6 +19,12 @@ interface User {
 
 export default function UserListClient({ users = [] }: { users: User[] }) {
   const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFocusSearch = () => {
+    inputRef.current?.focus();
+  };
 
   const filteredUsers = users.filter((user) => {
     const name = user.name ?? ""
@@ -28,6 +35,8 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
       email.toLowerCase().includes(search.toLowerCase())
     )
   })
+
+  if (loading) return <Loading />;
 
   return (
     <div className="w-full bg-white min-h-screen">
@@ -45,16 +54,22 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
 
           <div className="flex gap-2 w-full md:max-w-md">
             <div className="relative flex-1">
-              <Input 
+              <Input
+                ref={inputRef}
                 placeholder="Procurar aluno..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-s-50 border-none focus:ring-1 focus:ring-interface-accent rounded-xl h-12 text-sm"
               />
             </div>
-            <div className="bg-slate-900 text-white h-12 w-12 flex items-center justify-center rounded-xl shrink-0 shadow-lg">
+            
+            <button 
+              type="button"
+              onClick={handleFocusSearch}
+              className="bg-slate-900 text-white h-12 w-12 flex items-center justify-center rounded-xl shrink-0 shadow-lg hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+            >
               <FiSearch size={20} />
-            </div>
+            </button>
           </div>
         </header>
 
