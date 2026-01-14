@@ -265,7 +265,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                         onChange={e => handleFeatureChange(index, e.target.value)}
                         className="rounded-xl bg-slate-50 border-none h-9 text-xs"
                       />
-                      <button onClick={() => removeFeature(index)} className="text-slate-300 hover:text-rose-500">
+                      <button onClick={() => removeFeature(index)} className="text-slate-300 hover:text-rose-500 cursor-pointer">
                         <X size={16} />
                       </button>
                     </div>
