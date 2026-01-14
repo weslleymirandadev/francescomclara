@@ -8,7 +8,11 @@ export async function getSubscriptionPlans() {
     const plans = await prisma.subscriptionPlan.findMany({
       orderBy: { price: 'asc' }
     })
-    return plans
+    // Garantir que todos os planos tenham o campo type (para compatibilidade com planos antigos)
+    return plans.map((plan: any) => ({
+      ...plan,
+      type: plan.type || 'INDIVIDUAL'
+    }))
   } catch (error) {
     console.error("Erro ao buscar planos:", error)
     return []
@@ -18,6 +22,11 @@ export async function getSubscriptionPlans() {
 export async function upsertSubscriptionPlan(data: any) {
   try {
     const { id, ...planData } = data
+    
+    // Garantir que type sempre tenha um valor válido
+    if (!planData.type || !['INDIVIDUAL', 'FAMILY'].includes(planData.type)) {
+      planData.type = 'INDIVIDUAL'
+    }
     
     if (id) {
       await prisma.subscriptionPlan.update({
@@ -34,7 +43,7 @@ export async function upsertSubscriptionPlan(data: any) {
     return { success: true }
   } catch (error) {
     console.error("Erro ao salvar plano:", error)
-    return { success: false }
+    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
   }
 }
 

@@ -14,6 +14,7 @@ interface Plan {
   id?: string;
   name: string;
   price: number;
+  type: 'INDIVIDUAL' | 'FAMILY';
   period: 'MONTHLY' | 'YEARLY';
   active: boolean;
   features: string[];
@@ -26,7 +27,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
   const openCreateModal = () => {
-    setEditingPlan({ name: "", price: 0, period: "MONTHLY", active: true, features: [""] });
+    setEditingPlan({ name: "", price: 0, type: "INDIVIDUAL", period: "MONTHLY", active: true, features: [""] });
     setIsModalOpen(true);
   };
 
@@ -57,6 +58,10 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
       return toast.error("Preencha o nome e um preço válido!");
     }
 
+    if (!editingPlan.type) {
+      return toast.error("Selecione o tipo do plano!");
+    }
+
     setIsLoading(true);
     const res = await upsertSubscriptionPlan(editingPlan);
     setIsLoading(false);
@@ -66,7 +71,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
       setIsModalOpen(false);
       window.location.reload();
     } else {
-      toast.error("Erro ao salvar o plano.");
+      toast.error(res.error || "Erro ao salvar o plano.");
     }
   };
 
@@ -119,10 +124,10 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               </div>
 
               <div className="flex gap-2 pt-6 border-t border-slate-50">
-                <Button variant="outline" onClick={() => openEditModal(plan)} className="flex-1 rounded-xl border-slate-100 font-bold text-xs gap-2">
+                <Button variant="outline" onClick={() => openEditModal(plan)} className="flex-1 rounded-md border-slate-100 font-bold text-xs gap-2">
                   <Edit2 size={14} /> Editar
                 </Button>
-                <Button variant="outline" onClick={() => handleDelete(plan.id!)} className="w-12 h-10 rounded-xl border-slate-100 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                <Button variant="outline" onClick={() => handleDelete(plan.id!)} className="w-12 h-10 rounded-md border-slate-100 hover:bg-rose-50 hover:text-rose-500 transition-colors">
                   <Trash2 size={16} />
                 </Button>
               </div>
@@ -141,11 +146,11 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
 
             <div className="space-y-4 py-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nome do Plan</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nome do Plano</label>
                 <Input 
                   value={editingPlan?.name} 
                   onChange={e => setEditingPlan(prev => ({ ...prev!, name: e.target.value }))}
-                  className="rounded-xl bg-slate-50 border-none h-11"
+                  className="rounded-md bg-slate-100 border-none h-11"
                 />
               </div>
 
@@ -159,24 +164,40 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                         const val = Number(e.target.value);
                         setEditingPlan(prev => ({ ...prev!, price: Math.round(val * 100) }));
                     }}
-                    className="rounded-xl bg-slate-50 border-none h-11"
+                    className="rounded-md bg-slate-100 border-none h-11"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Período</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Tipo</label>
                   <Select 
-                    value={editingPlan?.period} 
-                    onValueChange={v => setEditingPlan(prev => ({ ...prev!, period: v as any }))}
+                    value={editingPlan?.type} 
+                    onValueChange={v => setEditingPlan(prev => ({ ...prev!, type: v as 'INDIVIDUAL' | 'FAMILY' }))}
                   >
-                    <SelectTrigger className="rounded-xl bg-slate-50 border-none h-11">
+                    <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MONTHLY">Mensal</SelectItem>
-                      <SelectItem value="YEARLY">Anual</SelectItem>
+                      <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                      <SelectItem value="FAMILY">Família</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Período</label>
+                <Select 
+                  value={editingPlan?.period} 
+                  onValueChange={v => setEditingPlan(prev => ({ ...prev!, period: v as any }))}
+                >
+                  <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Mensal</SelectItem>
+                    <SelectItem value="YEARLY">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -189,15 +210,15 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                       <Input 
                         value={feature} 
                         onChange={e => handleFeatureChange(index, e.target.value)}
-                        className="rounded-xl bg-slate-50 border-none h-9 text-xs"
+                        className="rounded-md bg-slate-100 border-none h-9 text-xs"
                       />
-                      <button onClick={() => removeFeature(index)} className="text-slate-300 hover:text-rose-500">
+                      <button onClick={() => removeFeature(index)} className="cursor-pointer text-slate-300 hover:text-rose-500">
                         <X size={16} />
                       </button>
                     </div>
                   ))}
                 </div>
-                <Button variant="ghost" onClick={addFeature} className="w-full text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
+                <Button variant="ghost" onClick={addFeature} className="w-full cursor-pointer text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
                   + Adicionar Vantagem
                 </Button>
               </div>
@@ -207,7 +228,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               <Button 
                 onClick={handleSave} 
                 disabled={isLoading}
-                className="w-full bg-slate-900 text-white rounded-xl h-12 font-bold"
+                className="w-full bg-slate-900 text-white rounded-md h-12 font-bold"
               >
                 {isLoading ? <Loader2 className="animate-spin" /> : "Enregistrer"}
               </Button>
