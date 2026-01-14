@@ -368,5 +368,13 @@ model SiteSettings {
   whatsappUrl     String   @default("#")
   tiktokUrl       String   @default("#")
 
+  siteNameFirstPart  String   @default("Francês com")
+  siteNameHighlight  String   @default("Clara")
+  siteIcon           String   @default("🌸")
+  interfaceIcon      String   @default("/static/frança.png")
+  highlightColor     String   @default("--clara-rose")
+  siteDescription String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
+  seoDescription  String   @default("Aprenda francês de forma prática e cultural com a Clara.")
+
   updatedAt       DateTime @updatedAt
 }
