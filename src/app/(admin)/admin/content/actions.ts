@@ -260,58 +260,101 @@ export async function reorderLessonsAction(lessonIds: string[]) {
 }
 
 export async function saveContentBulkAction(
-  localTracks: any[], 
-  itemsToDelete: any, 
+  localTracks: any[],
+  itemsToDelete: any,
   localObjectives: any[]
 ) {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // 1. DEFINIÇÃO EXPLÍCITA DOS IDS PARA EVITAR 'UNKNOWN'
+      const objectiveIdsToDelete = new Set<string>(itemsToDelete.objectives || []);
+      const trackIdsToDelete = new Set<string>(itemsToDelete.tracks || []);
+      const moduleIdsToDelete = new Set<string>(itemsToDelete.modules || []);
+      const lessonIdsToDelete = new Set<string>(itemsToDelete.lessons || []);
+
+      // 2. EXCLUSÕES (ORDEM INVERSA DE HIERARQUIA)
       
-      // 1. DELEÇÕES
-      if (itemsToDelete.lessons?.length > 0) {
-        await tx.lesson.deleteMany({ where: { id: { in: itemsToDelete.lessons } } });
+      // Aulas
+      if (lessonIdsToDelete.size > 0) {
+        await tx.lesson.deleteMany({
+          where: { id: { in: Array.from(lessonIdsToDelete) } }
+        });
       }
-      if (itemsToDelete.modules?.length > 0) {
-        await tx.module.deleteMany({ where: { id: { in: itemsToDelete.modules } } });
+
+      // Módulos
+      if (moduleIdsToDelete.size > 0) {
+        await tx.module.deleteMany({
+          where: { id: { in: Array.from(moduleIdsToDelete) } }
+        });
       }
-      if (itemsToDelete.tracks?.length > 0) {
-        const realTrackIds = itemsToDelete.tracks.filter((id: string) => !id.startsWith('temp-'));
-        if (realTrackIds.length > 0) {
-          await tx.track.deleteMany({ where: { id: { in: realTrackIds } } });
-        }
-      }
-      if (itemsToDelete.objectives?.length > 0) {
-        const realObjIds = itemsToDelete.objectives.filter((id: string) => !id.startsWith('temp-'));
+
+      // Lógica de Objetivos (Limpa trilhas dependentes antes)
+      if (objectiveIdsToDelete.size > 0) {
+        const realObjIds = Array.from(objectiveIdsToDelete).filter(id => !id.startsWith('temp-'));
+        
         if (realObjIds.length > 0) {
+          const relatedTracks = await tx.track.findMany({
+            where: { objectiveId: { in: realObjIds } },
+            select: { id: true }
+          });
+          const relatedTrackIds = relatedTracks.map(t => t.id);
+
+          if (relatedTrackIds.length > 0) {
+            await tx.subscriptionPlanTrack.deleteMany({ where: { trackId: { in: relatedTrackIds } } });
+            await tx.track.deleteMany({ where: { id: { in: relatedTrackIds } } });
+          }
           await tx.objective.deleteMany({ where: { id: { in: realObjIds } } });
         }
       }
 
-      // 2. SINCRONIZAR OBJETIVOS
+      // Trilhas individuais
+      if (trackIdsToDelete.size > 0) {
+        const realTrackIds = Array.from(trackIdsToDelete).filter(id => !id.startsWith('temp-'));
+        if (realTrackIds.length > 0) {
+          await tx.subscriptionPlanTrack.deleteMany({ where: { trackId: { in: realTrackIds } } });
+          await tx.track.deleteMany({ where: { id: { in: realTrackIds } } });
+        }
+      }
+
+      // 3. SINCRONIZAR OBJETIVOS (UPSERT)
       for (const [objIndex, obj] of localObjectives.entries()) {
+        if (objectiveIdsToDelete.has(obj.id)) continue;
+
         const isTempObj = obj.id.startsWith('temp-');
         await tx.objective.upsert({
-          where: { id: isTempObj ? '0000-0000' : obj.id },
+          where: { id: isTempObj ? '0000-0000-0000' : obj.id },
           create: {
             name: obj.name,
-            icon: obj.icon || "lucide:target",
             order: objIndex,
+            icon: obj.icon || "lucide:target",
+            imageUrl: obj.imageUrl,
+            rotation: obj.rotation || 0,
+            iconRotate: obj.iconRotate || 0,
           },
           update: {
             name: obj.name,
             order: objIndex,
+            icon: obj.icon,
+            iconRotate: obj.iconRotate,
+            imageUrl: obj.imageUrl,
+            rotation: obj.rotation,
           }
         });
       }
 
-      // 3. SINCRONIZAR TRILHAS
+      // 4. SINCRONIZAR TRILHAS
       for (const [tIndex, track] of localTracks.entries()) {
+        if (trackIdsToDelete.has(track.id) || objectiveIdsToDelete.has(track.objectiveId)) {
+          continue;
+        }
+
         const isTempTrack = track.id.startsWith('temp-');
         const savedTrack = await tx.track.upsert({
-          where: { id: isTempTrack ? '0000-0001' : track.id },
+          where: { id: isTempTrack ? '0000-0000-0001' : track.id },
           create: {
             name: track.name,
             description: track.description || "",
+            imageUrl: track.imageUrl,
             objectiveId: track.objectiveId,
             order: tIndex,
             active: track.active ?? true,
@@ -319,18 +362,37 @@ export async function saveContentBulkAction(
           update: {
             name: track.name,
             description: track.description,
+            imageUrl: track.imageUrl,
             active: track.active,
             order: tIndex,
             objectiveId: track.objectiveId,
           }
         });
 
-        // 4. SINCRONIZAR MÓDULOS
+        if (track.subscriptionPlans) {
+          // 1. Remove os planos antigos para evitar duplicatas ou lixo
+          await tx.subscriptionPlanTrack.deleteMany({
+            where: { trackId: savedTrack.id }
+          });
+
+          // 2. Cria os novos vínculos selecionados
+          if (track.subscriptionPlans.length > 0) {
+            await tx.subscriptionPlanTrack.createMany({
+              data: track.subscriptionPlans.map((sp: any) => ({
+                subscriptionPlanId: sp.subscriptionPlanId,
+                trackId: savedTrack.id
+              }))
+            });
+          }
+        }
+
         if (track.modules) {
           for (const [mIndex, mod] of track.modules.entries()) {
+            if (moduleIdsToDelete.has(mod.id)) continue;
+
             const isTempMod = mod.id.startsWith('temp-');
             const savedMod = await tx.module.upsert({
-              where: { id: isTempMod ? '0000-0002' : mod.id },
+              where: { id: isTempMod ? '0000-0000-0002' : mod.id },
               create: {
                 title: mod.title || "Novo Módulo",
                 trackId: savedTrack.id,
@@ -344,12 +406,13 @@ export async function saveContentBulkAction(
               }
             });
 
-            // 5. SINCRONIZAR AULAS
             if (mod.lessons) {
               for (const [lIndex, lesson] of mod.lessons.entries()) {
+                if (lessonIdsToDelete.has(lesson.id)) continue;
+
                 const isTempLesson = lesson.id.startsWith('temp-');
                 await tx.lesson.upsert({
-                  where: { id: isTempLesson ? '0000-0003' : lesson.id },
+                  where: { id: isTempLesson ? '0000-0000-0003' : lesson.id },
                   create: {
                     title: lesson.title || "Nova Aula",
                     moduleId: savedMod.id,

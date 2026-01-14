@@ -6,12 +6,15 @@ interface SortableObjectiveItemProps {
   o: any;
   activeObjectiveId: string | null;
   setActiveObjectiveId: (id: string | null) => void;
-  handleDeleteObjective: (type: 'objective' | 'track' | 'module' | 'lesson', id: string) => void;
   handleUpdateObjectiveName: (id: string, name: string) => void;
+  setHasChanges: (val: boolean) => void;
+  setLocalObjectives: React.Dispatch<React.SetStateAction<any[]>>;
+  markForDeletion: (type: 'objective' | 'track' | 'module' | 'lesson', id: string) => void;
+  isMarkedForDeletion?: boolean;
   objectivesLength: number;
 }
 
-export function SortableObjectiveItem({ o, activeObjectiveId, setActiveObjectiveId, handleDeleteObjective, handleUpdateObjectiveName, objectivesLength }: SortableObjectiveItemProps) {
+export function SortableObjectiveItem({ o, activeObjectiveId, setActiveObjectiveId, handleUpdateObjectiveName, markForDeletion, setLocalObjectives, setHasChanges, isMarkedForDeletion, objectivesLength }: SortableObjectiveItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: o.id });
 
   const style = {
@@ -24,7 +27,11 @@ export function SortableObjectiveItem({ o, activeObjectiveId, setActiveObjective
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative flex items-center h-full shrink-0 snap-start ${isDragging ? 'opacity-50' : ''}`}
+      className={`group relative flex items-center h-full shrink-0 snap-start transition-all ${ 
+        isDragging ? 'opacity-50' : ''
+      } ${
+        isMarkedForDeletion ? 'opacity-30 grayscale bg-red-50/50' : ''
+      }`}
     >
       <div 
         {...attributes} 
@@ -34,24 +41,39 @@ export function SortableObjectiveItem({ o, activeObjectiveId, setActiveObjective
         <GripVertical size={16} />
       </div>
 
-      <button
-        onClick={() => setActiveObjectiveId(o.id)}
-        className={`pr-6 py-4 font-black text-[10px] md:text-[11px] uppercase tracking-[0.2em] transition-all whitespace-nowrap relative ${
-          activeObjectiveId === o.id ? 'text-interface-accent' : 'text-s-600'
-        }`}
-      >
-        {o.name}
+      <div className="relative flex items-center h-full">
+        <input
+          type="text"
+          value={o.name}
+          onChange={(e) => {
+            const newName = e.target.value;
+            setLocalObjectives(prev => prev.map(item => 
+              item.id === o.id ? { ...item, name: newName } : item
+            ));
+            setHasChanges(true);
+          }}
+          className={`pr-6 py-4 font-black text-[10px] md:text-[11px] uppercase tracking-[0.2em] transition-all whitespace-nowrap bg-transparent border-none outline-none focus:ring-0 ${
+            activeObjectiveId === o.id ? 'text-interface-accent' : 'text-s-600'
+          }`}
+          onClick={() => setActiveObjectiveId(o.id)}
+        />
+        
         {activeObjectiveId === o.id && (
-          <div className="absolute bottom-0 left-0 w-full h-[3px] bg-interface-accent rounded-t-full" />
+          <div className="absolute bottom-0 left-0 w-[calc(100%-1.5rem)] h-[3px] bg-interface-accent rounded-t-full" />
         )}
-      </button>
+      </div>
 
       {objectivesLength > 1 && (
         <button
-          onClick={(e) => { e.stopPropagation(); handleDeleteObjective('objective', o.id); }}
-          className="absolute -top-1 -right-1 md:opacity-0 md:group-hover:opacity-100 bg-red-500 text-white rounded-full p-0.5 transition-all shadow-sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            markForDeletion('objective', o.id);
+          }}
+          className={`p-1 mr-2 rounded-lg transition-colors cursor-pointer ${
+            isMarkedForDeletion ? 'bg-red-500 text-white' : 'text-s-400 hover:text-red-500'
+          }`}
         >
-          <X size={10} />
+          <X size={14} />
         </button>
       )}
     </div>

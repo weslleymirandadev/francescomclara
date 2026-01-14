@@ -30,8 +30,6 @@ export default async function Page() {
   });
 
   return (
-    <div className="min-h-screen bg-s-50/50 pb-20">
-      <ContentList tracks={tracks} configs={objectiveConfigs} plans={plans} />
-    </div>
+    <ContentList tracks={tracks} configs={objectiveConfigs} plans={plans} />
   );
 }

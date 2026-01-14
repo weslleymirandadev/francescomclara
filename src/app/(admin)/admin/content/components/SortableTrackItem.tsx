@@ -21,6 +21,7 @@ interface SortableTrackItemProps {
   handleLessonDragEnd: (event: any, moduleId: string) => void;
   handleToggleLessonLock: (lessonId: string) => void;
   handleUpdateLessonName: (lessonId: string, name: string) => void;
+  handleToggleModuleLock: (moduleId: string) => void;
   renderModules: (track: any) => React.ReactNode;
   EditableName: any;
   EditableDescription: any;
@@ -43,6 +44,7 @@ export function SortableTrackItem({
   handleLessonDragEnd,
   handleToggleLessonLock,
   handleUpdateLessonName,
+  handleToggleModuleLock,
   EditableName,
   EditableDescription
 }: SortableTrackItemProps) {
@@ -57,15 +59,17 @@ export function SortableTrackItem({
   const isOpen = openTracks.includes(track.id);
 
   return (
-    <div ref={setNodeRef} style={style} className={`space-y-3 ${isDragging ? 'opacity-50' : ''}`}>
-      <div className={`group bg-s-100 backdrop-blur-md p-6 rounded-[32px] border flex justify-between items-center transition-all ${!track.active ? 'border-zinc-300' : 'border-s-slate-200 shadow-sm'}`}>
+    <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : 'border-s-50'}`}>
+      {/* Container Principal: Coluna no mobile (flex-col), Linha no desktop (md:flex-row) */}
+      <div className={`group p-6 flex flex-col md:flex-row items-stretch md:items-start gap-6 transition-all ${!track.active ? 'bg-s-100' : 'bg-white'}`}>
         
-        <div {...attributes} {...listeners} className="px-2 cursor-grab active:cursor-grabbing text-s-600 hover:text-s-800">
-          <GripVertical size={20} />
-        </div>
+        {/* Esquerda: Drag e Imagem */}
+        <div className="flex gap-4">
+          <div {...attributes} {...listeners} className="px-2 flex items-center cursor-grab active:cursor-grabbing text-s-600 hover:text-s-800">
+            <GripVertical size={20} />
+          </div>
 
-        <div className="flex items-start gap-6 flex-1">
-          <div className="relative w-60 h-80 rounded-xl bg-s-20 overflow-hidden shrink-0 group/img shadow-sm">
+          <div className="relative w-full md:w-60 h-48 md:h-80 shrink-0 rounded-[2rem] overflow-hidden group/img shadow-sm">
             <input 
               type="file" 
               accept="image/*"
@@ -88,74 +92,53 @@ export function SortableTrackItem({
               <LuImagePlus size={18} className="text-white" />
             </div>
           </div>
-
-          <div className="flex-1 space-y-5">
-            <div className="flex items-center gap-12">
-              <EditableName track={track} onNameChange={handleTrackNameChange} />
-
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-2">
-                  {!track.active ? (
-                    <span className="bg-zinc-100 text-zinc-500 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-zinc-200">Rascunho</span>
-                  ) : (
-                    <span className="bg-green-100 text-green-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-green-200">Online</span>
-                  )}
-                  {!(track.modules?.length > 0 && track.modules.some((m: any) => m.lessons?.length > 0)) && (
-                    <span className="bg-amber-50 text-amber-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-amber-100">Sem Conteúdo</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      if (!track.active && !window.confirm("Ativar trilha imediatamente para os alunos?")) return;
-                      setLocalTracks(prev => prev.map(t => t.id === track.id ? { ...t, active: !t.active } : t));
-                      setHasChanges(true);
-                    }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest border transition-all ${track.active ? 'bg-white border-green-200 text-green-600 hover:text-red-500' : 'bg-white border-zinc-200 text-zinc-400'}`}
-                  >
-                    {track.active ? 'Ativo' : 'Inativo'} {track.active ? <HiArrowUturnLeft size={12} /> : <Plus size={12} />}
-                  </button>
-
-                  <select
-                    value={track.objectiveId}
-                    onChange={(e) => {
-                      setLocalTracks(prev => prev.map(t => t.id === track.id ? { ...t, objectiveId: e.target.value } : t));
-                      setHasChanges(true);
-                    }}
-                    className="appearance-none bg-s-50 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-s-700 outline-none"
-                  >
-                    {configs.map((obj: any) => <option key={obj.id} value={obj.id}>{obj.name}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-            <EditableDescription track={track} onValueChange={handleTrackDescriptionChange} />
-          </div>
         </div>
 
-        <div className="flex flex-col items-end gap-2 ml-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                const newModule = handleCreateModuleLocal(track.id);
-                setExpandedModule(newModule.id);
-                if (!isOpen) setOpenTracks([...openTracks, track.id]);
-              }}
-              className="flex items-center gap-3 p-2 rounded-2xl border-2 border-dashed text-s-500 hover:text-s-800 transition-all"
-            >
-              <Plus size={18} strokeWidth={3} />
-              <span className="text-[10px] font-black uppercase tracking-widest">Adicionar Módulo</span>
-            </button>
-            <button onClick={() => markForDeletion('track', track.id)} className="p-3 text-s-600 hover:text-red-600"><LuTrash2 size={20} /></button>
-            <button onClick={() => setOpenTracks(prev => isOpen ? prev.filter(id => id !== track.id) : [...prev, track.id])} className="p-2 rounded-2xl bg-s-20 text-s-800">
-              <ChevronDown size={24} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
+        {/* Direita: Conteúdo e Inputs */}
+        <div className="flex-1 space-y-4">
+          <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+            <EditableName track={track} onNameChange={handleTrackNameChange} />
+
+            <div className="flex flex-col gap-3 w-full md:w-auto">
+              <div className="flex gap-2">
+                {!track.active ? (
+                  <span className="bg-zinc-100 text-zinc-500 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-zinc-200">Rascunho</span>
+                ) : (
+                  <span className="bg-green-100 text-green-600 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-green-200">Online</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    if (!track.active && !window.confirm("Ativar trilha imediatamente para os alunos?")) return;
+                    setLocalTracks(prev => prev.map(t => t.id === track.id ? { ...t, active: !t.active } : t));
+                    setHasChanges(true);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-black text-[10px] uppercase tracking-widest border transition-all cursor-pointer hover:bg-s-50 ${track.active ? 'bg-white border-green-200 text-green-600' : 'bg-white border-zinc-200 text-zinc-400'}`}
+                >
+                  {track.active ? 'Ativo' : 'Inativo'} {track.active ? <HiArrowUturnLeft size={12} /> : <Plus size={12} />}
+                </button>
+
+                <select
+                  value={track.objectiveId}
+                  onChange={(e) => {
+                    setLocalTracks(prev => prev.map(t => t.id === track.id ? { ...t, objectiveId: e.target.value } : t));
+                    setHasChanges(true);
+                  }}
+                  className="appearance-none bg-s-50 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-s-700 outline-none cursor-pointer border hover:bg-white transition-all"
+                >
+                  {configs.map((obj: any) => <option key={obj.id} value={obj.id}>{obj.name}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-4 pl-4 border-t border-s-50/50 pt-3 w-full text-left">
-            <label className="text-[9px] font-black uppercase tracking-[0.15em] text-s-600 block mb-2">Visibilidade</label>
-            <div className="flex flex-wrap gap-1.5 justify-start">
+          <EditableDescription track={track} onValueChange={handleTrackDescriptionChange} />
+
+          {/* Rodapé: Botões de Ação e Planos */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-s-50/50">
+            <div className="flex flex-wrap gap-1.5 justify-start w-full">
               {plans?.map((plan) => {
                 const hasAccess = track.subscriptionPlans?.some((spt: any) => spt.subscriptionPlanId === plan.id);
                 return (
@@ -174,20 +157,39 @@ export function SortableTrackItem({
                       }));
                       setHasChanges(true);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase border transition-all flex items-center gap-2 ${hasAccess ? "bg-green-500 border-green-600 text-white" : "bg-s-50 border-s-20 text-s-800 opacity-60"}`}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase border transition-all flex items-center gap-2 cursor-pointer hover:shadow-xl hover:border ${hasAccess ? "bg-green-500 border-green-600 text-white" : "bg-s-50 border-s-20 text-s-800 opacity-60"}`}
                   >
-                    <div className={`w-1.5 h-1.5 rounded-full ${hasAccess ? "bg-white" : "bg-s-400"}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${hasAccess ? "bg-white" : "bg-s-600"}`} />
                     {plan.name}
                   </button>
                 );
               })}
             </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+              <button
+                onClick={() => {
+                  const newModule = handleCreateModuleLocal(track.id);
+                  setExpandedModule(newModule.id);
+                  if (!isOpen) setOpenTracks([...openTracks, track.id]);
+                }}
+                className="flex items-center gap-3 p-2 rounded-2xl border-2 border-dashed text-s-600 hover:text-s-800 transition-all whitespace-nowrap cursor-pointer"
+              >
+                <Plus size={18} strokeWidth={3} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Adicionar Módulo</span>
+              </button>
+              <button onClick={() => markForDeletion('track', track.id)} className="p-3 text-s-600 rounded-xl hover:text-red-600 hover:bg-red-50 cursor-pointer"><LuTrash2 size={20} /></button>
+              <button onClick={() => setOpenTracks(prev => isOpen ? prev.filter(id => id !== track.id) : [...prev, track.id])} className="p-2 rounded-2xl bg-s-20 text-s-800 cursor-pointer">
+                <ChevronDown size={24} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Conteúdo Expandido */}
       {isOpen && (
-        <div className="pl-12 pr-4 pb-8 animate-in slide-in-from-top-2 duration-300">
+        <div className="pl-6 md:pl-12 pr-4 pb-8 animate-in slide-in-from-top-2 duration-300">
           {renderModules(track)}
         </div>
       )}
