@@ -52,8 +52,8 @@ export async function GET() {
     }
 
     const tracks = user.enrollments
-      .filter(e => e.track)
-      .map(e => e.track!);
+      .filter((e: any) => e.track)
+      .map((e: any) => e.track!);
 
     return NextResponse.json({ tracks });
 

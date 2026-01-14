@@ -143,7 +143,7 @@ async function processAuthorizedSubscription(
         metadata: {
           type: 'subscription',
           ...metadata,
-          items: items.map(item => ({
+          items: items.map((item: any) => ({
             id: item.id,
             title: item.title,
             price: item.price,
@@ -151,7 +151,7 @@ async function processAuthorizedSubscription(
           })),
         },
         items: {
-          create: items.map(item => ({
+          create: items.map((item: any) => ({
             trackId: item.id,
             price: item.price || 0,
             quantity: item.quantity || 1,
@@ -165,7 +165,7 @@ async function processAuthorizedSubscription(
         metadata: {
           type: 'subscription',
           ...metadata,
-          items: items.map(item => ({
+          items: items.map((item: any) => ({
             id: item.id,
             title: item.title,
             price: item.price,
@@ -177,7 +177,7 @@ async function processAuthorizedSubscription(
 
     // Criar ou atualizar matrículas com data de término baseada na assinatura
     await Promise.all(
-      items.map(item =>
+      items.map((item: any) =>
         prisma.enrollment.upsert({
           where: {
             userId_trackId: { userId, trackId: item.id }
@@ -237,7 +237,7 @@ async function processRecurringPayment(
 
     // Atualizar matrículas para estender o acesso
     await Promise.all(
-      subscription.items.map(item =>
+      subscription.items.map((item: any) =>
         prisma.enrollment.updateMany({
           where: {
             userId,
