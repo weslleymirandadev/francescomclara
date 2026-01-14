@@ -6,6 +6,7 @@ import { useSession, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { SubscriptionForm } from "@/components/SubscriptionForm";
 import { formatPrice } from "@/lib/price";
+import { Crown, Check } from "lucide-react";
 
 interface SubscriptionPlan {
   id: string;
@@ -17,11 +18,12 @@ interface SubscriptionPlan {
   discountEnabled: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
   period: 'MONTHLY' | 'YEARLY';
-  features: any;
-  courses: Array<{
+  features: string[] | any;
+  tracks?: Array<{
     id: string;
-    title: string;
-    price: number | null;
+    name: string;
+    description: string | null;
+    imageUrl: string | null;
   }>;
   active: boolean;
 }
@@ -127,11 +129,13 @@ function AssinarPageContent() {
   }
 
   const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : plan.price;
-  const items = plan.courses.map(course => ({
-    id: course.id,
+  // Usar tracks se disponível, caso contrário usar courses (compatibilidade)
+  const tracks = (plan.tracks as any) || [];
+  const items = tracks.map((item: any) => ({
+    id: item.id,
     type: 'course' as const,
-    title: course.title,
-    price: course.price || 0
+    title: item.name || item.title,
+    price: item.price || 0
   }));
 
   return (
@@ -139,36 +143,44 @@ function AssinarPageContent() {
       <div className="mx-auto max-w-3xl space-y-8 rounded-lg bg-white p-6 shadow">
         <header className="space-y-1 border-b border-gray-200 pb-4">
           <p className="text-xs uppercase tracking-wide text-gray-400">Assinatura</p>
-          <h1 className="text-2xl font-semibold text-gray-900">{plan.name}</h1>
+          <h1 className="text-2xl p-2 rounded-lg inline-flex items-center justify-center font-semibold text-white bg-linear-to-r from-clara-rose to-pink-500">
+            <Crown className="w-8 h-8 inline-block mr-2" />
+            {plan.name}  
+          </h1>
           <p className="text-sm text-gray-500 mt-2">
             {plan.description}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {plan.period === 'YEARLY' 
-              ? 'O pagamento será cobrado anualmente.' 
-              : 'O pagamento será cobrado automaticamente todo mês.'}
+          <p className="text-xs text-black mt-1">
+            O pagamento será cobrado agora e depois será cobrado automaticamente&nbsp;
+            {plan.period === 'YEARLY' ? (
+              <>
+                <span className="underline underline-offset-2 decoration-pink-500">anualmente</span>.
+              </>
+            ) : (
+              <>
+                <span className="underline underline-offset-2 decoration-pink-500">todo mês</span>.
+              </>
+            )}
           </p>
         </header>
 
         <section className="space-y-4">
-          <div className="rounded-md border border-gray-200 p-4 bg-gray-50">
-            <h2 className="text-sm font-medium text-gray-900 mb-3">Cursos incluídos no plano:</h2>
+          <div>
+            <h2 className="text-sm font-bold text-gray-900 mb-3">Vantagens incluídas no plano:</h2>
             <ul className="space-y-2">
-              {plan.courses.length > 0 ? (
-                plan.courses.map((course) => (
+              {plan.features && Array.isArray(plan.features) && plan.features.length > 0 ? (
+                plan.features.map((feature: string, index: number) => (
                   <li
-                    key={course.id}
-                    className="flex items-start justify-between gap-4 text-sm"
+                    key={index}
+                    className="flex items-start gap-3 text-sm text-gray-700"
                   >
-                    <span className="text-gray-700">{course.title}</span>
-                    <span className="text-gray-500 text-xs">
-                      Incluído
-                    </span>
+                    <Check className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" />
+                    <span>{feature}</span>
                   </li>
                 ))
               ) : (
                 <li className="text-sm text-gray-500">
-                  Acesso a todos os cursos da plataforma
+                  Nenhuma vantagem definida para este plano
                 </li>
               )}
             </ul>
@@ -180,11 +192,11 @@ function AssinarPageContent() {
             </span>
             <div className="text-right">
               {plan.discountEnabled && plan.originalPrice && (
-                <span className="text-xs line-through text-gray-400 block">
+                <span className="text-xs line-through text-white bg-linear-to-r from-clara-rose to-pink-500 p-2 rounded-md block">
                   {formatPrice(plan.originalPrice)}
                 </span>
               )}
-              <span className="text-lg font-semibold text-gray-900">
+              <span className="text-lg font-semibold text-white bg-linear-to-r from-clara-rose to-pink-500 p-2 rounded-md">
                 {formatPrice(total)}
               </span>
               {plan.period === 'YEARLY' && (
@@ -208,7 +220,9 @@ function AssinarPageContent() {
 
           <SubscriptionForm 
             amount={total} 
-            items={items} 
+            items={items}
+            subscriptionPlanId={plan.id}
+            period={plan.period}
           />
         </footer>
       </div>
