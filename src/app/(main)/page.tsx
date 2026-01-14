@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText } from "lucide-react";
 import Image from "next/image";
 import { Icon } from '@iconify/react';
+import { getGlobalData } from "./actions/settings";
+import { Loading } from   '@/components/ui/loading'
 
 type Lesson = {
   id: string;
@@ -114,31 +116,21 @@ export default function Home() {
   }, [session, tracks]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    async function load() {
+      setLoading(true);
       try {
-        setLoading(true);
-        const [tracksRes, plansRes] = await Promise.all([
-          fetch('/api/tracks?active=true'),
-          fetch('/api/subscription-plans?active=true'),
-        ]);
-
-        if (!tracksRes.ok) throw new Error('Failed to fetch tracks');
-        const tracksData = await tracksRes.json();
-        setTracks(tracksData);
-
-        if (plansRes.ok) {
-          const plansData = await plansRes.json();
-          setSubscriptionPlans(plansData);
+        const data = await getGlobalData();
+        if (data && data.plans) {
+          setPlans(data.plans);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Erro ao carregar os dados');
+        console.error("Erro ao carregar planos:", error);
+        setPlans([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchData();
+    }
+    load();
   }, []);
 
   useEffect(() => {
@@ -310,13 +302,7 @@ export default function Home() {
     }, 800);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-s-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
     <main className="min-h-screen bg-s-50 overflow-x-hidden">
@@ -375,7 +361,7 @@ export default function Home() {
               <button
                 onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
                 className="cursor-pointer bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
-                >
+              >
                 Ver Planos
               </button>
             </div>
@@ -550,24 +536,43 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {subscriptionPlans.map((plan) => (
-              <div key={plan.id} className="relative p-8 rounded-3xl bg-white border border-(--color-s-200) shadow-sm hover:border-blue-500 transition-all group">
+            {plans?.map((plan) => (
+              <div 
+                key={plan.id} 
+                className="relative p-8 rounded-[2.5rem] bg-white border-2 border-s-100 shadow-sm hover:border-interface-accent transition-all group flex flex-col h-full"
+              >
                 {plan.period === 'YEARLY' && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg">
-                    Melhor Valor
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-interface-accent text-white text-[10px] font-black px-5 py-1.5 rounded-full uppercase tracking-[0.15em] shadow-xl">
+                    Melhor Valor 🌸
                   </div>
                 )}
                 
-                <h3 className="text-xl font-bold text-s-900 mb-2">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-black">{formatPrice(plan.price / (plan.period === 'YEARLY' ? 12 : 1))}</span>
-                  <span className="text-s-500 text-sm font-medium">/mês</span>
+                <div className="mb-8">
+                  <h3 className="text-2xl font-frenchpress font-bold text-s-900 uppercase tracking-tighter">
+                    {plan.name}
+                  </h3>
+                  <p className="text-xs text-s-400 font-medium italic">
+                    {plan.description || "Acesso completo à plataforma"}
+                  </p>
                 </div>
 
-                <ul className="space-y-4 mb-8">
-                  {plan.features.map((feature: any, i: number) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-s-600">
-                      <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                <div className="flex items-baseline gap-1 mb-8">
+                  <span className="text-5xl font-black text-s-900 tracking-tighter">
+                    {formatPrice(
+                      plan.price / (plan.period === 'YEARLY' ? 12 : 1)
+                    )}
+                  </span>
+                  <span className="text-s-400 text-sm font-bold uppercase tracking-widest">
+                    /mês
+                  </span>
+                </div>
+
+                <ul className="space-y-4 mb-10 flex-1">
+                  {plan.features.map((feature: string, i: number) => (
+                    <li key={i} className="flex items-start gap-3 text-sm font-medium text-s-600">
+                      <div className="p-0.5 bg-emerald-50 rounded-full shrink-0">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      </div>
                       <span>{feature}</span>
                     </li>
                   ))}
@@ -577,12 +582,13 @@ export default function Home() {
                   onClick={() => {
                     handleRedirect(`/assinar?planId=${plan.id}`);
                   }}
-                  className="w-full py-4 rounded-xl font-bold bg-s-900 text-white hover:bg-blue-800 transition-all shadow-md"
+                  disabled={loading}
+                  className="cursor-pointer w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] bg-s-900 text-white hover:bg-interface-accent transition-all shadow-lg active:scale-95 disabled:opacity-50 flex justify-center items-center h-14"
                 >
                   {loading ? (
                     <Icon icon="line-md:loading-twotone-loop" width={24} />
                   ) : (
-                    "Começar agora"
+                    "Commencer Maintenant"
                   )}
                 </button>
               </div>
