@@ -22,11 +22,25 @@ export async function upsertSubscriptionPlan(data: any) {
     if (id) {
       await prisma.subscriptionPlan.update({
         where: { id },
-        data: planData
+        data: {
+          name: planData.name,
+          price: planData.price,
+          period: planData.period,
+          active: planData.active,
+          features: planData.features,
+          type: planData.type || 'INDIVIDUAL',
+        }
       })
     } else {
       await prisma.subscriptionPlan.create({
-        data: planData
+        data: {
+          name: planData.name,
+          price: planData.price,
+          period: planData.period,
+          active: planData.active,
+          features: planData.features,
+          type: planData.type || 'INDIVIDUAL',
+        }
       })
     }
 
