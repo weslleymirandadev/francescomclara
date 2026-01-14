@@ -72,6 +72,17 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
+    // Validar janela de reembolso
+    const refundWindowDays = metadata.refundWindowDays || (metadata.period === 'YEARLY' ? 30 : 7);
+    const daysSinceCreation = Math.floor((Date.now() - payment.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceCreation > refundWindowDays) {
+      const periodText = metadata.period === 'YEARLY' ? 'anual' : 'mensal';
+      return NextResponse.json({ 
+        error: `O prazo para reembolso de assinatura ${periodText} é de ${refundWindowDays} dias. O prazo já expirou.` 
+      }, { status: 400 });
+    }
+
     // Cancelar assinatura no Mercado Pago
     console.log(`Cancelando assinatura ${payment.mpPaymentId}`);
     
