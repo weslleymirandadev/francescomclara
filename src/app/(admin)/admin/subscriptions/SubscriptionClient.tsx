@@ -15,8 +15,8 @@ interface Plan {
   id?: string;
   name: string;
   price: number;
-  period: 'MONTHLY' | 'YEARLY';
   type: 'INDIVIDUAL' | 'FAMILY';
+  period: 'MONTHLY' | 'YEARLY';
   active: boolean;
   features: string[];
 }
@@ -28,7 +28,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
   const openCreateModal = () => {
-    setEditingPlan({ name: "", price: 0, period: "MONTHLY", type: 'INDIVIDUAL', active: true, features: [""] });
+    setEditingPlan({ name: "", price: 0, type: "INDIVIDUAL", period: "MONTHLY", active: true, features: [""] });
     setIsModalOpen(true);
   };
 
@@ -59,7 +59,10 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
       return toast.error("Preencha o nome e um preço válido!");
     }
 
-    setLoading(true);
+    if (!editingPlan.type) {
+      return toast.error("Selecione o tipo do plano!");
+    }
+
     const res = await upsertSubscriptionPlan(editingPlan);
     setLoading(false);
 
@@ -68,7 +71,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
       setIsModalOpen(false);
       window.location.reload();
     } else {
-      toast.error("Erro ao salvar o plano.");
+      toast.error(res.error || "Erro ao salvar o plano.");
     }
   };
 
@@ -149,19 +152,12 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                 )}
               </ul>
 
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => openEditModal(plan)}
-                  className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-10 text-xs font-bold cursor-pointer"
-                >
-                  <Edit2 size={14} className="mr-2" /> Editar
+              <div className="flex gap-2 pt-6 border-t border-slate-50">
+                <Button variant="outline" onClick={() => openEditModal(plan)} className="flex-1 rounded-md border-slate-100 font-bold text-xs gap-2">
+                  <Edit2 size={14} /> Editar
                 </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleDelete(plan.id!)}
-                  className="border-slate-200 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 rounded-xl h-10 w-10 p-0 cursor-pointer"
-                >
-                  <Trash2 size={14} />
+                <Button variant="outline" onClick={() => handleDelete(plan.id!)} className="w-12 h-10 rounded-md border-slate-100 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                  <Trash2 size={16} />
                 </Button>
               </div>
             </div>
@@ -188,14 +184,13 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               </DialogTitle>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4">
-              {/* Nome do Plano */}
-              <div className="grid gap-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Nome do Plano</label>
+            <div className="space-y-4 py-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nome do Plano</label>
                 <Input 
                   value={editingPlan?.name} 
-                  onChange={e => setEditingPlan({...editingPlan!, name: e.target.value})}
-                  className="rounded-xl bg-slate-50 border-none h-12 font-bold"
+                  onChange={e => setEditingPlan(prev => ({ ...prev!, name: e.target.value }))}
+                  className="rounded-md bg-slate-100 border-none h-11"
                 />
               </div>
 
@@ -205,9 +200,12 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                   <label className="text-[10px] font-black uppercase text-slate-400">Preço (em centavos)</label>
                   <Input 
                     type="number"
-                    value={editingPlan?.price} 
-                    onChange={e => setEditingPlan({...editingPlan!, price: Number(e.target.value)})}
-                    className="rounded-xl bg-slate-50 border-none h-12 font-bold"
+                    value={editingPlan ? editingPlan.price / 100 : 0}
+                    onChange={e => {
+                        const val = Number(e.target.value);
+                        setEditingPlan(prev => ({ ...prev!, price: Math.round(val * 100) }));
+                    }}
+                    className="rounded-md bg-slate-100 border-none h-11"
                   />
                   {/* Cálculo mensal em tempo real */}
                   <p className="text-[10px] font-bold text-interface-accent italic">
@@ -215,42 +213,37 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                     {editingPlan?.period === 'YEARLY' && ` (${formatPrice((editingPlan?.price || 0) / 12)}/mês)`}
                   </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Período */}
-                  <div className="grid gap-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Período</label>
-                    <Select 
-                      value={editingPlan?.period} 
-                      onValueChange={(v: 'MONTHLY' | 'YEARLY') => setEditingPlan({...editingPlan!, period: v})}
-                    >
-                      <SelectTrigger className="rounded-xl bg-slate-50 border-none h-12 font-bold cursor-pointer">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="MONTHLY" className="cursor-pointer">Mensal</SelectItem>
-                        <SelectItem value="YEARLY" className="cursor-pointer">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Status */}
-                  <div className="grid gap-2">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Status</label>
-                    <Select 
-                      value={editingPlan?.active ? "true" : "false"} 
-                      onValueChange={(v) => setEditingPlan({...editingPlan!, active: v === "true"})}
-                    >
-                      <SelectTrigger className="rounded-xl bg-slate-50 border-none h-12 font-bold cursor-pointer">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="true" className="cursor-pointer">Ativo</SelectItem>
-                        <SelectItem value="false" className="cursor-pointer">Inativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Tipo</label>
+                  <Select 
+                    value={editingPlan?.type} 
+                    onValueChange={v => setEditingPlan(prev => ({ ...prev!, type: v as 'INDIVIDUAL' | 'FAMILY' }))}
+                  >
+                    <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                      <SelectItem value="FAMILY">Família</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Período</label>
+                <Select 
+                  value={editingPlan?.period} 
+                  onValueChange={v => setEditingPlan(prev => ({ ...prev!, period: v as any }))}
+                >
+                  <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONTHLY">Mensal</SelectItem>
+                    <SelectItem value="YEARLY">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -263,15 +256,15 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                       <Input 
                         value={feature} 
                         onChange={e => handleFeatureChange(index, e.target.value)}
-                        className="rounded-xl bg-slate-50 border-none h-9 text-xs"
+                        className="rounded-md bg-slate-100 border-none h-9 text-xs"
                       />
-                      <button onClick={() => removeFeature(index)} className="text-slate-300 hover:text-rose-500 cursor-pointer">
+                      <button onClick={() => removeFeature(index)} className="cursor-pointer text-slate-300 hover:text-rose-500">
                         <X size={16} />
                       </button>
                     </div>
                   ))}
                 </div>
-                <Button variant="ghost" onClick={addFeature} className="w-full text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
+                <Button variant="ghost" onClick={addFeature} className="w-full cursor-pointer text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
                   + Adicionar Vantagem
                 </Button>
               </div>
@@ -281,7 +274,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               <Button 
                 onClick={handleSave} 
                 disabled={loading}
-                className="w-full bg-slate-900 text-white rounded-xl h-12 font-bold cursor-pointer"
+                className="w-full bg-slate-900 text-white rounded-md h-12 font-bold"
               >
                 {loading ? <Loader2 className="animate-spin" /> : "Enregistrer"}
               </Button>
