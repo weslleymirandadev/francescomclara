@@ -170,7 +170,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
           {/* Card para Adicionar Novo */}
           <button 
             onClick={openCreateModal}
-            className="border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 hover:border-[var(--interface-accent)] hover:bg-slate-50 transition-all group min-h-[300px]"
+            className="border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 hover:border-[var(--interface-accent)] hover:bg-slate-50 transition-all group min-h-[300px] cursor-pointer"
           >
             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-[var(--interface-accent)] group-hover:text-white transition-colors">
               <Plus size={24} />
