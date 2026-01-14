@@ -12,6 +12,10 @@ interface FooterProps {
     whatsappUrl: string;
     tiktokActive: boolean;
     tiktokUrl: string;
+    supportEmail: string;
+    highlightColor: string;
+    siteIcon: string;
+    interfaceIcon: string;
   }
 }
 
@@ -25,18 +29,21 @@ export function Footer({ settings }: FooterProps) {
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
               <Image
-                src="/static/franca.png"
-                alt="Bandeira França"
+                src={settings?.interfaceIcon || "/static/frança.png"}
+                alt="Ícone de Interface"
                 width={24}
                 height={18}
                 className="rounded-sm shadow-sm"
               />
               <span className="font-bold text-lg tracking-tight text-[var( --color-s-800)]uppercase flex items-center">
                 Francês com 
-                <span className="relative ml-1 text-clara-rose">
+                <span 
+                  className="relative ml-1"
+                  style={{ color: `var(${settings?.highlightColor})` }}
+                >
                 Clara
                 <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
-                    🌸
+                  {settings?.siteIcon}
                 </span>
               </span>
             </span>
@@ -57,13 +64,21 @@ export function Footer({ settings }: FooterProps) {
             </ul>
           </div>
 
-          {/* Coluna 3: Suporte */}
+          {/* Coluna 3: Atendimento */}
           <div>
-            <h4 className="font-bold text-s-900 mb-6 uppercase text-xs tracking-widest">Suporte</h4>
+            <h4 className="font-bold text-s-900 mb-6 uppercase text-xs tracking-widest">Atendimento</h4>
             <ul className="space-y-4 text-sm font-semibold text-s-600">
-              <li><Link href="/ajuda" className="hover:text-interface-accent transition-colors">Central de Ajuda</Link></li>
-              <li><Link href="/configuracoes" className="hover:text-interface-accent transition-colors">Configurações</Link></li>
-              <li><Link href="/privacidade" className="hover:text-interface-accent transition-colors">Privacidade</Link></li>
+              <li>
+                <a href={`mailto:${settings?.supportEmail}`} className="hover:text-interface-accent transition-colors flex flex-col">
+                  <span className="text-[10px] text-s-400 uppercase tracking-tighter">E-mail de Suporte</span>
+                  {settings?.supportEmail || "suporte@exemplo.com"}
+                </a>
+              </li>
+              
+              <div className="h-px bg-s-100 w-8 my-2" />
+
+              <li><Link href="/privacidade" className="hover:text-interface-accent transition-colors">Privacidade & Termos</Link></li>
+              <li><Link href="/configuracoes" className="hover:text-interface-accent transition-colors">Preferências</Link></li>
             </ul>
           </div>
 
@@ -102,7 +117,7 @@ export function Footer({ settings }: FooterProps) {
                     href={social.href as string || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative p-3 bg-white border border-(--color-s-200) rounded-xl transition-all duration-300 hover:border-(--interface-accent) hover:drop-shadow-[-4px_4px_0_(--interface-accent)]"
+                    className="group relative p-3 bg-white border border-s-200 rounded-xl transition-all duration-300 hover:border-interface-accent hover:drop-shadow-[-4px_4px_0_interface-accent]"
                   >
                     <social.icon 
                       size={20} 
@@ -115,7 +130,7 @@ export function Footer({ settings }: FooterProps) {
         </div>
 
         {/* Linha Inferior: Copyright e Bandeira Decorativa */}
-        <div className="pt-8 border-t border-(--color-s-200) flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-8 border-t border-s-200 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-s-400 text-xs font-bold uppercase tracking-tighter">
             © 2026 Francês com Clara. Todos os direitos reservados.
           </p>

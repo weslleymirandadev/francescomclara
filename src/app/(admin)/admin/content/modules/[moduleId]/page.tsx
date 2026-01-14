@@ -13,7 +13,9 @@ export default async function Page({ params }: PageProps) {
     where: { id: moduleId },
     include: { 
       lessons: {
-        order: 'asc',
+        orderBy: {
+          order: 'asc',
+        },
       } ,
       track: true
     }

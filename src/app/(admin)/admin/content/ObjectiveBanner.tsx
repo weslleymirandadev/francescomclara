@@ -1,8 +1,6 @@
-import * as GiIcons from "react-icons/gi";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { LuImagePlus, LuTrash2, LuX, LuSearch } from "react-icons/lu";
 import { Icon } from '@iconify/react';
-import { updateObjectiveImageAction, resetObjectiveImageAction, updateObjectiveSettingsAction } from "./actions";
 
 interface BannerProps {
   objective: any;
@@ -13,9 +11,11 @@ interface BannerProps {
     rotation?: number;
     imageUrl?: string
   }) => void;
+  setLocalObjectives: React.Dispatch<React.SetStateAction<any[]>>;
+  setHasChanges: Dispatch<SetStateAction<boolean>>;
 }
 
-export default function ObjectiveBanner({ objective, currentImg, onSettingsChange }: BannerProps) {
+export default function ObjectiveBanner({ objective, currentImg, onSettingsChange, setLocalObjectives, setHasChanges }: BannerProps) {
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -77,7 +77,7 @@ export default function ObjectiveBanner({ objective, currentImg, onSettingsChang
           <div className="absolute top-6 left-8 z-50 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <button 
             onClick={() => setIsOpen(true)}
-            className="bg-white/20 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/40 transition-all"
+            className="bg-white/20 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-white/40 transition-all cursor-pointer"
           >
             Trocar Ícone
           </button>
@@ -90,7 +90,12 @@ export default function ObjectiveBanner({ objective, currentImg, onSettingsChang
               max="360" 
               value={objective.rotation || 0}
               onChange={(e) => {
-                onSettingsChange({ rotation: parseInt(e.target.value) });
+                const val = parseInt(e.target.value);
+                onSettingsChange({ rotation: val });
+                setLocalObjectives(prev => prev.map(obj => 
+                  obj.id === objective.id ? { ...obj, rotation: val } : obj
+                ));
+                setHasChanges(true);
               }}
               className="w-24 accent-interface-accent cursor-pointer"
             />
@@ -122,6 +127,10 @@ export default function ObjectiveBanner({ objective, currentImg, onSettingsChang
                       key={iconName}
                       onClick={async () => {
                         onSettingsChange({ icon: iconName });
+                        setLocalObjectives(prev => prev.map(obj => 
+                          obj.id === objective.id ? { ...obj, icon: iconName } : obj
+                        ));
+                        setHasChanges(true);
                         setIsOpen(false);
                         setSearch("");
                       }}
@@ -164,13 +173,17 @@ export default function ObjectiveBanner({ objective, currentImg, onSettingsChang
 
           {isCustomImage && (
             <button 
-              onClick={async (e) => {
+              onClick={(e) => {
                 e.stopPropagation();
                 if(confirm("Deseja remover a imagem personalizada e voltar ao padrão?")) {
-                  await resetObjectiveImageAction(objective.id);
+                  setLocalObjectives((prev: any[]) => prev.map((obj: any) => 
+                    obj.id === objective.id ? { ...obj, imageUrl: null } : obj
+                  ));
+                  onSettingsChange({ imageUrl: undefined }); 
+                  setHasChanges(true);
                 }
               }}
-              className="absolute top-6 right-8 z-50 p-4 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl backdrop-blur-md transition-all shadow-xl flex items-center gap-2 group/btn"
+              className="absolute top-6 right-8 z-50 p-4 bg-red-500/80 hover:bg-red-600 text-white rounded-2xl backdrop-blur-md transition-all shadow-xl flex items-center gap-2 cursor-pointer group/btn"
             >
               <LuTrash2 size={20} />
               <span className="max-w-0 overflow-hidden group-hover/btn:max-w-xs transition-all duration-500 whitespace-nowrap text-[10px] font-black uppercase tracking-widest">

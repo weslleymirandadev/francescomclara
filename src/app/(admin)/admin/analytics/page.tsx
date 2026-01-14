@@ -12,6 +12,7 @@ import {
   FileText
 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
+import { Loading } from '@/components/ui/loading'
 
 interface AnalyticsData {
   users: { total: number; active: number };
@@ -45,21 +46,13 @@ export default function AdminAnalytics() {
     fetchAnalytics();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <Loader2 className="animate-spin text-interface-accent mb-4" size={32} />
-        <p className="font-frenchpress text-s-600 uppercase tracking-widest text-lg">Atualizando métricas 🌸</p>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   const ltvValue = data?.users.total 
     ? formatPrice(data.revenue.total / data.users.total) 
     : "R$ 0,00";
 
   return (
-    // Removido bg-s-50, agora é branco puro
     <div className="min-h-screen bg-white">
       <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
         
@@ -151,7 +144,7 @@ export default function AdminAnalytics() {
                     </div>
                   </div>
                   
-                  <div className="text-right shrink-0 flex items-center gap-4">
+                  <div className="text-right shrink-0 flex items-center gap-4 cursor-pointer">
                     <div>
                       <p className="font-black text-s-900 text-[9px] md:text-sm tracking-widest">ATIVO</p>
                       <p className="text-[8px] md:text-[10px] font-bold text-s-400 italic">

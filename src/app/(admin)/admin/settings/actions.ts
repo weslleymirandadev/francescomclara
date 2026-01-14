@@ -14,23 +14,45 @@ export async function getSettings() {
 
 export async function updateSettings(data: any) {
   try {
-    const current = await prisma.siteSettings.findFirst()
+    await prisma.siteSettings.upsert({
+      where: { id: "settings" },
+      update: {
+        siteName: data.siteName,
+        supportEmail: data.supportEmail,
+        stripeMode: data.stripeMode,
+        maintenanceMode: data.maintenanceMode,
+        instagramActive: data.instagramActive,
+        instagramUrl: data.instagramUrl,
+        youtubeActive: data.youtubeActive,
+        youtubeUrl: data.youtubeUrl,
+        whatsappActive: data.whatsappActive,
+        whatsappUrl: data.whatsappUrl,
+        tiktokActive: data.tiktokActive,
+        tiktokUrl: data.tiktokUrl,
+      },
+      create: {
+        id: "settings",
+        siteName: data.siteName,
+        supportEmail: data.supportEmail,
+        stripeMode: data.stripeMode,
+        maintenanceMode: data.maintenanceMode,
+        instagramActive: data.instagramActive,
+        instagramUrl: data.instagramUrl,
+        youtubeActive: data.youtubeActive,
+        youtubeUrl: data.youtubeUrl,
+        whatsappActive: data.whatsappActive,
+        whatsappUrl: data.whatsappUrl,
+        tiktokActive: data.tiktokActive,
+        tiktokUrl: data.tiktokUrl,
+      }
+    });
 
-    if (current) {
-      await prisma.siteSettings.update({
-        where: { id: current.id },
-        data
-      })
-    } else {
-      await prisma.siteSettings.create({
-        data
-      })
-    }
-
-    revalidatePath("/admin/settings")
-    return { success: true }
+    revalidatePath("/admin/settings");
+    revalidatePath("/"); 
+    
+    return { success: true };
   } catch (error) {
-    console.error(error)
-    return { success: false }
+    console.error("Erro ao salvar:", error);
+    return { success: false };
   }
 }

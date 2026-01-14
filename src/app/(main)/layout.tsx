@@ -1,15 +1,13 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { prisma } from "@/lib/prisma";
+import { getGlobalData } from "./actions/settings";
 
 export default async function MainPageLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await prisma.siteSettings.findFirst({
-    where: { id: "settings" }
-  });
+  const { settings } = await getGlobalData();
   
   return (
     <div>

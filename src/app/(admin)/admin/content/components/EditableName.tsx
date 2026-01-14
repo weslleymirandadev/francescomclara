@@ -10,7 +10,7 @@ export const EditableName = ({ track, onNameChange }: { track: any, onNameChange
   }, [track.name]);
 
   return (
-    <div className="relative flex-1 group/name flex items-center gap-3 w-60">
+    <div className="relative flex-1 group/name flex items-center gap-3 w-full min-w-0">
       <input 
         id={`name-${track.id}`}
         value={value}
@@ -20,7 +20,7 @@ export const EditableName = ({ track, onNameChange }: { track: any, onNameChange
         }}
         onFocus={() => setIsEditing(true)}
         onBlur={() => setIsEditing(false)}
-        className={`font-black uppercase text-3xl tracking-tighter font-frenchpress bg-transparent border-none focus:ring-0 p-0 flex-1 transition-colors ${
+        className={`font-black uppercase text-2xl md:text-3xl tracking-tighter font-frenchpress bg-transparent border-none focus:ring-0 p-0 flex-1 min-w-0 transition-colors ${
           isEditing ? 'text-interface-accent' : 'text-s-800'
         }`}
       />
