@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Plus, Check, X } from "lucide-react";
 import ObjectiveBanner from "./ObjectiveBanner";
 import * as actions from "./actions";
 import {
-  DndContext,
+  DndContext, 
   closestCenter,
   DragEndEvent,
   useSensor,
@@ -27,6 +26,8 @@ import { SortableTrackItem } from './components/SortableTrackItem';
 import { SortableModuleItem  } from "./components/SortableModuleItem";
 import { EditableName } from './components/EditableName';
 import { EditableDescription } from './components/EditableDescription';
+import { SaveChangesBar } from "@/components/ui/savechangesbar";
+import { Loading } from   '@/components/ui/loading'
 
 export default function ContentList({ tracks, configs, plans }: { tracks: any[], configs: any[], plans: any[] }) {
   const searchParams = useSearchParams();
@@ -34,7 +35,6 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const activeTrackIdFromUrl = searchParams.get('track');
   const [openTracks, setOpenTracks] = useState<string[]>(activeTrackIdFromUrl ? [activeTrackIdFromUrl] : []);
-  const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [objectives, setObjectives] = useState(configs);
   const [localTracks, setLocalTracks] = useState(tracks);
@@ -152,44 +152,23 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   const markForDeletion = (type: 'objective' | 'track' | 'module' | 'lesson', id: string) => {
     if (!id) return;
 
-    // 1. Lógica para itens que já existem no Banco de Dados (Não começam com temp-)
-    if (typeof id === 'string' && !id.startsWith('temp-')) {
-      setItemsToDelete(prev => ({
+    const category = type === 'objective' ? 'objectives' : 
+                    type === 'track' ? 'tracks' : 
+                    type === 'module' ? 'modules' : 'lessons';
+
+    setItemsToDelete(prev => {
+      const currentList = prev[category] || [];
+      const exists = currentList.includes(id);
+      
+      return {
         ...prev,
-        [type === 'objective' ? 'objectives' : 
-        type === 'track' ? 'tracks' : 
-        type === 'module' ? 'modules' : 'lessons']: 
-          [...prev[type === 'objective' ? 'objectives' : type === 'track' ? 'tracks' : type === 'module' ? 'modules' : 'lessons'], id]
-      }));
-    }
+        [category]: exists 
+          ? currentList.filter(itemId => itemId !== id) 
+          : [...currentList, id]
+      };
+    });
 
-    // 2. Remoção visual do estado local
-    if (type === 'objective') {
-      setLocalObjectives(prev => {
-        const filtered = prev.filter(o => o.id !== id);
-        
-        if (activeObjectiveId === id && filtered.length > 0) {
-          setActiveObjectiveId(filtered[0].id);
-        }
-        return filtered;
-      });
-    } else {
-      setLocalTracks(prev => {
-        if (type === 'track') return prev.filter(t => t.id !== id);
-
-        return prev.map((t: any) => ({
-          ...t,
-          modules: t.modules?.filter((m: any) => {
-            if (type === 'module' && m.id === id) return false;
-            return true;
-          }).map((m: any) => ({
-            ...m,
-            lessons: m.lessons?.filter((l: any) => !(type === 'lesson' && l.id === id))
-          }))
-        }));
-      });
-    }
-
+    
     setHasChanges(true);
   };
 
@@ -204,16 +183,23 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   const handleSaveAll = async () => {
     setLoading(true);
     try {
-      const response = await actions.saveContentBulkAction(localTracks, itemsToDelete, localObjectives);
+      const result = await actions.saveContentBulkAction(
+        localTracks,      // 1º argumento
+        itemsToDelete,    // 2º argumento
+        localObjectives   // 3º argumento
+      );
 
-      if (response && response.success) {
+      if (result.success) {
+        toast.success("Alterações salvas com sucesso!");
         setItemsToDelete({ tracks: [], modules: [], lessons: [], objectives: [] });
         setHasChanges(false);
         router.refresh();
-        toast.success("Salvo com sucesso!");
+      } else {
+        toast.error(result.error || "Erro ao salvar");
       }
     } catch (error) {
-      toast.error("Erro ao salvar");
+      console.error(error);
+      toast.error("Erro crítico ao salvar");
     } finally {
       setLoading(false);
     }
@@ -251,7 +237,6 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
       setHasChanges(true);
     }
   };
-
 
   const handleUpdateObjectiveSettings = (
     id: string, 
@@ -361,13 +346,23 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
     setHasChanges(true);
   };
 
+  const handleToggleModuleLock = (moduleId: string) => {
+    setLocalTracks(prev => prev.map(track => ({
+      ...track,
+      modules: track.modules?.map((m: any) => 
+        m.id === moduleId ? { ...m, isPremium: !m.isPremium } : m
+      )
+    })));
+    setHasChanges(true);
+  };
+
   const handleToggleLessonLock = (lessonId: string) => {
     setLocalTracks(prev => prev.map(track => ({
       ...track,
       modules: track.modules?.map((mod: any) => ({
         ...mod,
         lessons: mod.lessons?.map((lesson: any) => 
-          lesson.id === lessonId ? { ...lesson, locked: !lesson.locked } : lesson
+          lesson.id === lessonId ? { ...lesson, isPremium: !lesson.isPremium } : lesson
         )
       }))
     })));
@@ -382,48 +377,22 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
     })
   );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
     
   return (
     <>
-      {hasChanges && (
-        <div className="fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-1 md:gap-2 bg-s-900 border border-white/10 p-1.5 md:p-2 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 w-[90%] md:w-auto justify-center">
-          <button
-            onClick={handleDiscardChanges}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest text-white/50 hover:text-white transition-all disabled:opacity-50"
-          >
-            <X size={14} className="md:size-4" />
-            <span className="hidden xs:inline">Descartar</span>
-          </button>
+      <SaveChangesBar 
+        hasChanges={hasChanges}
+        loading={loading}
+        onSave={handleSaveAll}
+        onDiscard={handleDiscardChanges}
+        saveText="Enregistrer"
+      />
 
-          <div className="w-[1px] h-6 bg-white/10 mx-1" />
-
-          <button
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className="flex items-center gap-2 bg-interface-accent px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-[9px] md:text-[11px] uppercase tracking-widest text-s-950 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {isSaving ? (
-              <div className="animate-spin h-3 w-3 md:h-4 md:w-4 border-2 border-s-950/30 border-t-s-950 rounded-full" />
-            ) : (
-              <Check size={16} className="md:size-5" />
-            )}
-            <span>{isSaving ? 'Salvando...' : 'Salvar'}</span>
-          </button>
-        </div>
-      )}
-
-      <div className="space-y-6 md:space-y-8 mb-12 px-4 md:px-0">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-s-50 pb-4 gap-4">
-          <nav className="flex items-center w-full md:max-w-[calc(100vw-400px)] relative overflow-hidden">
-            <div className="overflow-x-auto scrollbar-hide flex items-center w-full pb-2 p-2 md:pb-0 snap-x">
+      <div className="max-w-6xl mx-auto md:py-4">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-s-50 pb-4 gap-6">
+          <nav className="flex items-center w-full md:max-w-[calc(100vw-700px)] relative">
+            <div className="overflow-x-auto scrollbar-hide flex items-center w-full pb-2 md:pb-0 snap-x touch-pan-x">
               {mounted ? (
                 <DndContext
                   sensors={sensors}
@@ -443,9 +412,12 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                           o={o}
                           activeObjectiveId={activeObjectiveId}
                           setActiveObjectiveId={setActiveObjectiveId}
-                          handleDeleteObjective={markForDeletion}
+                          markForDeletion={markForDeletion}
+                          isMarkedForDeletion={itemsToDelete.objectives.includes(o.id)}
                           handleUpdateObjectiveName={handleUpdateObjectiveName}
                           objectivesLength={localObjectives.length}
+                          setLocalObjectives={setLocalObjectives}
+                          setHasChanges={setHasChanges}
                         />
                       ))}
                       <div className="flex-shrink-0 pr-4">
@@ -484,7 +456,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
               setHasChanges(true);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`w-full md:w-auto md:min-w-[250px] bg-s-900 text-white px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${
+            className={`w-full md:w-auto md:min-w-[250px] bg-s-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 cursor-pointer ${
               !activeObjectiveId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black shadow-s-900/20'
             }`}
           >
@@ -492,13 +464,15 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
           </button>
         </div>
 
-        <section key={activeObjectiveId} className="space-y-4 md:space-y-5">
+        <section key={activeObjectiveId} className="space-y-6 mt-8">
           <ObjectiveBanner 
             objective={activeObjective} 
             onSettingsChange={(settings) => activeObjectiveId && handleUpdateObjectiveSettings(activeObjectiveId, settings)}
+            setLocalObjectives={setLocalObjectives}
+            setHasChanges={setHasChanges}
           />
           
-          <div className="space-y-4 relative z-40 pb-20">
+          <div className="space-y-4 relative z-40 pb-32">
             <DndContext 
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -526,6 +500,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                     handleLessonDragEnd={handleLessonDragEnd}
                     handleToggleLessonLock={handleToggleLessonLock}
                     handleUpdateLessonName={handleLessonTitleChange}
+                    handleToggleModuleLock={handleToggleModuleLock}
                     renderModules={(t) => (
                       <DndContext 
                         sensors={sensors}
@@ -550,6 +525,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                                 handleLessonDragEnd={handleLessonDragEnd}
                                 handleToggleLessonLock={handleToggleLessonLock}
                                 handleUpdateLessonName={handleLessonTitleChange}
+                                handleToggleModuleLock={handleToggleModuleLock}
                               />
                             ))}
                           </div>

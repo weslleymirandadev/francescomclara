@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { CEFRLevel, LessonType } from "@prisma/client";
-import { ChevronLeft, Lock, LockOpen, GripVertical, Video, FileText, BookOpen, BrainCircuit } from "lucide-react";
+import { ChevronLeft, Lock, LockOpen, GripVertical, Video, FileText, BookOpen, BrainCircuit, Plus } from "lucide-react";
 import { LuPencil, LuTrash2 } from "react-icons/lu";
 import Link from "next/link";
 import * as actions from "../../actions";
@@ -16,6 +16,7 @@ import {
   PointerSensor, useSensor, useSensors 
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
+import { SaveChangesBar } from "@/components/ui/savechangesbar";
 
 function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUpdateType, onUpdateTitle }: { lesson: any, moduleId: string, onExclude: (id: string) => void, onTogglePremium: (id: string, status: boolean) => void, onUpdateType: (id: string, type: LessonType) => void, onUpdateTitle: (id: string, title: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lesson.id });
@@ -44,13 +45,17 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
         </div>
         <div className="w-12 h-12 rounded-2xl bg-s-50 flex items-center justify-center shrink-0">{getIcon(lesson.type)}</div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 group/title">
-            <input 
-              value={lesson.title} // Mudado para value para ser controlado
+          <div className="flex items-center gap-3 flex-1 group/input">
+            <input
+              value={lesson.title}
               onChange={(e) => onUpdateTitle(lesson.id, e.target.value)}
-              className="bg-transparent font-bold text-s-800 text-xl outline-none border-b border-transparent focus:border-interface-accent transition-all"
+              className="bg-transparent border-none outline-none focus:ring-2 focus:ring-interface-accent/20 rounded-lg px-2 py-1 text-sm font-bold text-s-700 w-full transition-all"
+              placeholder="Título da aula"
             />
-            <LuPencil size={14} className="text-s-600 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+            <LuPencil 
+              size={14} 
+              className="text-s-400 opacity-0 group-hover/input:opacity-100 transition-opacity cursor-pointer" 
+            />
           </div>
           <div className="flex items-center gap-3 mt-2">
             <select 
@@ -95,6 +100,21 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
   
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
+  const handleAddLesson = () => {
+    const newLesson = {
+      id: `temp-${Date.now()}`,
+      title: "Nova Aula",
+      type: "CLASS" as LessonType,
+      isPremium: false,
+      order: lessons.length,
+      moduleId: initialData.id,
+      content: ""
+    };
+    
+    setLessons([...lessons, newLesson]);
+    setHasUnsavedChanges(true);
+  };
+
   const onUpdateTitle = (id: string, title: string) => {
     setLessons(lessons.map((l: any) => l.id === id ? { ...l, title } : l));
     setHasUnsavedChanges(true);
@@ -134,6 +154,18 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
     }
   };
 
+  const handleDiscard = () => {
+    if (confirm("Deseja descartar todas as alterações?")) {
+      setModuleData({
+        title: initialData.title,
+        cefrLevel: initialData.cefrLevel || "",
+        isPremium: initialData.isPremium
+      });
+      setLessons(initialData.lessons);
+      setHasUnsavedChanges(false);
+    }
+  };
+
   useEffect(() => {
     if (!hasUnsavedChanges) return;
     const handleClick = (e: MouseEvent) => {
@@ -165,6 +197,14 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-12 text-s-900">
+      <SaveChangesBar 
+        hasChanges={hasUnsavedChanges}
+        loading={isSaving}
+        onSave={handleSaveAll}
+        onDiscard={handleDiscard}
+        saveText="Salvar Alterações"
+        message="Você tem edições pendentes"
+      />
       <div className="max-w-6xl mx-auto space-y-12">
         <header className="flex flex-col gap-6">
           <div className="flex items-center gap-4 group/title">
@@ -214,16 +254,14 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
               ))}
             </div>
           </SortableContext>
+          <button
+            onClick={handleAddLesson}
+            className="w-full py-4 mt-4 border-2 border-dashed rounded-3xl text-s-500 hover:border-interface-accent hover:text-interface-accent transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-[0.2em]"
+          >
+            <Plus size={16} strokeWidth={3} />
+            Adicionar Nova Aula
+          </button>
         </DndContext>
-
-        {hasUnsavedChanges && (
-          <div className="fixed top-8 right-8 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="bg-white border border-s-100 shadow-2xl rounded-3xl p-2 flex items-center gap-4 pl-6">
-              <span className="text-[10px] font-black text-s-500 uppercase tracking-widest">{isSaving ? "Salvando..." : "Alterações Pendentes"}</span>
-              <button onClick={handleSaveAll} disabled={isSaving} className="bg-interface-accent text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:brightness-110 shadow-lg">Salvar Agora</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import {
   FileText
 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
+import { Loading } from '@/components/ui/loading'
 
 interface AnalyticsData {
   users: { total: number; active: number };
@@ -45,21 +46,13 @@ export default function AdminAnalytics() {
     fetchAnalytics();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <Loader2 className="animate-spin text-[var(--interface-accent)] mb-4" size={32} />
-        <p className="font-frenchpress text-[var(--slate-600)] uppercase tracking-widest text-lg">Atualizando métricas 🌸</p>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   const ltvValue = data?.users.total 
     ? formatPrice(data.revenue.total / data.users.total) 
     : "R$ 0,00";
 
   return (
-    // Removido bg-s-50, agora é branco puro
     <div className="min-h-screen bg-white">
       <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
         
@@ -71,7 +64,7 @@ export default function AdminAnalytics() {
             </h1>
             <p className="text-[var(--slate-500)] text-xs md:text-sm font-medium mt-1 italic">Saúde financeira em tempo real</p>
           </div>
-          <button className="w-full sm:w-auto bg-[var(--slate-900)] text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm hover:bg-[var(--interface-accent)] transition-all active:scale-95">
+          <button className="w-full sm:w-auto bg-[var(--slate-900)] text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm hover:bg-[var(--interface-accent)] transition-all active:scale-95 cursor-pointer">
             <Download size={14} /> Exportar Relatório
           </button>
         </header>
@@ -151,7 +144,7 @@ export default function AdminAnalytics() {
                     </div>
                   </div>
                   
-                  <div className="text-right shrink-0 flex items-center gap-4">
+                  <div className="text-right shrink-0 flex items-center gap-4 cursor-pointer">
                     <div>
                       <p className="font-black text-[var(--slate-900)] text-[9px] md:text-sm tracking-widest">ATIVO</p>
                       <p className="text-[8px] md:text-[10px] font-bold text-[var(--slate-400)] italic">

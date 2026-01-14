@@ -16,6 +16,7 @@ import { FiDownload } from "react-icons/fi";
 import { PiUsersThree as Users } from "react-icons/pi";
 import { ChartLine, User, FileText, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/lib/price";
+import { Loading } from '@/components/ui/loading'
 
 interface AdminStats {
   users: { total: number; active: number; };
@@ -64,11 +65,7 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  if (loading) return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="animate-pulse font-bold text-[var(--slate-400)] uppercase tracking-widest">Carregando...</div>
-    </div>
-  );
+  if (loading) return <Loading />;
 
   return (
     <div className="space-y-10 max-w-[1600px] mx-auto p-6 lg:p-10 bg-white min-h-screen">
@@ -177,7 +174,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <Button className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95">
+              <Button className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95 cursor-pointer">
                 <FiDownload size={16} className="mr-2" />
                 BAIXAR PDF
               </Button>

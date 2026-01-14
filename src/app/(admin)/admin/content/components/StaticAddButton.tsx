@@ -17,7 +17,7 @@ export function StaticAddButton({ onClick }: { onClick: () => void }) {
     <div ref={setNodeRef} style={style} className="flex items-center shrink-0 ml-2 border-l border-s-50">
       <button 
         onClick={onClick}
-        className="p-4 text-s-300 hover:text-interface-accent transition-colors"
+        className="p-4 text-s-300 hover:text-interface-accent transition-colors cursor-pointer"
         title="Adicionar novo objetivo"
       >
         <Plus size={18} strokeWidth={3} />
