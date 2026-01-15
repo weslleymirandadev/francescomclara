@@ -101,7 +101,7 @@ export function SubscriptionPlanCard({
 
         <button
           onClick={handleClick}
-          className="w-full py-3 rounded-xl font-bold bg-black text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto"
+          className="w-full py-3 rounded-xl font-bold bg-black text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto cursor-pointer"
         >
           Assinar
         </button>
