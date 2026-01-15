@@ -83,7 +83,7 @@ export async function GET() {
     // Mapa para rastrear o plano mais recente de cada usuário
     const userLatestPlan = new Map<string, { type?: string; period?: string }>();
 
-    approvedPayments.forEach(payment => {
+    approvedPayments.forEach((payment: any) => {
       const userId = payment.userId;
       
       // Se o pagamento tem um plano associado diretamente
