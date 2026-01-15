@@ -10,6 +10,7 @@ import {
   BookOpen, Video, GraduationCap, Clock, Layers, BookText, 
   Lock, Sparkles, Play, CheckCircle2, Crown, CheckCircle2 as CheckCircle
 } from "lucide-react";
+import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard";
 import Image from "next/image";
 import { Icon } from '@iconify/react';
 import { getGlobalData } from "./actions/settings";
@@ -100,12 +101,15 @@ type SubscriptionPlan = {
   id: string;
   name: string;
   description: string | null;
-  price: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  price?: number; // Compatibilidade
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
+  isBestValue: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period: 'MONTHLY' | 'YEARLY';
+  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
   features: any;
   tracks: Array<{
     id: string;
@@ -406,7 +410,7 @@ export default function Home() {
     }, 800);
   };
 
-  // Se não estiver logado, mostrar landing page
+  // Se não estiver logado, mostrar landing page (apenas vídeo e planos)
   if (!session?.user) {
     if (loadingLanding) {
       return (
@@ -465,15 +469,9 @@ export default function Home() {
 
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
                   className="bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 shadow-xl"
                 >
-                  Explorar Trilhas
-                </button>
-                <button
-                  onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
-                  >
                   Ver Planos
                 </button>
               </div>
@@ -496,194 +494,26 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative container mx-auto px-4 py-16">
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0 overflow-hidden">
-            <div className="absolute top-[5%] left-[5%] -rotate-12" style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
-              <Icon icon="ph:airplane-tilt-fill" className="w-[120px] md:w-[250px]" />
-            </div>
-            <div className="absolute top-[25%] right-[8%] rotate-12" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
-              <Icon icon="ph:briefcase-fill" className="w-[100px] md:w-[200px]" />
-            </div>
-            <div className="absolute top-[44%] left-[10%] rotate-25" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
-              <Icon icon="ph:graduation-cap-fill" className="w-[110px] md:w-[220px]" />
-            </div>
-            <div className="absolute top-[65%] right-[5%] -rotate-6" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
-              <Icon icon="ph:users-three-fill" className="w-[140px] md:w-[280px]" />
-            </div>
-            <div className="absolute top-[85%] left-[15%] rotate-12" style={{ transform: `translateY(${scrollY * 0.08}px)` }}>
-              <Icon icon="ph:leaf-fill" className="w-[90px] md:w-[180px]" />
-            </div>
-          </div>
-
-          <div className="container mx-auto px-4 py-24" id="trilhas">
-            {Object.values(groupedTracks).map((group: any, index: number) => {
-              const objective = group.info;
-              if (!objective) return null;
-              const mainAngle = objective.iconRotate || 0;
-              const badgeAngle = mainAngle * 0.1;
-
-              return (
-                <div key={objective.id} className="relative w-full">
-                  <SectionDivider />
-                  <section key={objective.id} className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out translate-y-10 opacity-0 scroll-reveal">
-                    
-                    <div className="relative w-full">
-                      <div className="relative left-1/2 -translate-x-1/2 w-screen md:left-0 md:translate-x-0 md:w-full">
-                        
-                        <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-s-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
-                          <div 
-                            className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
-                            style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
-                          
-                          <div className="absolute bottom-8 left-8 md:bottom-12 md:left-20 z-20">
-                            <span className="text-[10px] font-black uppercase text-interface-accent tracking-widest block mb-2 drop-shadow-md">Objectif</span>
-                            <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter font-frenchpress leading-none">{objective.name}</h2>
-                          </div>
-
-                          <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
-                            <Icon icon={objective.icon} width={80} height={80} className="rotate-25" />
-                          </div>
-                          <div className="absolute top-2 right-20 z-20 text-white block md:hidden">
-                            <Icon icon={objective.icon} width={50} height={50} className="rotate-25" />
-                          </div>
-                        </div>
-
-                        <div className="absolute -bottom-35 -right-16 z-10 text-s-50 pointer-events-none hidden md:block" style={{ transform: `rotate(${mainAngle}deg)` }}>
-                          <Icon icon={objective.icon} width={250} height={250} />
-                        </div>
-
-                        <div className="absolute -bottom-15 -right-7 z-10 text-s-50 pointer-events-none block md:hidden" style={{ transform: `rotate(${mainAngle}deg)` }}>
-                          <Icon icon={objective.icon} width={125} height={125} />
-                        </div>
-
-                        <div className="absolute -bottom-10 md:-bottom-14 -left-16 z-10 transition-all duration-700 ease-out group-hover/sep:rotate-[5deg] group-hover/sep:-translate-y-2" style={{ transform: `rotate(${badgeAngle}deg)` }}>
-                          <div className="bg-s-50 p-7 rounded-[32px] border border-s-50 hidden md:block">
-                            <Icon icon={objective.icon} width={48} height={48} className="text-s-900" />
-                          </div>
-                          <div className="bg-s-50 p-5 rounded-[32px] border border-s-50 block md:hidden">
-                            <Icon icon={objective.icon} width={32} height={32} className="text-s-900" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-20 px-6 relative z-20 mt-8">
-                      {group.tracks.map((track: LandingTrack) => {
-                        const totalLessons = track.modules.reduce((sum, module) => sum + module.lessons.length, 0);
-                        return (
-                          <div key={track.id} className="group bg-white rounded-md md:rounded-[40px] md:border md:border-s-100 shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500">
-                            <div className="flex flex-col lg:flex-row">
-                              <div 
-                                className="lg:w-1/3 p-12 text-white flex flex-col justify-between relative overflow-hidden min-h-[450px]"
-                                style={{ backgroundColor: track.objective?.color || '#0f172a' }}
-                              >
-                                {track.imageUrl && (
-                                  <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url(${track.imageUrl})` }} />
-                                )}
-                                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/70 transition-colors" />
-                                <div className="relative z-10">
-                                  <h3 className="text-4xl font-black mb-4 leading-none font-frenchpress uppercase tracking-tighter">{track.name}</h3>
-                                  <p className="text-white/80 text-sm leading-relaxed line-clamp-4">{track.description}</p>
-                                </div>
-                                <div className="relative z-10 pt-8 border-t border-white/10">
-                                  <div className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-widest text-white/70">
-                                    <Clock size={12} className="text-interface-accent" /> {totalLessons} lições
-                                  </div>
-                                  {renderAccessButton(track)}
-                                </div>
-                              </div>
-
-                              <div className="lg:w-2/3 p-6 md:p-12 bg-white/80 backdrop-blur-xl relative overflow-hidden">
-                                <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
-                                  <Icon icon="ph:book-open-thin" width={300} />
-                                </div>
-                                <h4 className="text-[10px] font-black text-s-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
-                                  <span className="w-8 h-px bg-s-200"></span>
-                                  Programme de formation
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                                  {track.modules.map((module) => (
-                                    <div key={module.id}>
-                                      <div className="flex items-center gap-3 mb-4">
-                                        <span className="text-[10px] font-black text-interface-accent">0{module.order}</span>
-                                        <h5 className="font-black text-s-900 text-sm uppercase">{module.title}</h5>
-                                      </div>
-                                      <ul className="space-y-3">
-                                        {module.lessons.slice(0, 3).map(lesson => (
-                                          <li key={lesson.id} className="text-xs text-s-500 flex items-center gap-3 font-medium">
-                                            <div className="text-s-400 shrink-0">
-                                              {getLessonIcon(lesson.type)}
-                                            </div> 
-                                            <span className="truncate">{lesson.title}</span>
-                                          </li>
-                                        ))}
-                                        
-                                        {module.lessons.length > 3 && (
-                                          <li className="text-[9px] text-interface-accent font-bold uppercase tracking-widest pl-6">
-                                            + {module.lessons.length - 3} atividades
-                                          </li>
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                </div>
-              );
-            })}
-        </div>
-
-          <section id="planos" className="py-12 border-t border-(--color-s-200)">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-4xl font-black text-s-900 mb-4 tracking-tight">Assinaturas</h2>
+        <div className="relative container mx-auto px-4 z-50">
+          <section id="planos" className="py-12">
+            <div className="text-center max-w-2xl mx-auto mb-4">
+              <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-clara-rose to-pink-500 text-transparent bg-clip-text py-2 px-4 rounded-full">Assinaturas</h2>
               <p className="text-[var(--color-s-50)]0">Invista no seu futuro com planos que cabem no seu bolso.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {subscriptionPlans.map((plan) => (
-                <div key={plan.id} className="relative p-8 rounded-3xl bg-white border border-(--color-s-200) shadow-sm hover:border-blue-500 transition-all group">
-                  {plan.period === 'YEARLY' && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg">
-                      Melhor Valor
-                    </div>
-                  )}
-                  
-                  <h3 className="text-xl font-bold text-s-900 mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-4xl font-black">{formatPrice(plan.price / (plan.period === 'YEARLY' ? 12 : 1))}</span>
-                    <span className="text-s-50 text-sm font-medium">/mês</span>
-                  </div>
-
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature: any, i: number) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-s-600">
-                        <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button 
-                    onClick={() => {
-                      handleRedirect(`/assinar?planId=${plan.id}`);
-                    }}
-                    className="w-full py-4 rounded-xl font-bold bg-s-900 text-white hover:bg-blue-800 transition-all shadow-md"
-                  >
-                    {loadingLanding ? (
-                      <Icon icon="line-md:loading-twotone-loop" width={24} />
-                    ) : (
-                      "Começar agora"
-                    )}
-                  </button>
-                </div>
+                <SubscriptionPlanCard
+                  key={plan.id}
+                  id={plan.id}
+                  name={plan.name}
+                  monthlyPrice={plan.monthlyPrice}
+                  yearlyPrice={plan.yearlyPrice}
+                  price={plan.price}
+                  isBestValue={plan.isBestValue}
+                  features={plan.features}
+                  onSubscribe={(planId) => handleRedirect(`/assinar?planId=${planId}`)}
+                />
               ))}
             </div>
           </section>
@@ -706,78 +536,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-s-50 overflow-x-hidden">
-      <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-s-900">
-        <div className="absolute inset-0 z-0"
-          style={{  transform: `translateY(${scrollY * 0.3}px)` }}
-        >
-          <video
-            ref={videoRef}
-            key="hero-video"
-            disablePictureInPicture
-            controlsList="nodownload noplaybackrate"
-            loop
-            muted
-            playsInline
-            autoPlay
-            preload="auto"
-            className="w-full h-full object-cover opacity-60"
-          >
-            <source src="/hero-video.mp4" type="video/mp4" />
-          </video>
-          
-          <div className="absolute inset-0 bg-linear-to-b from-blue-900/40 via-s-900/60 to-s-900 z-10"></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-20">
-          <div className="max-w-3xl">
-            <span className="inline-block px-4 py-1 bg-white/10 backdrop-blur-md rounded-full text-sm font-bold mb-6 border border-white/20 text-blue-200">
-              {greeting}
-            </span>
-            
-            <span className="inline-flex items-center gap-2 px-4 py-1 mx-2 bg-white/10 backdrop-blur-md rounded-full text-sm font-medium mb-6 border border-white/20 text-blue-100">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-              Bienvenue à "Français avec Clara"{FR}
-            </span>
-            
-            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight text-white">
-              Aprenda Francês com <span className="text-red-500">Elegância</span> e Fluidez.
-            </h1>
-            
-            <p className="text-xl text-blue-50 mb-10 leading-relaxed max-w-2xl">
-              Imersão cultural e aprendizado prático em um só lugar. 
-              O seu caminho para a fluência começa aqui.
-            </p>
-
-            <div className="flex flex-wrap gap-4">
-              <button
-                onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                className="cursor-pointer bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-blue-900 hover:text-white transition-all transform hover:scale-105 shadow-xl"
-              >
-                Explorar Trilhas
-              </button>
-              <button
-                onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
-                className="cursor-pointer bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all"
-              >
-                Ver Planos
-              </button>
-            </div>
-            {!hasSubscription && (
-              <Link
-                href="/assinar"
-                className="flex items-center gap-2 bg-linear-to-r from-clara-rose to-pink-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
-              >
-                <Crown size={20} />
-                Assinar Agora
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
-
       {/* Banner para não-assinantes */}
       {!hasSubscription && (
         <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white py-4">
@@ -820,7 +578,7 @@ export default function Home() {
                 <div 
                   key={track.id} 
                   className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 ${
-                    track.isLocked ? 'border-s-200 opacity-75' : 'border-transparent'
+                    track.isLocked ? 'border-(--color-s-200) opacity-75' : 'border-transparent'
                   }`}
                 >
                   {/* Header da trilha */}
@@ -917,8 +675,8 @@ export default function Home() {
                                     completed
                                       ? 'bg-green-50 border-green-200'
                                       : isLocked
-                                      ? 'bg-s-50 border-s-200 opacity-60 cursor-not-allowed'
-                                      : 'bg-white border-s-200 hover:border-blue-300 hover:shadow-md'
+                                      ? 'bg-s-50 border-(--color-s-200) opacity-60 cursor-not-allowed'
+                                      : 'bg-white border-(--color-s-200) hover:border-blue-300 hover:shadow-md'
                                   }`}
                                 >
                                   {isLocked && (
@@ -979,7 +737,7 @@ export default function Home() {
                     </div>
 
                     {/* Botão de ação principal */}
-                    <div className="mt-8 pt-6 border-t border-s-200">
+                    <div className="mt-8 pt-6 border-t border-(--color-s-200)">
                       {track.isLocked ? (
                         <Link
                           href="/assinar"

@@ -1,0 +1,111 @@
+"use client";
+
+import { Crown, CheckCircle2 } from "lucide-react";
+import { formatPrice } from "@/lib/price";
+
+interface SubscriptionPlanCardProps {
+  id: string;
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  price?: number; // Compatibilidade
+  isBestValue?: boolean;
+  features: string[] | any;
+  onSubscribe?: (planId: string) => void;
+  className?: string;
+}
+
+export function SubscriptionPlanCard({
+  id,
+  name,
+  monthlyPrice,
+  yearlyPrice,
+  price,
+  isBestValue = false,
+  features,
+  onSubscribe,
+  className = "",
+}: SubscriptionPlanCardProps) {
+  const finalMonthlyPrice = monthlyPrice || price || 0;
+  const finalYearlyPrice = yearlyPrice || 0;
+  const yearlyMonthlyPrice = finalYearlyPrice > 0 ? Math.round(finalYearlyPrice / 12) : 0;
+
+  const handleClick = () => {
+    if (onSubscribe) {
+      onSubscribe(id);
+    }
+  };
+
+  return (
+    <div className={`relative p-8 rounded-3xl bg-white border ${isBestValue ? "border-blue-500" : "border-(--color-s-200)"} shadow-sm hover:border-blue-500 transition-all group flex flex-col h-full min-h-[600px] ${className}`}>
+      {isBestValue && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg">
+          Melhor Valor
+        </div>
+      )}
+
+      <div className="flex flex-col items-center justify-center mb-6 flex-shrink-0">
+        <h3 className="text-xl font-bold text-white inline-flex bg-linear-to-r from-clara-rose to-pink-500 py-2 px-4 rounded-md items-center gap-2 m-0 mb-4">
+          <Crown size={25} /> <span>{name}</span>
+        </h3>
+
+        {/* Preço Mensal */}
+        <div className="w-full">
+          <div className="text-center">
+            <p className="text-xs text-s-400 mb-1">Plano Mensal</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-2xl font-bold text-s-400">{formatPrice(finalMonthlyPrice)}</span>
+              <span className="text-s-400 text-sm font-medium">/mês</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full relative">
+          <hr className="border w-full border-(--color-s-200) my-4" />
+          <p className="text-xs text-s-400 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
+        </div>
+
+        {/* Preço Anual */}
+        <div className="w-full">
+          <div className="text-center">
+            <p className="text-xs text-s-400 mb-1">Plano Anual</p>
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-3xl font-black bg-linear-to-r from-clara-rose to-pink-500 bg-clip-text text-transparent">{formatPrice(yearlyMonthlyPrice)}</span>
+              <span className="text-s-400 text-sm font-medium">/mês</span>
+            </div>
+            <p className="text-[10px] text-s-500 mt-1">
+              {formatPrice(finalYearlyPrice)} por ano
+            </p>
+            {finalMonthlyPrice > 0 && yearlyMonthlyPrice > 0 && (
+              <p className="text-[10px] text-clara-rose font-bold mt-1">
+                Economize {formatPrice(finalMonthlyPrice - yearlyMonthlyPrice)}/mês
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-between">
+        <ul className="space-y-4 mb-8 flex-shrink-0">
+          {features && Array.isArray(features) && features.length > 0 ? (
+            features.map((feature: string, i: number) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-s-600">
+                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                <span>{feature}</span>
+              </li>
+            ))
+          ) : (
+            <li className="text-sm text-s-400 text-center">Nenhuma vantagem definida</li>
+          )}
+        </ul>
+
+        <button
+          onClick={handleClick}
+          className="w-full py-3 rounded-xl font-bold bg-linear-to-r from-blue-500 to-red-500 text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto"
+        >
+          Assinar
+        </button>
+      </div>
+    </div>
+  );
+}

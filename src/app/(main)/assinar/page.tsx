@@ -12,12 +12,15 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   description: string | null;
-  price: number; // em centavos
+  monthlyPrice: number; // em centavos
+  yearlyPrice: number; // em centavos
+  price?: number; // Compatibilidade
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
+  isBestValue: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period: 'MONTHLY' | 'YEARLY';
+  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
   features: string[] | any;
   tracks?: Array<{
     id: string;
@@ -35,8 +38,10 @@ function AssinarPageContent() {
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
   const planId = searchParams.get('planId') || 'default';
+  const periodParam = searchParams.get('period') as 'MONTHLY' | 'YEARLY' | null;
 
   // Buscar plano de assinatura
   useEffect(() => {
@@ -58,6 +63,14 @@ function AssinarPageContent() {
         const data = await response.json();
         setPlan(data);
         setError(null);
+        
+        // Definir período inicial baseado no parâmetro da URL ou padrão
+        if (periodParam && (periodParam === 'MONTHLY' || periodParam === 'YEARLY')) {
+          setSelectedPeriod(periodParam);
+        } else {
+          // Se não tiver parâmetro, usar mensal como padrão
+          setSelectedPeriod('MONTHLY');
+        }
       } catch (err) {
         console.error('Erro ao buscar plano:', err);
         setError('Erro ao carregar plano de assinatura');
@@ -67,7 +80,7 @@ function AssinarPageContent() {
     };
 
     fetchPlan();
-  }, [planId]);
+  }, [planId, periodParam]);
 
   // Se o usuário não estiver autenticado, redirecionar para login
   useEffect(() => {
@@ -128,7 +141,12 @@ function AssinarPageContent() {
     );
   }
 
-  const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : plan.price;
+  // Calcular preço baseado no período selecionado
+  const basePrice = selectedPeriod === 'YEARLY' 
+    ? (plan.yearlyPrice || plan.price || 0)
+    : (plan.monthlyPrice || plan.price || 0);
+  const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : basePrice;
+  
   // Usar tracks se disponível, caso contrário usar courses (compatibilidade)
   const tracks = (plan.tracks as any) || [];
   const items = tracks.map((item: any) => ({
@@ -150,9 +168,52 @@ function AssinarPageContent() {
           <p className="text-sm text-gray-500 mt-2">
             {plan.description}
           </p>
+          <div className="flex gap-2 mt-4 mb-2">
+            <button
+              onClick={() => setSelectedPeriod('MONTHLY')}
+              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all ${
+                selectedPeriod === 'MONTHLY'
+                  ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <div className="text-center">
+                <div>Mensal</div>
+                {plan.monthlyPrice && (
+                  <div className="text-xs font-normal mt-1">
+                    {formatPrice(plan.monthlyPrice || plan.price || 0)}/mês
+                  </div>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={() => setSelectedPeriod('YEARLY')}
+              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all relative ${
+                selectedPeriod === 'YEARLY'
+                  ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1">
+                  <span>Anual</span>
+                  {plan.yearlyPrice > 0 && plan.monthlyPrice > 0 && (
+                    <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded">
+                      Economia
+                    </span>
+                  )}
+                </div>
+                {plan.yearlyPrice > 0 && (
+                  <div className="text-xs font-normal mt-1">
+                    {formatPrice(Math.round(plan.yearlyPrice / 12))}/mês
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
           <p className="text-xs text-black mt-1">
             O pagamento será cobrado agora e depois será cobrado automaticamente&nbsp;
-            {plan.period === 'YEARLY' ? (
+            {selectedPeriod === 'YEARLY' ? (
               <>
                 <span className="underline underline-offset-2 decoration-pink-500">anualmente</span>.
               </>
@@ -188,20 +249,25 @@ function AssinarPageContent() {
 
           <div className="flex items-center justify-between rounded-md bg-gray-50 p-4">
             <span className="text-sm font-medium text-gray-700">
-              {plan.period === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}
+              {selectedPeriod === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}
             </span>
             <div className="text-right">
               {plan.discountEnabled && plan.originalPrice && (
-                <span className="text-xs line-through text-white bg-linear-to-r from-clara-rose to-pink-500 p-2 rounded-md block">
+                <span className="text-xs line-through text-gray-400 block mb-1">
                   {formatPrice(plan.originalPrice)}
                 </span>
               )}
-              <span className="text-lg font-semibold text-white bg-linear-to-r from-clara-rose to-pink-500 p-2 rounded-md">
+              <span className="text-2xl font-bold text-gray-900">
                 {formatPrice(total)}
               </span>
-              {plan.period === 'YEARLY' && (
-                <span className="text-xs text-gray-500 block">
+              {selectedPeriod === 'YEARLY' && (
+                <span className="text-xs text-gray-500 block mt-1">
                   {formatPrice(Math.round(total / 12))} por mês
+                </span>
+              )}
+              {selectedPeriod === 'MONTHLY' && plan.yearlyPrice > 0 && (
+                <span className="text-xs text-green-600 font-semibold block mt-1">
+                  Economize {formatPrice((plan.monthlyPrice || plan.price || 0) - Math.round(plan.yearlyPrice / 12))}/mês com o plano anual
                 </span>
               )}
             </div>
@@ -222,7 +288,7 @@ function AssinarPageContent() {
             amount={total} 
             items={items}
             subscriptionPlanId={plan.id}
-            period={plan.period}
+            period={selectedPeriod}
           />
         </footer>
       </div>
