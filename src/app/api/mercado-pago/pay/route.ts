@@ -77,14 +77,14 @@ export async function POST(req: Request) {
     console.log('Items recebidos:', JSON.stringify(items, null, 2));
 
     // Validar que todas as trilhas existem
-    const trackIds = items.map(item => item.id);
+    const trackIds = items.map((item: any) => item.id);
     const existingTracks = await prisma.track.findMany({
       where: { id: { in: trackIds } },
       select: { id: true, name: true }
     });
     
-    const existingTrackIds = new Set(existingTracks.map(t => t.id));
-    const missingTracks = trackIds.filter(id => !existingTrackIds.has(id));
+    const existingTrackIds = new Set(existingTracks.map((t: any) => t.id));
+    const missingTracks = trackIds.filter((id: string) => !existingTrackIds.has(id));
     
     if (missingTracks.length > 0) {
       return NextResponse.json(
@@ -94,8 +94,8 @@ export async function POST(req: Request) {
     }
 
     // Enriquecer items com dados das trilhas
-    const enrichedItems = items.map(item => {
-      const track = existingTracks.find(t => t.id === item.id);
+    const enrichedItems = items.map((item: any) => {
+      const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
         title: track?.name || item.title,
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
     });
 
     // Calcular o total (em centavos)
-    const calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
+    const calculatedTotalInCents = total || enrichedItems.reduce((sum: number, item: any) => sum + (item.price! * item.quantity), 0);
     const calculatedTotalInReais = calculatedTotalInCents / 100;
     
     const description = enrichedItems.length === 1
@@ -236,7 +236,7 @@ export async function POST(req: Request) {
           ...(installments > 1 && { installments }),
           frequency,
           frequencyType,
-          items: enrichedItems.map(item => ({
+          items: enrichedItems.map((item: any) => ({
             id: item.id,
             title: item.title,
             price: item.price,
@@ -247,7 +247,7 @@ export async function POST(req: Request) {
           ...(preapprovalResponse.sandbox_init_point && { sandbox_init_point: preapprovalResponse.sandbox_init_point }),
         },
         items: {
-          create: enrichedItems.map(item => ({
+          create: enrichedItems.map((item: any) => ({
             trackId: item.id,
             price: item.price,
             quantity: item.quantity,
@@ -309,7 +309,7 @@ export async function POST(req: Request) {
     // Conceder acesso
     if (isAuthorized) {
       await Promise.all(
-        enrichedItems.map(item =>
+        enrichedItems.map((item: any) =>
           prisma.enrollment.upsert({
             where: {
               userId_trackId: { userId, trackId: item.id }
