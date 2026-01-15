@@ -20,13 +20,15 @@ export async function POST(req: Request) {
       installments = 1, // Parcelas (opcional - usado apenas com token)
       frequencyType: initialFrequencyType = 'months', // 'days' ou 'months'
       frequency: initialFrequency = 1, // Frequência de cobrança (ex: 1 = mensal, 2 = bimestral)
+      period, // Período da assinatura (MONTHLY ou YEARLY)
       // Dados do cartão para salvar (opcional - usado apenas com token)
       cardData,
     } = await req.json();
 
-    // Variáveis mutáveis para frequência (podem ser sobrescritas pelo plano)
+    // Variáveis mutáveis para frequência (podem ser sobrescritas pelo plano ou period)
     let frequencyType = initialFrequencyType;
     let frequency = initialFrequency;
+    let finalPeriod: 'MONTHLY' | 'YEARLY' = period || 'MONTHLY';
 
     if (!userId) {
       return NextResponse.json(
@@ -65,10 +67,27 @@ export async function POST(req: Request) {
       }
 
       // Usar dados do plano se disponível
-      if (subscriptionPlan.period === 'MONTHLY') {
+      // Se period foi passado explicitamente, usar ele; senão tentar usar do plano
+      if (period) {
+        finalPeriod = period;
+      } else if (subscriptionPlan.period) {
+        finalPeriod = subscriptionPlan.period;
+      }
+      
+      if (finalPeriod === 'MONTHLY') {
         frequencyType = 'months';
         frequency = 1;
-      } else if (subscriptionPlan.period === 'YEARLY') {
+      } else if (finalPeriod === 'YEARLY') {
+        frequencyType = 'months';
+        frequency = 12;
+      }
+    } else if (period) {
+      // Se não tem plano mas tem period, usar period
+      finalPeriod = period;
+      if (finalPeriod === 'MONTHLY') {
+        frequencyType = 'months';
+        frequency = 1;
+      } else if (finalPeriod === 'YEARLY') {
         frequencyType = 'months';
         frequency = 12;
       }
@@ -107,12 +126,22 @@ export async function POST(req: Request) {
       };
     });
 
-    // Calcular o total (em centavos) - usar preço do plano se disponível
-    const calculatedTotalInCents = subscriptionPlan 
-      ? (subscriptionPlan.discountEnabled && subscriptionPlan.discountPrice 
-          ? subscriptionPlan.discountPrice 
-          : subscriptionPlan.price)
-      : (total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0));
+    // Calcular o total (em centavos) - usar preço do plano baseado no período selecionado
+    let calculatedTotalInCents: number;
+    if (subscriptionPlan) {
+      if (subscriptionPlan.discountEnabled && subscriptionPlan.discountPrice) {
+        calculatedTotalInCents = subscriptionPlan.discountPrice;
+      } else {
+        // Usar monthlyPrice ou yearlyPrice baseado no período
+        if (finalPeriod === 'YEARLY') {
+          calculatedTotalInCents = subscriptionPlan.yearlyPrice || subscriptionPlan.price || 0;
+        } else {
+          calculatedTotalInCents = subscriptionPlan.monthlyPrice || subscriptionPlan.price || 0;
+        }
+      }
+    } else {
+      calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
+    }
     const calculatedTotalInReais = calculatedTotalInCents / 100;
     
     const description = subscriptionPlan 
@@ -225,7 +254,7 @@ export async function POST(req: Request) {
 
     // Calcular data de término para matrículas baseado no período
     const enrollmentEndDate = new Date();
-    if (subscriptionPlan?.period === 'YEARLY') {
+    if (finalPeriod === 'YEARLY') {
       enrollmentEndDate.setFullYear(enrollmentEndDate.getFullYear() + 1);
     } else {
       // Mensal - renovar mensalmente, então data de término é 1 mês
@@ -247,8 +276,8 @@ export async function POST(req: Request) {
           ...(installments > 1 && { installments }),
           frequency,
           frequencyType,
-          period: subscriptionPlan?.period || (frequencyType === 'months' && frequency === 12 ? 'YEARLY' : 'MONTHLY'),
-          refundWindowDays: subscriptionPlan?.period === 'YEARLY' ? 30 : 7, // Janela de reembolso
+          period: finalPeriod,
+          refundWindowDays: finalPeriod === 'YEARLY' ? 30 : 7, // Janela de reembolso
           items: enrichedItems.map(item => ({
             id: item.id,
             title: item.title,
