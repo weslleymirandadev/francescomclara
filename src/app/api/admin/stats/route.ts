@@ -118,7 +118,7 @@ export async function GET() {
     });
 
     // Contar usuários por tipo e período
-    userLatestPlan.forEach((planInfo, userId) => {
+    userLatestPlan.forEach((planInfo: any, userId: string) => {
       if (planInfo.type === 'INDIVIDUAL') {
         usersByPlanType.INDIVIDUAL.add(userId);
       } else if (planInfo.type === 'FAMILY') {

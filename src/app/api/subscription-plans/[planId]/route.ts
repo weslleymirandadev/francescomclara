@@ -51,8 +51,8 @@ export async function GET(
       period: plan.period,
       features: plan.features,
       tracks: plan.tracks
-        .filter(spt => spt.track)
-        .map(spt => ({
+        .filter((spt: any) => spt.track)
+        .map((spt: any) => ({
           id: spt.track!.id,
           name: spt.track!.name,
           description: spt.track!.description,
