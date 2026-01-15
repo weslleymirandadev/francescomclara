@@ -100,7 +100,7 @@ export async function GET() {
         const metadata = payment.metadata as any;
         if (metadata && metadata.type === 'subscription') {
           // Tentar encontrar um plano que corresponda ao valor do pagamento
-          const matchingPlan = allPlans.find(plan => {
+            const matchingPlan = allPlans.find((plan: any) => {
             const planPrice = plan.discountEnabled && plan.discountPrice 
               ? plan.discountPrice 
               : plan.price;
