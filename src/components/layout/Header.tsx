@@ -3,19 +3,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 import { FaRegClone } from "react-icons/fa";
 import { FiUser as User, FiLogOut } from "react-icons/fi";
 import { HiOutlineCog, HiMenu, HiX } from "react-icons/hi";
 import { RiSecurePaymentFill } from "react-icons/ri";
-import { BiDirections } from "react-icons/bi";
+import { Crown } from "lucide-react";
 
 const navigationItems = [
   { href: "/perfil", icon: User, text: "Perfil" },
   { href: "/flashcards", icon: FaRegClone, text: "Flashcards" },
-  { href: "/minha-trilha", icon: BiDirections, text: "Minha Trilha" },
   { href: "/configuracoes", icon: HiOutlineCog, text: "Configurações" },
   { href: "/admin", icon: RiSecurePaymentFill, text: "Admin" },
 ];
@@ -24,16 +23,45 @@ export function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
+  const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
 
   const isAdmin = session?.user?.role === "ADMIN";
 
- const filteredNavItems = navigationItems.filter(item => {
+  // Verificar se o usuário tem plano ativo
+  useEffect(() => {
+    async function checkSubscription() {
+      if (!session?.user?.id) {
+        setHasActiveSubscription(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/user/has-active-subscription");
+        const data = await response.json();
+        setHasActiveSubscription(data.hasActiveSubscription || false);
+      } catch (error) {
+        console.error("Erro ao verificar assinatura:", error);
+        setHasActiveSubscription(false);
+      }
+    }
+
+    checkSubscription();
+  }, [session]);
+
+  const filteredNavItems = navigationItems.filter(item => {
     if (item.href === "/admin") {
       return isAdmin;
     }
 
     if (!session && item.href !== "/") {
       return false;
+    }
+
+    // Esconder flashcards se o usuário não tiver plano ativo
+    if (session && hasActiveSubscription === false) {
+      if (item.href === "/flashcards") {
+        return false;
+      }
     }
 
     return true;
@@ -71,6 +99,7 @@ export function Header() {
                 key={item.href}
                 href={item.href}
                 className="group relative flex flex-col items-center py-1"
+                title={item.text}
               >
                 <div className={`flex items-center gap-2 font-medium text-sm transition-colors 
                   ${isActive ? "text-interface-accent" : "text-s-600 group-hover:text-interface-accent"}`}>
@@ -81,7 +110,7 @@ export function Header() {
                       ${isActive ? "text-interface-accent" : "text-s-400 group-hover:text-interface-accent"}
                     `} 
                   />
-                  <span>{item.text}</span>
+                  <span className="hidden min-[950px]:inline">{item.text}</span>
                 </div>
                 
                 {isActive && (
@@ -92,13 +121,25 @@ export function Header() {
           })}
 
           {session && (
-            <button 
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="ml-4 p-2 text-s-400 hover:text-red-600 transition-colors cursor-pointer"
-              title="Sair"
-            >
-              <FiLogOut size={20} /> Sair
-            </button>
+            <>
+              {hasActiveSubscription === false && (
+                <Link 
+                  href="/assinar" 
+                  className="ml-4 flex items-center gap-2 bg-linear-to-r from-clara-rose to-pink-500 text-white px-4 min-[950px]:px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
+                  title="Assinar Agora"
+                >
+                  <Crown size={20} />
+                </Link>
+              )}
+              <button 
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="ml-4 p-2 flex items-center gap-2 cursor-pointer text-s-400 hover:text-red-600 transition-colors"
+                title="Sair"
+              >
+                <FiLogOut size={20} />
+                <span className="hidden min-[950px]:inline">Sair</span>
+              </button>
+            </>
           )}
 
           {!session && (
@@ -130,13 +171,25 @@ export function Header() {
           <div className="h-px bg-s-100 my-2" />
 
           {session ? (
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="w-full flex items-center gap-3 p-3 font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
-            >
-              <FiLogOut size={20} />
-              Sair da conta
-            </button>
+            <>
+              {hasActiveSubscription === false && (
+                <Link
+                  href="/assinar"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 p-3 font-bold text-white bg-linear-to-r from-clara-rose to-pink-500 rounded-lg mb-2 hover:shadow-lg transition-all"
+                >
+                  <Crown size={20} />
+                  Assinar Agora
+                </Link>
+              )}
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="w-full flex items-center gap-3 p-3 font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all"
+              >
+                <FiLogOut size={20} />
+                Sair da conta
+              </button>
+            </>
           ) : (
             <Link
               href="/auth/login"

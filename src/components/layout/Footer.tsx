@@ -58,7 +58,6 @@ export function Footer({ settings }: FooterProps) {
           <div>
             <h4 className="font-bold text-s-900 mb-6 uppercase text-xs tracking-widest">Plataforma</h4>
             <ul className="space-y-4 text-sm font-semibold text-s-600">
-              <li><Link href="/minha-trilha" className="hover:text-interface-accent transition-colors">Minha Trilha</Link></li>
               <li><Link href="/flashcards" className="hover:text-interface-accent transition-colors">Flashcards</Link></li>
               <li><Link href="/forum" className="hover:text-interface-accent transition-colors">Comunidade</Link></li>
             </ul>
