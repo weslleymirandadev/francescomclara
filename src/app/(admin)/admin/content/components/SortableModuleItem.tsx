@@ -22,7 +22,7 @@ function SortableLessonItem({ lesson, markForDeletion, onToggleLock, onUpdateNam
       ref={setNodeRef} 
       style={style}
       className={`group flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 bg-white border rounded-xl transition-all gap-3 ${
-        isDragging ? 'border-interface-accent shadow-lg z-50' : 'border-s-50 hover:border-s-100'
+        isDragging ? 'border-interface-accent shadow-lg z-50' : 'border-(--color-s-50) hover:border-(--color-s-100)'
       }`}
     >
       {/* Esquerda: Drag + Icone + Input */}
@@ -44,7 +44,7 @@ function SortableLessonItem({ lesson, markForDeletion, onToggleLock, onUpdateNam
       </div>
 
       {/* Direita: Ações (Lacre e Lixo) */}
-      <div className="flex items-center justify-end gap-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-s-50/50">
+      <div className="flex items-center justify-end gap-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-(--color-s-50)/50">
         <button 
           onClick={() => onToggleLock(lesson.id)}
           className={`p-2 rounded-lg transition-colors cursor-pointer ${
@@ -94,7 +94,7 @@ export function SortableModuleItem({
   
 
   return (
-    <div ref={setNodeRef} style={style} className={`bg-white border-2 rounded-2xl overflow-hidden ${isDragging ? 'border-interface-accent shadow-xl' : 'border-s-50'}`}>
+    <div ref={setNodeRef} style={style} className={`bg-white border-2 rounded-2xl overflow-hidden ${isDragging ? 'border-interface-accent shadow-xl' : 'border-(--color-s-50)'}`}>
       {/* Header do Módulo */}
       <div className="flex flex-col sm:flex-row items-center p-4 gap-3">
         
@@ -150,7 +150,7 @@ export function SortableModuleItem({
 
       {/* Área de Lições (Expandida) */}
       {isExpanded && (
-        <div className="bg-s-50/30 border-t border-s-50 p-4 space-y-2">
+        <div className="bg-s-50/30 border-t border-(--color-s-50) p-4 space-y-2">
           {!mounted ? (
             <div className="space-y-2">
               {module.lessons?.map((lesson: any) => (

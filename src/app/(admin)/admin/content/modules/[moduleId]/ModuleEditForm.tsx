@@ -38,7 +38,7 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`group flex items-center justify-between bg-white border ${isDragging ? 'border-interface-accent shadow-2xl' : 'border-s-100'} p-6 rounded-[32px] hover:shadow-lg transition-all mb-4`}>
+    <div ref={setNodeRef} style={style} className={`group flex items-center justify-between bg-white border ${isDragging ? 'border-interface-accent shadow-2xl' : 'border-(--color-s-100)'} p-6 rounded-[32px] hover:shadow-lg transition-all mb-4`}>
       <div className="flex items-center gap-6 flex-1">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 text-s-400 hover:text-s-600 transition-colors">
           <GripVertical size={20} />
@@ -70,7 +70,7 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
             </select>
             <button 
               onClick={() => onTogglePremium(lesson.id, lesson.isPremium)}
-              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border cursor-pointer ${lesson.isPremium ? "bg-amber-50 border-amber-200 text-amber-600" : "text-s-600 border-s-20"}`}
+              className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border cursor-pointer ${lesson.isPremium ? "bg-amber-50 border-amber-200 text-amber-600" : "text-s-600 border-(--color-s-20)"}`}
             >
               {lesson.isPremium ? "Premium" : "Grátis"}
             </button>
@@ -212,17 +212,17 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
             <input 
               value={moduleData.title}
               onChange={(e) => { setModuleData({ ...moduleData, title: e.target.value }); setHasUnsavedChanges(true); }}
-              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-s-100 w-full"
+              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-(--color-s-100) w-full"
             />
           </div>
 
-          <div className="flex items-center gap-4 bg-s-50 p-4 rounded-3xl border border-s-100">
+          <div className="flex items-center gap-4 bg-s-50 p-4 rounded-3xl border border-(--color-s-100)">
             <div className="flex flex-col gap-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-s-400 ml-1">Nível CEFR</span>
               <select 
                 value={moduleData.cefrLevel}
                 onChange={(e) => { setModuleData({ ...moduleData, cefrLevel: e.target.value }); setHasUnsavedChanges(true); }}
-                className="bg-white border border-s-100 px-4 py-2 rounded-xl font-bold text-s-700 outline-none"
+                className="bg-white border border-(--color-s-100) px-4 py-2 rounded-xl font-bold text-s-700 outline-none"
               >
                 {Object.values(CEFRLevel).map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
@@ -230,7 +230,7 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
 
             <button 
               onClick={() => { setModuleData({ ...moduleData, isPremium: !moduleData.isPremium }); setHasUnsavedChanges(true); }}
-              className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all ${moduleData.isPremium ? "bg-amber-500 border-amber-600 text-white" : "bg-white border-s-100 text-s-600"}`}
+              className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all ${moduleData.isPremium ? "bg-amber-500 border-amber-600 text-white" : "bg-white border-(--color-s-100) text-s-600"}`}
             >
               {moduleData.isPremium ? <Lock size={14} /> : <LockOpen size={14} />}
               {moduleData.isPremium ? "Módulo Premium" : "Módulo Gratuito"}
@@ -265,7 +265,7 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
 
         {hasUnsavedChanges && (
           <div className="fixed top-8 right-8 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="bg-white border border-s-100 shadow-2xl rounded-3xl p-2 flex items-center gap-4 pl-6">
+            <div className="bg-white border border-(--color-s-100) shadow-2xl rounded-3xl p-2 flex items-center gap-4 pl-6">
               <span className="text-[10px] font-black text-s-500 uppercase tracking-widest">{isSaving ? "Salvando..." : "Alterações Pendentes"}</span>
               <button onClick={handleSaveAll} disabled={isSaving} className="bg-interface-accent text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:brightness-110 shadow-lg">Salvar Agora</button>
             </div>
