@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { UserRole } from "@prisma/client/";
+import { UserRole } from "@prisma/client";
 
 export function isAdmin(user: { role: UserRole } | undefined) {
   return !!user && user.role === "ADMIN";
