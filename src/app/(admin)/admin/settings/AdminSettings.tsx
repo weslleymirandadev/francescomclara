@@ -97,7 +97,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
               Paramètres 🌸
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
@@ -110,7 +110,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-[var(--clara-rose)]">
+                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-clara-rose">
                   <Palette size={20} />
                 </div>
                 <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Identidade Visual</h2>
@@ -181,7 +181,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
                     <div className="flex gap-3">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm overflow-hidden flex-shrink-0"
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm overflow-hidden shrink-0"
                         style={{ backgroundColor: formData.highlightColor || '#D44D8C' }}
                       >
                         <input 
@@ -314,7 +314,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
                     Configurar Stripe →
                   </Button>
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform text-slate-400">
+                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
                     Servidor de E-mail (SMTP) →
                   </Button>
                 </div>
