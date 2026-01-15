@@ -50,7 +50,7 @@ export function Header() {
             height={20}
             className="rounded-sm shadow-sm"
           />
-          <span className="font-bold text-lg tracking-tight text-s-800 uppercase flex items-center">
+          <span className="font-bold text-lg tracking-tight text-s-800 flex items-center">
               Francês com 
               <span className="relative ml-1 text-clara-rose">
               Clara
