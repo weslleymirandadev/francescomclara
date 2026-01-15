@@ -116,7 +116,7 @@ export function Footer({ settings }: FooterProps) {
                     href={social.href as string || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative p-3 bg-white border border-s-200 rounded-xl transition-all duration-300 hover:border-interface-accent hover:drop-shadow-[-4px_4px_0_interface-accent]"
+                    className="group relative p-3 bg-white border border-(--color-s-200) rounded-xl transition-all duration-300 hover:border-interface-accent hover:drop-shadow-[-4px_4px_0_interface-accent]"
                   >
                     <social.icon 
                       size={20} 
@@ -129,7 +129,7 @@ export function Footer({ settings }: FooterProps) {
         </div>
 
         {/* Linha Inferior: Copyright e Bandeira Decorativa */}
-        <div className="pt-8 border-t border-s-200 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="pt-8 border-t border-(--color-s-200) flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-s-400 text-xs font-bold uppercase tracking-tighter">
             © 2026 Francês com Clara. Todos os direitos reservados.
           </p>
