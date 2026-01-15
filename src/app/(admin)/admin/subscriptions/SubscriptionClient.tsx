@@ -196,7 +196,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                 </Select>
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
                 <div className="flex flex-col">
                   <label className="text-sm font-bold text-slate-900 mb-1">
                     Melhor Preço
@@ -278,7 +278,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               </div>
             </div>
 
-            <DialogFooter className="mt-4 flex-shrink-0 pt-4 border-t border-slate-100 gap-2">
+            <DialogFooter className="mt-4 shrink-0 pt-4 border-t border-slate-100 gap-2">
               {editingPlan?.id && (
                 <Button 
                   onClick={() => handleDelete(editingPlan.id!)}

@@ -44,7 +44,7 @@ export function SubscriptionPlanCard({
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-center mb-6 flex-shrink-0">
+      <div className="flex flex-col items-center justify-center mb-6 shrink-0">
         <h3 className="text-xl font-bold text-white inline-flex bg-linear-to-r from-clara-rose to-pink-500 py-2 px-4 rounded-md items-center gap-2 m-0 mb-4">
           <Crown size={25} /> <span>{name}</span>
         </h3>
@@ -52,32 +52,32 @@ export function SubscriptionPlanCard({
         {/* Preço Mensal */}
         <div className="w-full">
           <div className="text-center">
-            <p className="text-xs text-s-400 mb-1">Plano Mensal</p>
+            <p className="text-xs text-s-500 mb-1">Plano Mensal</p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-2xl font-bold text-s-400">{formatPrice(finalMonthlyPrice)}</span>
-              <span className="text-s-400 text-sm font-medium">/mês</span>
+              <span className="text-2xl font-bold text-s-500">{formatPrice(finalMonthlyPrice)}</span>
+              <span className="text-s-500 text-sm font-medium">/mês</span>
             </div>
           </div>
         </div>
 
         <div className="w-full relative">
           <hr className="border w-full border-(--color-s-200) my-4" />
-          <p className="text-xs text-s-400 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
+          <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
         </div>
 
         {/* Preço Anual */}
         <div className="w-full">
           <div className="text-center">
-            <p className="text-xs text-s-400 mb-1">Plano Anual</p>
+            <p className="text-xs text-s-500 mb-1">Plano Anual</p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-3xl font-black bg-linear-to-r from-clara-rose to-pink-500 bg-clip-text text-transparent">{formatPrice(yearlyMonthlyPrice)}</span>
-              <span className="text-s-400 text-sm font-medium">/mês</span>
+              <span className="text-3xl font-black text-black">{formatPrice(yearlyMonthlyPrice)}</span>
+              <span className="text-s-500 text-sm font-medium">/mês</span>
             </div>
             <p className="text-[10px] text-s-500 mt-1">
               {formatPrice(finalYearlyPrice)} por ano
             </p>
             {finalMonthlyPrice > 0 && yearlyMonthlyPrice > 0 && (
-              <p className="text-[10px] text-clara-rose font-bold mt-1">
+              <p className="text-[10px] text-black font-bold mt-1">
                 Economize {formatPrice(finalMonthlyPrice - yearlyMonthlyPrice)}/mês
               </p>
             )}
@@ -86,7 +86,7 @@ export function SubscriptionPlanCard({
       </div>
 
       <div className="flex-1 flex flex-col justify-between">
-        <ul className="space-y-4 mb-8 flex-shrink-0">
+        <ul className="space-y-4 mb-8 shrink-0">
           {features && Array.isArray(features) && features.length > 0 ? (
             features.map((feature: string, i: number) => (
               <li key={i} className="flex items-start gap-3 text-sm text-s-600">
@@ -95,13 +95,13 @@ export function SubscriptionPlanCard({
               </li>
             ))
           ) : (
-            <li className="text-sm text-s-400 text-center">Nenhuma vantagem definida</li>
+            <li className="text-sm text-s-500 text-center">Nenhuma vantagem definida</li>
           )}
         </ul>
 
         <button
           onClick={handleClick}
-          className="w-full py-3 rounded-xl font-bold bg-linear-to-r from-blue-500 to-red-500 text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto"
+          className="w-full py-3 rounded-xl font-bold bg-black text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto"
         >
           Assinar
         </button>
