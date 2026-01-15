@@ -371,7 +371,7 @@ model SiteSettings {
   siteNameFirstPart  String   @default("Francês com")
   siteNameHighlight  String   @default("Clara")
   siteIcon           String   @default("🌸")
-  interfaceIcon      String   @default("/static/frança.png")
+  interfaceIcon      String   @default("/static/franca.png")
   highlightColor     String   @default("--clara-rose")
   siteDescription String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
   seoDescription  String   @default("Aprenda francês de forma prática e cultural com a Clara.")
