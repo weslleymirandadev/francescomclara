@@ -18,6 +18,11 @@ export async function updateSettings(data: any) {
       where: { id: "settings" },
       update: {
         siteName: data.siteName,
+        siteNameFirstPart: data.siteNameFirstPart,
+        siteNameHighlight: data.siteNameHighlight,
+        siteIcon: data.siteIcon,
+        interfaceIcon: data.interfaceIcon,
+        highlightColor: data.highlightColor,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,
@@ -33,6 +38,11 @@ export async function updateSettings(data: any) {
       create: {
         id: "settings",
         siteName: data.siteName,
+        siteNameFirstPart: data.siteNameFirstPart,
+        siteNameHighlight: data.siteNameHighlight,
+        siteIcon: data.siteIcon,
+        interfaceIcon: data.interfaceIcon,
+        highlightColor: data.highlightColor,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,

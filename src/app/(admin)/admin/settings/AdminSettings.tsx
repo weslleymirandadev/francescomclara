@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Palette, 
   CreditCard, 
@@ -43,6 +43,11 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   
   const [formData, setFormData] = useState<SettingsFormData>({
     siteName: initialSettings?.siteName || "Francês com Clara",
+    siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
+    siteNameHighlight: initialSettings?.siteNameHighlight || "Clara",
+    siteIcon: initialSettings?.siteIcon || "🌸",
+    interfaceIcon: initialSettings?.interfaceIcon || "/static/franca.png",
+    highlightColor: initialSettings?.highlightColor || "--clara-rose",
     supportEmail: initialSettings?.supportEmail || "contato@clara.fr",
     stripeMode: initialSettings?.stripeMode ?? true,
     maintenanceMode: initialSettings?.maintenanceMode ?? false,
@@ -55,6 +60,32 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
     tiktokActive: initialSettings?.tiktokActive ?? false,
     tiktokUrl: initialSettings?.tiktokUrl || "",
   });
+
+  // Atualiza o formData quando initialSettings mudar (após refresh)
+  useEffect(() => {
+    if (initialSettings) {
+      setFormData({
+        siteName: initialSettings?.siteName || "Francês com Clara",
+        siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
+        siteNameHighlight: initialSettings?.siteNameHighlight || "Clara",
+        siteIcon: initialSettings?.siteIcon || "🌸",
+        interfaceIcon: initialSettings?.interfaceIcon || "/static/franca.png",
+        highlightColor: initialSettings?.highlightColor || "#D44D8C",
+        supportEmail: initialSettings?.supportEmail || "contato@clara.fr",
+        stripeMode: initialSettings?.stripeMode ?? true,
+        maintenanceMode: initialSettings?.maintenanceMode ?? false,
+        instagramActive: initialSettings?.instagramActive ?? true,
+        instagramUrl: initialSettings?.instagramUrl || "",
+        youtubeActive: initialSettings?.youtubeActive ?? true,
+        youtubeUrl: initialSettings?.youtubeUrl || "",
+        whatsappActive: initialSettings?.whatsappActive ?? true,
+        whatsappUrl: initialSettings?.whatsappUrl || "",
+        tiktokActive: initialSettings?.tiktokActive ?? false,
+        tiktokUrl: initialSettings?.tiktokUrl || "",
+      });
+      setHasChanges(false);
+    }
+  }, [initialSettings]);
 
   const handleChange = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -116,10 +147,10 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Identidade Visual</h2>
               </div>
 
-              <div className="grid grid-cols-1 gap-8">
+              <div className="grid grid-cols-1 gap-8 w-full">
                 {/* CONSTRUTOR DE NOME */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
+                  <div className="space-y-2 col-span-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texto Base</label>
                     <Input 
                       value={formData.siteNameFirstPart}
@@ -128,8 +159,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       className="h-12 rounded-xl bg-white border-none font-bold text-slate-700 shadow-sm" 
                     />
                   </div>
-
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Destaque</label>
                     <Input 
                       value={formData.siteNameHighlight}
@@ -139,8 +169,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       className="h-12 rounded-xl bg-white border-none font-bold shadow-sm" 
                     />
                   </div>
-
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Emoji / Detalhe</label>
                     <Input 
                       value={formData.siteIcon}
@@ -149,9 +178,9 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       className="h-12 rounded-xl bg-white border-none font-bold text-center text-lg shadow-sm" 
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-full w-full">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ícone de Interface (Bandeira)</label>
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-4 items-center w-full">
                       <div className="w-12 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
                         <img src={formData.interfaceIcon} alt="Preview" className="w-6 object-contain" />
                       </div>
@@ -165,9 +194,9 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* E-MAIL DE SUPORTE */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Suporte</label>
                     <Input 
                       value={formData.supportEmail}
@@ -177,23 +206,23 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   </div>
 
                   {/* SELETOR DE COR DINÂMICO */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
                     <div className="flex gap-3">
                       <div 
                         className="w-12 h-12 rounded-xl border-4 border-white shadow-sm overflow-hidden shrink-0"
-                        style={{ backgroundColor: formData.highlightColor || '#D44D8C' }}
+                        style={{ backgroundColor: formData.highlightColor == "--clara-rose" ? "#D44D8C" : formData.highlightColor }}
                       >
                         <input 
                           type="color" 
-                          value={formData.highlightColor || '#D44D8C'}
+                          value={formData.highlightColor == "--clara-rose" ? "#D44D8C" : formData.highlightColor}
                           onChange={e => handleChange("highlightColor", e.target.value)}
                           className="w-full h-full cursor-pointer opacity-0"
                         />
                       </div>
                       <Input 
                         value={formData.highlightColor}
-                        readOnly
+                        onChange={e => handleChange("highlightColor", e.target.value)}
                         className="h-12 rounded-xl bg-slate-50 border-none font-mono text-xs text-slate-500" 
                       />
                     </div>
@@ -243,41 +272,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           </div>
 
           <div className="lg:col-span-5 space-y-8">
-            <section className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6 md:p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm">
-                    <CreditCard size={20} />
-                  </div>
-                  <h2 className="text-lg font-frenchpress text-slate-800 uppercase tracking-tight">Pagamentos</h2>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
-                  <div>
-                    <p className="text-xs font-bold text-slate-700">Modo Produção</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-black">Stripe Gateway</p>
-                  </div>
-                  <Switch 
-                    checked={formData.stripeMode}
-                    onCheckedChange={v => handleChange("stripeMode", v)}
-                  />
-                </div>
-
-                <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
-                  <div>
-                    <p className="text-xs font-bold text-slate-700">Modo Manutenção</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-black">Plataforma Offline</p>
-                  </div>
-                  <Switch 
-                    checked={formData.maintenanceMode}
-                    onCheckedChange={v => handleChange("maintenanceMode", v)}
-                  />
-                </div>
-              </div>
-            </section>
-
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <Bell size={18} className="text-slate-400" />
@@ -302,25 +296,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 ))}
               </div>
             </section>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white group cursor-pointer hover:bg-black transition-all relative overflow-hidden">
-              <div className="relative z-10">
-                <Globe size={24} className="mb-4 text-emerald-400" />
-                <h3 className="text-xl font-black uppercase tracking-tighter">API & Integrações</h3>
-                <p className="text-[10px] text-slate-400 font-medium mb-4 italic text-balance">
-                  Configure Stripe, SMTP e chaves externas
-                </p>
-                <div className="flex flex-col gap-2 items-start">
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
-                    Configurar Stripe →
-                  </Button>
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
-                    Servidor de E-mail (SMTP) →
-                  </Button>
-                </div>
-              </div>
-              <Globe size={80} className="absolute -right-4 -bottom-4 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
-            </div>
           </div>
         </div>
       </div>

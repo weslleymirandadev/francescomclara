@@ -57,7 +57,7 @@ export default function AdminAnalytics() {
       <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
         
         {/* Header Limpo */}
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-s-100 pb-6 md:pb-8 gap-4">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-(--color-s-100) pb-6 md:pb-8 gap-4">
           <div className="w-full sm:w-auto">
             <h1 className="text-3xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter flex items-center gap-2">
               Analytiques 🌸
@@ -89,7 +89,7 @@ export default function AdminAnalytics() {
           </div>
 
           {/* Churn Rate */}
-          <div className="bg-white border border-s-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white border border-(--color-s-100) rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4 md:mb-6">
               <div className="p-2.5 bg-rose-50 text-rose-500 rounded-xl">
                 <Target size={20} />
@@ -104,7 +104,7 @@ export default function AdminAnalytics() {
           </div>
 
           {/* LTV */}
-          <div className="bg-white border border-s-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm sm:col-span-2 lg:col-span-1 relative overflow-hidden">
+          <div className="bg-white border border-(--color-s-100) rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm sm:col-span-2 lg:col-span-1 relative overflow-hidden">
             <div className="flex justify-between items-start mb-4 md:mb-6">
               <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
                 <TrendingUp size={20} />
@@ -122,8 +122,8 @@ export default function AdminAnalytics() {
         </div>
 
         {/* Lista de Transações - Estilo Branco Limpo */}
-        <div className="bg-white border border-s-100 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-sm">
-          <div className="p-5 md:p-8 border-b border-s-50 flex items-center gap-2">
+        <div className="bg-white border border-(--color-s-100) rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-sm">
+          <div className="p-5 md:p-8 border-b border-(--color-s-50) flex items-center gap-2">
             <FileText size={18} className="text-interface-accent" />
             <h3 className="text-lg font-bold font-frenchpress text-s-800 uppercase tracking-tight">Flux de Trésorerie</h3>
           </div>
@@ -133,7 +133,7 @@ export default function AdminAnalytics() {
               data.recentStudents.map((student) => (
                 <div key={student.id} className="flex items-center justify-between p-4 md:p-6 md:px-10 hover:bg-s-50/30 transition-all group">
                   <div className="flex items-center gap-3 md:gap-6">
-                    <div className="w-10 h-10 md:w-14 md:h-14 bg-white border border-s-100 rounded-xl flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="w-10 h-10 md:w-14 md:h-14 bg-white border border-(--color-s-100) rounded-xl flex items-center justify-center shrink-0 shadow-sm">
                       <span className="text-[12px] md:text-xl font-black text-s-900">
                         {new Date(student.createdAt).getDate()}
                       </span>
