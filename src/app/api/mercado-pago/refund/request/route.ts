@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     // Verificar se já existe um reembolso aprovado
-    const hasApprovedRefund = payment.refunds.some(r => r.status === 'COMPLETED' || r.status === 'APPROVED');
+    const hasApprovedRefund = payment.refunds.some((r: any) => r.status === 'COMPLETED' || r.status === 'APPROVED');
     if (hasApprovedRefund) {
       console.error(`Já existe um reembolso aprovado para o pagamento ${paymentId}`);
       return NextResponse.json({ 
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
       console.log(`Iniciando remoção de acesso para ${payment.items.length} itens do usuário ${userId}`);
       
       await Promise.all(
-        payment.items.map(async (item) => {
+        payment.items.map(async (item: any) => {
           if (item.trackId) {
             console.log(`Removendo acesso à trilha ${item.trackId} para o usuário ${userId}`);
             await prisma.enrollment.deleteMany({
@@ -166,7 +166,7 @@ export async function POST(req: Request) {
         status: refund.status,
         amount: refund.amount,
         paymentId: refund.paymentId,
-        items: payment.items.map(item => ({
+        items: payment.items.map((item: any) => ({
           id: item.trackId,
           type: 'track',
           title: item.title,
