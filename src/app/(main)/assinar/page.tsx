@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState, Suspense } from "react";
 import { useSession, signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { SubscriptionForm } from "@/components/SubscriptionForm";
+import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard";
 import { formatPrice } from "@/lib/price";
 import { Crown, Check } from "lucide-react";
 
@@ -34,53 +35,96 @@ interface SubscriptionPlan {
 function AssinarPageContent() {
   const { status } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [authRedirecting, setAuthRedirecting] = useState(false);
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
-  const planId = searchParams.get('planId') || 'default';
+  const planId = searchParams.get('planId');
   const periodParam = searchParams.get('period') as 'MONTHLY' | 'YEARLY' | null;
 
-  // Buscar plano de assinatura
+  // Buscar plano de assinatura ou lista de planos
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/subscription-plans/${planId}`);
         
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Plano de assinatura não encontrado');
-          } else {
-            setError('Erro ao carregar plano de assinatura');
+        // Se não tiver planId, buscar todos os planos ativos
+        if (!planId) {
+          const response = await fetch('/api/subscription-plans?active=true');
+          
+          if (!response.ok) {
+            setError('Erro ao carregar planos de assinatura');
+            setLoading(false);
+            return;
           }
-          setLoading(false);
-          return;
-        }
 
-        const data = await response.json();
-        setPlan(data);
-        setError(null);
-        
-        // Definir período inicial baseado no parâmetro da URL ou padrão
-        if (periodParam && (periodParam === 'MONTHLY' || periodParam === 'YEARLY')) {
-          setSelectedPeriod(periodParam);
+          const data = await response.json();
+          // Mapear dados para garantir compatibilidade
+          const formattedPlans = data.map((plan: any) => ({
+            id: plan.id,
+            name: plan.name,
+            description: plan.description,
+            monthlyPrice: plan.monthlyPrice || plan.price || 0,
+            yearlyPrice: plan.yearlyPrice || 0,
+            price: plan.price || plan.monthlyPrice,
+            originalPrice: plan.price || plan.monthlyPrice,
+            discountPrice: plan.discountPrice,
+            discountEnabled: plan.discountEnabled,
+            isBestValue: plan.isBestValue || false,
+            type: plan.type,
+            period: plan.period,
+            features: plan.features || [],
+            tracks: plan.tracks?.map((spt: any) => spt.track).filter(Boolean) || [],
+            active: plan.active,
+          }));
+          setPlans(formattedPlans);
+          setPlan(null);
+          setError(null);
         } else {
-          // Se não tiver parâmetro, usar mensal como padrão
-          setSelectedPeriod('MONTHLY');
+          // Se tiver planId, buscar plano específico
+          const response = await fetch(`/api/subscription-plans/${planId}`);
+          
+          if (!response.ok) {
+            if (response.status === 404) {
+              setError('Plano de assinatura não encontrado');
+            } else {
+              setError('Erro ao carregar plano de assinatura');
+            }
+            setLoading(false);
+            return;
+          }
+
+          const data = await response.json();
+          setPlan(data);
+          setPlans([]);
+          setError(null);
+          
+          // Definir período inicial baseado no parâmetro da URL ou padrão
+          if (periodParam && (periodParam === 'MONTHLY' || periodParam === 'YEARLY')) {
+            setSelectedPeriod(periodParam);
+          } else {
+            // Se não tiver parâmetro, usar mensal como padrão
+            setSelectedPeriod('MONTHLY');
+          }
         }
       } catch (err) {
-        console.error('Erro ao buscar plano:', err);
-        setError('Erro ao carregar plano de assinatura');
+        console.error('Erro ao buscar dados:', err);
+        setError('Erro ao carregar dados');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPlan();
+    fetchData();
   }, [planId, periodParam]);
+
+  const handleSubscribe = (selectedPlanId: string) => {
+    router.push(`/assinar?planId=${selectedPlanId}`);
+  };
 
   // Se o usuário não estiver autenticado, redirecionar para login
   useEffect(() => {
@@ -91,8 +135,8 @@ function AssinarPageContent() {
     }
   }, [status, planId, authRedirecting]);
 
-  // Se não autenticado, mostrar loading enquanto redireciona
-  if (status === "unauthenticated" || authRedirecting) {
+  // Se não autenticado e tiver planId selecionado, mostrar loading enquanto redireciona
+  if ((status === "unauthenticated" || authRedirecting) && planId) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
         <div className="mx-auto max-w-lg space-y-4 text-center">
@@ -107,6 +151,83 @@ function AssinarPageContent() {
     );
   }
 
+  // Se não tiver planId, exibir lista de planos
+  if (!planId) {
+    if (status === "loading" || loading) {
+      return (
+        <main className="min-h-screen bg-gray-50 px-4 py-10">
+          <div className="mx-auto max-w-lg space-y-4 text-center">
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Carregando planos...
+            </h1>
+            <p className="text-sm text-gray-500">
+              Aguarde, estamos preparando os planos disponíveis.
+            </p>
+          </div>
+        </main>
+      );
+    }
+
+    if (error) {
+      return (
+        <main className="min-h-screen bg-gray-50 px-4 py-10">
+          <div className="mx-auto max-w-lg space-y-4 text-center">
+            <h1 className="text-2xl font-semibold text-gray-900">Erro ao carregar planos</h1>
+            <p className="text-sm text-gray-500">{error}</p>
+            <Link
+              href="/"
+              className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 cursor-pointer"
+            >
+              Voltar para a página inicial
+            </Link>
+          </div>
+        </main>
+      );
+    }
+
+    return (
+      <main className="min-h-screen bg-gray-50 px-4 py-10">
+        <div className="mx-auto max-w-7xl space-y-8">
+          <header className="text-center space-y-2">
+            <h1 className="text-4xl font-bold text-gray-900">Escolha seu Plano</h1>
+            <p className="text-lg text-gray-600">
+              Selecione o plano que melhor se adapta às suas necessidades
+            </p>
+          </header>
+
+          {plans.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">Nenhum plano disponível no momento.</p>
+              <Link
+                href="/"
+                className="inline-flex items-center mt-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 cursor-pointer"
+              >
+                Voltar para a página inicial
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {plans.map((planItem) => (
+                <SubscriptionPlanCard
+                  key={planItem.id}
+                  id={planItem.id}
+                  name={planItem.name}
+                  monthlyPrice={planItem.monthlyPrice || planItem.price || 0}
+                  yearlyPrice={planItem.yearlyPrice || 0}
+                  price={planItem.price}
+                  isBestValue={planItem.isBestValue}
+                  features={planItem.features}
+                  onSubscribe={handleSubscribe}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  // Se tiver planId, exibir detalhes do plano
   if (status === "loading" || loading) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
@@ -131,10 +252,10 @@ function AssinarPageContent() {
             {error || 'Plano de assinatura não encontrado'}
           </p>
           <Link
-            href="/"
-            className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            href="/assinar"
+            className="inline-flex items-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 cursor-pointer"
           >
-            Voltar para a página inicial
+            Ver todos os planos
           </Link>
         </div>
       </main>
@@ -171,7 +292,7 @@ function AssinarPageContent() {
           <div className="flex gap-2 mt-4 mb-2">
             <button
               onClick={() => setSelectedPeriod('MONTHLY')}
-              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all ${
+              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer ${
                 selectedPeriod === 'MONTHLY'
                   ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -188,7 +309,7 @@ function AssinarPageContent() {
             </button>
             <button
               onClick={() => setSelectedPeriod('YEARLY')}
-              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all relative ${
+              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all relative cursor-pointer ${
                 selectedPeriod === 'YEARLY'
                   ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -278,7 +399,7 @@ function AssinarPageContent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
             >
               Voltar
             </Link>
