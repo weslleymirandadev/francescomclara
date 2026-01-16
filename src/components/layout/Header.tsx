@@ -12,6 +12,13 @@ import { HiOutlineCog, HiMenu, HiX } from "react-icons/hi";
 import { RiSecurePaymentFill } from "react-icons/ri";
 import { BiDirections } from "react-icons/bi";
 
+interface HeaderProps {
+  settings?: {
+    siteIcon: string;
+    highlightColor: string;
+  }
+}
+
 const navigationItems = [
   { href: "/perfil", icon: User, text: "Perfil" },
   { href: "/flashcards", icon: FaRegClone, text: "Flashcards" },
@@ -20,7 +27,7 @@ const navigationItems = [
   { href: "/admin", icon: RiSecurePaymentFill, text: "Admin" },
 ];
 
-export function Header() {
+export function Header({ settings }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
@@ -44,7 +51,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
         <Link href="/" className="flex items-center gap-2 group">
           <Image
-            src="/static/frança.png"
+            src="/static/franca.png"
             alt="Bandeira França"
             width={28}
             height={20}
@@ -52,10 +59,21 @@ export function Header() {
           />
           <span className="font-bold text-lg tracking-tight text-[var(--color-s-800)] uppercase flex items-center">
               Francês com 
-              <span className="relative ml-1 text-[var(--clara-rose)]">
+              <span 
+                className="relative ml-1"
+                style={{ color: `var(${settings?.highlightColor || '--clara-rose'})` }}
+              >
               Clara
-              <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
-                  🌸
+              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+                {settings?.siteIcon?.startsWith("/") ? (
+                  <img 
+                    src={settings?.siteIcon} 
+                    alt="Ícone" 
+                    className="w-4 h-4 object-contain pointer-events-none" 
+                  />
+                ) : (
+                  <span>{settings?.siteIcon || <img src="/static/flower.svg" alt="Flor" className="w-4 h-4 object-contain pointer-events-none" />}</span>
+                )}
               </span>
             </span>
           </span>

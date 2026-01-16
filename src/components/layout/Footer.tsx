@@ -16,6 +16,9 @@ interface FooterProps {
     highlightColor: string;
     siteIcon: string;
     interfaceIcon: string;
+    siteNameFirstPart?: string;
+    siteNameHighlight?: string;
+    siteDescription: string;
   }
 }
 
@@ -29,28 +32,35 @@ export function Footer({ settings }: FooterProps) {
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
               <Image
-                src={settings?.interfaceIcon || "/static/frança.png"}
+                src={settings?.interfaceIcon || "/static/franca.png"}
                 alt="Ícone de Interface"
                 width={24}
                 height={18}
                 className="rounded-sm shadow-sm"
               />
               <span className="font-bold text-lg tracking-tight text-[var( --color-s-800)]uppercase flex items-center">
-                Francês com 
+                {settings?.siteNameFirstPart || "Francês com"} 
                 <span 
                   className="relative ml-1"
-                  style={{ color: `var(${settings?.highlightColor})` }}
+                  style={{ color: `var(${settings?.highlightColor || '--clara-rose'})` }}
                 >
-                Clara
-                <span className="absolute -top-1.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
-                  {settings?.siteIcon}
+                  {settings?.siteNameHighlight || "Clara"}
+                <span className="absolute -top-0.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+                  {settings?.siteIcon?.startsWith("/") ? (
+                    <img 
+                      src={settings.siteIcon} 
+                      alt="Ícone" 
+                      className="w-4 h-4 object-contain pointer-events-none" 
+                    />
+                  ) : (
+                    <span>{settings?.siteIcon || <img src="/static/flower.svg" alt="Flor" className="w-4 h-4 object-contain pointer-events-none" />}</span>
+                  )}
                 </span>
               </span>
             </span>
             </Link>
-            <p className="text-[var(--color-s-50)]0 text-sm leading-relaxed font-medium">
-              Transformando sua jornada no idioma francês com método prático, 
-              contexto cultural e tecnologia.
+            <p className="text-[var(--color-s-500)] text-sm leading-relaxed font-medium">
+              {settings?.siteDescription || "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia."}
             </p>
           </div>
 
