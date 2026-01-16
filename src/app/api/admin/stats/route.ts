@@ -64,9 +64,6 @@ export async function GET() {
     const usersByPeriod = { MONTHLY: new Set<string>(), YEARLY: new Set<string>() };
     const processedUsers = new Set<string>();
 
-    approvedPayments.forEach((payment) => {
-      if (processedUsers.has(payment.userId)) return;
-
     approvedPayments.forEach((payment: any) => {
       const userId = payment.userId;
       
