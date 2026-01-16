@@ -543,7 +543,8 @@ export default function Home() {
               >
                 {plan.period === 'YEARLY' && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--interface-accent)] text-white text-[10px] font-black px-5 py-1.5 rounded-full uppercase tracking-[0.15em] shadow-xl">
-                    Melhor Valor 🌸
+                    Melhor Valor 
+                    <img src="/static/flower.svg" alt="Flor" className="w-4 h-4 object-contain pointer-events-none" />
                   </div>
                 )}
                 
