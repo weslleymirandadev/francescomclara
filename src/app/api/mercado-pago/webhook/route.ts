@@ -123,7 +123,7 @@ async function processAuthorizedSubscription(
 
     const frequency = metadata.frequency || 1;
     const frequencyType = metadata.frequencyType || 'months';
-    
+
     // Calcular data de término baseada na frequência (padrão: 12 meses)
     const endDate = new Date();
     if (frequencyType === 'months') {

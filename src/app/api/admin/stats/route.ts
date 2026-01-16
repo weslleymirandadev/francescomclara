@@ -67,6 +67,10 @@ export async function GET() {
     approvedPayments.forEach((payment) => {
       if (processedUsers.has(payment.userId)) return;
 
+    approvedPayments.forEach((payment: any) => {
+      const userId = payment.userId;
+      
+      // Se o pagamento tem um plano associado diretamente
       if (payment.subscriptionPlan) {
         const { type, period } = payment.subscriptionPlan;
         if (type === 'INDIVIDUAL') usersByPlanType.INDIVIDUAL.add(payment.userId);
@@ -75,11 +79,15 @@ export async function GET() {
         else if (period === 'YEARLY') usersByPeriod.YEARLY.add(payment.userId);
         processedUsers.add(payment.userId);
       } else {
-        const metadata = (payment.metadata as any) || {};
-        if (metadata.type === 'subscription') {
-          const matchingPlan = allPlans.find((p) => {
-            const price = p.discountEnabled && p.discountPrice ? p.discountPrice : p.price;
-            return Math.abs(price - payment.amount) < 100;
+        // Tentar fazer match com planos baseado no preço e metadata
+        const metadata = payment.metadata as any;
+        if (metadata && metadata.type === 'subscription') {
+          // Tentar encontrar um plano que corresponda ao valor do pagamento
+            const matchingPlan = allPlans.find((plan: any) => {
+            const planPrice = plan.discountEnabled && plan.discountPrice 
+              ? plan.discountPrice 
+              : plan.price;
+            return Math.abs(planPrice - payment.amount) < 100; // Tolerância de 1 real
           });
           if (matchingPlan) {
             if (matchingPlan.type === 'INDIVIDUAL') usersByPlanType.INDIVIDUAL.add(payment.userId);
