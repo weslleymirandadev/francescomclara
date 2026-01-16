@@ -132,7 +132,9 @@ export default function FlashcardsPage() {
                 >
                   <span className="text-[10px] font-black text-[var(--clara-rose)] uppercase tracking-[0.2em] mb-4">Português</span>
                   <h2 className="text-3xl font-medium text-[var(--color-s-700)]">{cards[currentIndex].back}</h2>
-                  <div className="absolute top-6 right-6 text-xl opacity-20 rotate-12">🌸</div>
+                  <div className="absolute top-6 right-6 text-xl opacity-20 rotate-12">
+                    <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -164,7 +166,9 @@ export default function FlashcardsPage() {
 
         {mode === 'DONE' && (
           <div className="bg-white p-10 rounded-3xl shadow-sm border border-[var(--color-s-200)] text-center animate-in fade-in zoom-in duration-500">
-            <div className="text-5xl mb-6">🌸</div>
+            <div className="flex justify-center text-5xl mb-6">
+              <img src="/static/flower.svg" alt="Flor" className="w-12 h-12 object-contain pointer-events-none" />
+            </div>
             <h1 className="text-2xl font-bold text-[var( --color-s-800)]mb-2">Excelente Trabalho!</h1>
             <p className="text-[var(--color-s-50)]0 mb-8">Revisaste {cards.length} termos com sucesso.</p>
             

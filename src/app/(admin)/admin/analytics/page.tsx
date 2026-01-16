@@ -60,7 +60,8 @@ export default function AdminAnalytics() {
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-[var(--slate-100)] pb-6 md:pb-8 gap-4">
           <div className="w-full sm:w-auto">
             <h1 className="text-3xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter flex items-center gap-2">
-              Analytiques 🌸
+              Analytiques 
+              <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none"/>
             </h1>
             <p className="text-[var(--slate-500)] text-xs md:text-sm font-medium mt-1 italic">Saúde financeira em tempo real</p>
           </div>

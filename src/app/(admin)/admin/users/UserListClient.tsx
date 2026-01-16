@@ -44,8 +44,9 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
         
         <header className="space-y-4 border-b border-slate-50 pb-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
-              Étudiants 🌸
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+              Étudiants 
+              <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
               Gestão da base oficial de alunos

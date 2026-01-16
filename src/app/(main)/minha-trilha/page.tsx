@@ -67,7 +67,10 @@ export default function MyTrackPage() {
             </span>
           </div>
           <h1 className="text-4xl font-extrabold text-[var(--color-s-900)] mb-6">
-            {track?.name} <span className="text-[var(--clara-rose)]">🌸</span>
+            {track?.name} 
+            <span className="text-[var(--clara-rose)]">
+              <img src="/static/flower.svg" alt="Flor" className="w-10 h-10 object-contain pointer-events-none" />
+            </span>
           </h1>
           
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-[var(--color-s-200)]">

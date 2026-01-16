@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import { Metadata }  from "next";
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,19 +10,19 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
-    title: `Configurações - ${siteName}`,
+    title: `Fórum - ${siteName}`,
     description: description,
   }
 };
 
-export default function SettingsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-h-screen bg-[var(--color-s-50)] pb-12 px-6">
-      {children}
-    </div>
-  );
+export default function ForumLayout({
+    children,
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+      <div className="min-h-screen bg-[var(--color-s-50)] px-6">
+        {children}
+      </div>
+    );
 }

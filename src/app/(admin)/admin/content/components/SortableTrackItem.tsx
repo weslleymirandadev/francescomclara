@@ -59,7 +59,7 @@ export function SortableTrackItem({
   const isOpen = openTracks.includes(track.id);
 
   return (
-    <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : 'border-s-50'}`}>
+    <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : ''}`}>
       {/* Container Principal: Coluna no mobile (flex-col), Linha no desktop (md:flex-row) */}
       <div className={`group p-6 flex flex-col md:flex-row items-stretch md:items-start gap-6 transition-all ${!track.active ? 'bg-s-100' : 'bg-white'}`}>
         

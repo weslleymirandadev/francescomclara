@@ -72,7 +72,7 @@ export default function AdminDashboard() {
       <header className="flex justify-between items-end border-b border-[var(--slate-100)] pb-8">
         <div>
           <h1 className="text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter flex items-center gap-3">
-            Tableau de Bord 🌸
+            Tableau de Bord <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
           </h1>
           <p className="text-[var(--slate-500)] font-medium mt-1">Francês com Clara • Gestão de Dados Reais</p>
         </div>
@@ -152,7 +152,10 @@ export default function AdminDashboard() {
                   <FileText size={24} className="text-white" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xl tracking-tight flex items-center gap-2">Rapport 🌸</h4>
+                  <h4 className="font-bold text-xl tracking-tight flex items-center gap-2">
+                    Rapport 
+                    <img src="/static/flower.svg" alt="Flor" className="w-5 h-5 object-contain pointer-events-none"/>
+                  </h4>
                   <p className="text-white/80 text-xs uppercase tracking-widest font-medium">Performance Mensal</p>
                 </div>
               </div>

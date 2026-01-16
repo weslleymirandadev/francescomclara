@@ -1,128 +1,154 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { FiMail, FiCalendar, FiShield, FiEdit3 } from "react-icons/fi";
+import Link from "next/link";
+import { FiMail, FiShield, FiEdit3, FiCamera, FiLock } from "react-icons/fi";
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const user = session?.user;
-  const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    function loadUserData() {
-      setTimeout(() => {
-        setLoading(false);
-        }, 1000);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/user/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        // Atualiza a sessão do NextAuth para refletir a nova imagem
+        await update({ ...session, user: { ...session?.user, image: data.imageUrl } });
+        window.location.reload(); // Força atualização visual
+      }
+    } catch (err) {
+      alert("Erro ao enviar imagem");
+    } finally {
+      setIsUploading(false);
     }
-    loadUserData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <main className="min-h-screen pt-24 pb-12 bg-[var(--color-s-50)]">
-      <div className="max-w-4xl mx-auto px-6">
-        
-        {/* Card Principal */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[var(--color-s-200)] overflow-hidden">
-          
-          {/* Header do Perfil (Banner simples) */}
-          <div className="h-32 bg-gradient-to-r from-[var(--interface-accent)] to-[var(--clara-rose)] opacity-90" />
+    <main className="min-h-screen pt-24 pb-12 bg-slate-50 relative overflow-hidden">
+      {/* Decoração de fundo tricolor sutil */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#002395] via-white to-[#ED2939]" />
 
-          <div className="px-8 pb-8">
-            <div className="relative flex flex-col md:flex-row items-end -mt-12 gap-6">
-              {/* Foto de Perfil */}
+      <div className="max-w-4xl mx-auto px-6 relative z-10">
+        <div className="bg-white rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden">
+          
+          <div className="h-40 bg-slate-900 relative">
+             <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000')] bg-cover bg-center" />
+          </div>
+
+          <div className="px-10 pb-12">
+            <div className="relative flex flex-col md:flex-row items-end -mt-16 gap-8">
+              {/* Foto de Perfil com Upload */}
               <div className="relative group">
-                <div className="w-32 h-32 rounded-2xl border-4 border-white overflow-hidden bg-[var(--color-s-200)] shadow-md">
+                <div className="w-40 h-40 rounded-3xl border-[6px] border-white overflow-hidden bg-slate-100 shadow-2xl relative">
                   {user?.image ? (
-                    <Image 
+                    <img 
                       src={user.image} 
                       alt="Avatar" 
-                      width={128} 
-                      height={128}
-                      className="object-cover"
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-[var(--color-s-400)]">
+                    <div className="w-full h-full flex items-center justify-center text-5xl font-black text-slate-300">
                       {user?.name?.charAt(0) || "U"}
                     </div>
                   )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-bold uppercase tracking-widest">
+                      Salvando...
+                    </div>
+                  )}
                 </div>
-                <button className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-lg text-[var(--color-s-600)] hover:text-[var(--clara-rose)] transition-colors">
-                  <FiEdit3 size={16} />
+                
+                <input 
+                  type="file" 
+                  hidden 
+                  ref={fileInputRef} 
+                  onChange={handleUpload} 
+                  accept="image/*" 
+                />
+                
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 p-3 bg-white rounded-2xl shadow-xl text-slate-900 hover:text-[var(--clara-rose)] transition-all active:scale-90"
+                >
+                  <FiCamera size={20} />
                 </button>
               </div>
 
-              {/* Nome e Badge */}
-              <div className="flex-1 pb-2">
-                <h1 className="text-2xl font-bold text-[var( --color-s-800)]flex items-center gap-2">
+              <div className="flex-1 pb-4">
+                <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
                   {user?.name || "Usuário"}
-                  <span className="text-xs font-bold px-2 py-1 bg-[var(--interface-accent)]/10 text-[var(--interface-accent)] rounded-full uppercase tracking-wider">
-                    Aluno Pro 🌸
+                  <span className="flex items-center gap-1.5 text-[10px] font-black px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full tracking-[0.1em]">
+                    ALUNO ATIVO
+                    <img src="/static/flower.svg" alt="" className="w-3 h-3 animate-spin-slow" />
                   </span>
                 </h1>
-                <p className="text-[var(--color-s-50)]0">Membro desde Janeiro de 2024</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Conta Verificada</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-              {/* Coluna 1: Informações Pessoais */}
-              <div className="space-y-6">
-                <h2 className="text-sm font-bold text-[var(--color-s-400)] uppercase tracking-widest">Informações Pessoais</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-16">
+              <section className="space-y-6">
+                <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Credenciais</h2>
                 
-                <div className="flex items-center gap-4 p-4 bg-[var(--color-s-50)] rounded-xl border border-[var(--color-s-100)]">
-                  <div className="p-3 bg-white rounded-lg shadow-sm text-[var(--interface-accent)]">
+                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center gap-5">
+                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-slate-400">
                     <FiMail size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--color-s-400)] font-medium">E-mail</p>
-                    <p className="text-[var(--color-s-700)] font-semibold">{user?.email || "Não informado"}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">E-mail de acesso</p>
+                    <p className="text-sm font-bold text-slate-900">{user?.email || "---"}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 p-4 bg-[var(--color-s-50)] rounded-xl border border-[var(--color-s-100)]">
-                  <div className="p-3 bg-white rounded-lg shadow-sm text-[var(--clara-rose)]">
+                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center gap-5">
+                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[var(--clara-rose)]">
                     <FiShield size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-[var(--color-s-400)] font-medium">Nível de Acesso</p>
-                    <p className="text-[var(--color-s-700)] font-semibold">Plano Individual</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Seu Plano</p>
+                    <p className="text-sm font-bold text-slate-900">Francês Premium</p>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* Coluna 2: Estatísticas Rápidas */}
-              <div className="space-y-6">
-                <h2 className="text-sm font-bold text-[var(--color-s-400)] uppercase tracking-widest">Seu Progresso</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-[var(--interface-accent)]/5 rounded-xl border border-[var(--interface-accent)]/10 text-center">
-                    <p className="text-2xl font-bold text-[var(--interface-accent)]">12</p>
-                    <p className="text-xs text-[var(--color-s-50)]0 font-medium">Aulas Concluídas</p>
-                  </div>
-                  <div className="p-4 bg-[var(--clara-rose)]/5 rounded-xl border border-[var(--clara-rose)]/10 text-center">
-                    <p className="text-2xl font-bold text-[var(--clara-rose)]">85</p>
-                    <p className="text-xs text-[var(--color-s-50)]0 font-medium">Flashcards Masterizados</p>
-                  </div>
+              <section className="space-y-6">
+                <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Segurança e Acesso</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  <Link 
+                    href="/auth/resetar-senha" 
+                    className="flex items-center justify-between p-6 bg-white border-2 border-slate-100 rounded-[2rem] hover:border-[var(--clara-rose)] transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <FiLock className="text-slate-400 group-hover:text-[var(--clara-rose)]" size={20} />
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-600">Alterar Senha</span>
+                    </div>
+                  </Link>
+
+                  <button className="flex items-center justify-between p-6 bg-white border-2 border-slate-100 rounded-[2rem] hover:border-slate-900 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <FiEdit3 className="text-slate-400 group-hover:text-slate-900" size={20} />
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-600">Editar Dados</span>
+                    </div>
+                  </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Ações da Conta */}
-            <div className="mt-12 pt-8 border-t border-[var(--color-s-100)] flex gap-4">
-              <button className="px-6 py-2 bg-[var( --color-s-800)]text-white rounded-lg font-bold hover:bg-[var(--color-s-700)] transition-colors">
-                Editar Perfil
-              </button>
-              <button className="px-6 py-2 bg-white text-[var(--color-s-600)] border border-[var(--color-s-200)] rounded-lg font-bold hover:bg-[var(--color-s-50)] transition-colors">
-                Alterar Senha
-              </button>
+              </section>
             </div>
           </div>
         </div>

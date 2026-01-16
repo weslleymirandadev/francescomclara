@@ -64,7 +64,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
     setLoading(false);
 
     if (res.success) {
-      toast.success("Plano salvo com sucesso! 🌸");
+      toast.success("Plano salvo com sucesso!", { icon: <img src="/static/flower.svg" className="w-5 h-5" alt="🌸" />,});
       setIsModalOpen(false);
       window.location.reload();
     } else {
