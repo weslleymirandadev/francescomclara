@@ -1,20 +1,34 @@
-import { Header } from "@/components/Header";
 import "./globals.css";
+import { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
+import { prisma } from "@/lib/prisma";
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  return {
+    title: settings?.siteName || "Francês com Clara",
+    description: settings?.seoDescription || "Página de aprendizado de idiomas.",
+    icons: {
+      icon: settings?.interfaceIcon || '/static/favicon.svg',
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="pt-br">
-      <body suppressHydrationWarning={true}>
+    <html lang="pt-BR">
+      <body className="antialiased">
         <Providers>
-          <Header />
-          <main className="pt-12">
-            {children}
-          </main>
+          <Toaster position="top-center" />
+          {children}
         </Providers>
       </body>
     </html>

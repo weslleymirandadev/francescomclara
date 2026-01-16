@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
 }
 
 model User {
@@ -76,20 +76,28 @@ model Session {
   user         User     @relation(fields: [userId], references: [id])
 }
 
-enum TrackObjective {
-  TRAVEL      // Viagens
-  WORK        // Trabalho
-  FAMILY      // Família
-  KNOWLEDGE   // Conhecimento
+model Objective {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  imageUrl   String?  @db.Text
+  icon       String?
+  iconRotate Int      @default(0)
+  rotation   Int      @default(0)
+  color      String?
+  order      Int      @default(0)
+  tracks     Track[]
+  createdAt  DateTime @default(now())
 }
 
 model Track {
   id                String                  @id @default(cuid())
   name              String
   description       String
-  objective         TrackObjective          // Objetivo da trilha (viagens, trabalho, família, conhecimento)
+  objectiveId       String
+  objective         Objective               @relation(fields: [objectiveId], references: [id])
   imageUrl          String?
-  active            Boolean                 @default(true)
+  order             Int                     @default(0)
+  active            Boolean                 @default(false)
   modules           Module[]
   enrollments       Enrollment[]
   paymentItems      PaymentItem[]
@@ -98,37 +106,23 @@ model Track {
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
-  @@index([objective])
+  @@index([objectiveId])
   @@index([active])
 }
 
 model Module {
-  id        String   @id @default(cuid())
-  trackId  String
+  id        String     @id @default(cuid())
+  trackId   String 
   title     String
   order     Int
+  createdAt DateTime   @default(now())
   lessons   Lesson[]
-  cefrLevel   CEFRLevel?
-  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  cefrLevel CEFRLevel?
+  track     Track      @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  isPremium Boolean    @default(false)
 
   @@index([trackId])
   @@index([order])
-}
-
-enum LessonType {
-  CLASS      // Aula (vídeo/teoria)
-  FLASHCARD  // Flashcard do módulo
-  STORY      // Historinha (vídeos simulando contextos reais)
-  READING    // Leitura
-}
-
-enum CEFRLevel {
-  A1
-  A2
-  B1
-  B2
-  C1
-  C2
 }
 
 model Lesson {
@@ -138,13 +132,13 @@ model Lesson {
   type        LessonType
   content     Json
   order       Int
-  // Campos específicos para leitura
-  readingText String?          // Texto da leitura
+  readingText String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
-  flashcards  Flashcard[]      // Flashcards que podem ser adicionados a partir desta lição
+  flashcards  Flashcard[]
+  isPremium Boolean @default(false)
 
   @@index([moduleId])
   @@index([type])
@@ -163,15 +157,31 @@ model LessonProgress {
   @@unique([userId, lessonId])
 }
 
+enum LessonType {
+  CLASS      // Aula (vídeo/teoria)
+  FLASHCARD  // Flashcard do módulo
+  STORY      // Historinha (vídeos simulando contextos reais)
+  READING    // Leitura
+}
+
+enum CEFRLevel {
+  A1 // Iniciante
+  A2 // Básico
+  B1 // Intermediário
+  B2 // Intermediário Avançado
+  C1 // Avançado
+  C2 // Proficiente
+}
+
 model Enrollment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   trackId   String
-  startDate DateTime @default(now())
+  startDate DateTime  @default(now())
   endDate   DateTime?
-  createdAt DateTime @default(now())
-  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  track     Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, trackId])
   @@index([userId])
@@ -179,15 +189,15 @@ model Enrollment {
 }
 
 model Flashcard {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String?  // Opcional: pode ser criado a partir de uma lição ou manualmente
-  front       String   // Frente do flashcard
-  back        String   // Verso do flashcard
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String?  // Opcional: pode ser criado a partir de uma lição ou manualmente
+  front     String   // Frente do flashcard
+  back      String   // Verso do flashcard
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([lessonId])
@@ -219,20 +229,20 @@ model ForumComment {
 }
 
 model Payment {
-  id          String        @id @default(cuid())
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mpPaymentId String        @unique
-  status      String
-  amount      Int
-  metadata    Json?
+  id                 String            @id @default(cuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mpPaymentId        String            @unique
+  status             String
+  amount             Int
+  metadata           Json?
   subscriptionPlanId String? // ID do plano de assinatura associado
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  items       PaymentItem[]
-  refunds     Refund[]
-  paymentMethod PaymentMethod?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  items              PaymentItem[]
+  refunds            Refund[]
+  paymentMethod      PaymentMethod?
 
   @@index([status])
   @@index([createdAt])
@@ -269,27 +279,27 @@ model Refund {
 }
 
 model PaymentMethod {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentId     String?   @unique
-  payment       Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId   String?  @unique
+  payment     Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   
-  last4Digits   String
-  brand         String    // visa, mastercard, amex, etc
-  holderName    String
-  expiryMonth   Int
-  expiryYear    Int
+  last4Digits String
+  brand       String    // visa, mastercard, amex, etc
+  holderName  String
+  expiryMonth Int
+  expiryYear  Int
   
-  mpCardToken   String?   // Token do cartão no Mercado Pago (se disponível)
-  mpCardId      String?   // ID do cartão salvo no Mercado Pago
+  mpCardToken String?   // Token do cartão no Mercado Pago (se disponível)
+  mpCardId    String?   // ID do cartão salvo no Mercado Pago
   
-  isDefault     Boolean   @default(false)
-  isActive      Boolean   @default(true)
-  metadata      Json?
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  metadata    Json?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([userId])
   @@index([paymentId])
@@ -329,13 +339,42 @@ model SubscriptionPlan {
 }
 
 model SubscriptionPlanTrack {
-  id                 String            @id @default(cuid())
+  id                 String           @id @default(cuid())
   subscriptionPlanId String
   trackId            String?
-  subscriptionPlan   SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
-  track              Track?            @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
+  track              Track?           @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
   @@unique([subscriptionPlanId, trackId])
   @@index([subscriptionPlanId])
   @@index([trackId])
+}
+
+model SiteSettings {
+  id              String   @id @default("settings")
+  siteName        String   @default("Francês com Clara")
+  supportEmail    String   @default("contato@francescomclara.com")
+  
+  stripeMode      Boolean  @default(true)
+  maintenanceMode Boolean  @default(false)
+
+  instagramActive Boolean  @default(true)
+  youtubeActive   Boolean  @default(true)
+  whatsappActive  Boolean  @default(true)
+  tiktokActive    Boolean  @default(false)
+
+  instagramUrl    String   @default("#")
+  youtubeUrl      String   @default("#")
+  whatsappUrl     String   @default("#")
+  tiktokUrl       String   @default("#")
+
+  siteNameFirstPart  String   @default("Francês com")
+  siteNameHighlight  String   @default("Clara")
+  siteIcon           String   @default("🌸")
+  interfaceIcon      String   @default("/static/frança.png")
+  highlightColor     String   @default("--clara-rose")
+  siteDescription String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
+  seoDescription  String   @default("Aprenda francês de forma prática e cultural com a Clara.")
+
+  updatedAt       DateTime @updatedAt
 }
