@@ -1,158 +1,233 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
-import Link from "next/link";
-import { FiMail, FiShield, FiEdit3, FiCamera, FiLock } from "react-icons/fi";
+import { FiCamera, FiUser, FiEdit3, FiAtSign, FiCalendar, FiInfo } from "react-icons/fi";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
+import { SaveChangesBar } from "@/components/ui/savechangesbar";
+import { toast } from "react-hot-toast";
 
 export default function ProfilePage() {
   const { data: session, update } = useSession();
   const user = session?.user;
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState({ name: "", username: "", bio: "" });
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (user) {
+      setFormData({ 
+        name: user.name || "", 
+        username: user.username || "",
+        bio: "Estudante apaixonado por Francês! 🇫🇷" 
+      });
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/user/update-profile", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error);
+
+      await update({
+        ...session?.user,
+        name: formData.name,
+        username: formData.username,
+        bio: formData.bio
+      });
+
+      toast.success("Perfil salvo!");
+      setHasChanges(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
     const formData = new FormData();
     formData.append("file", file);
 
+    setIsUploading(true);
     try {
-      const res = await fetch("/api/user/upload-image", {
-        method: "POST",
-        body: formData,
+      const res = await fetch("/api/user/upload-image", { 
+        method: "POST", 
+        body: formData 
       });
       const data = await res.json();
       
       if (data.success) {
-        // Atualiza a sessão do NextAuth para refletir a nova imagem
-        await update({ ...session, user: { ...session?.user, image: data.imageUrl } });
-        window.location.reload(); // Força atualização visual
+        await update({ ...session?.user, image: data.imageUrl });
+        toast.success("Foto atualizada!");
       }
     } catch (err) {
-      alert("Erro ao enviar imagem");
+      toast.error("Erro no upload");
     } finally {
       setIsUploading(false);
     }
   };
 
+  if (!session || loading) return <Loading />;
+
   return (
-    <main className="min-h-screen pt-24 pb-12 bg-slate-50 relative overflow-hidden">
-      {/* Decoração de fundo tricolor sutil */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#002395] via-white to-[#ED2939]" />
+    <main className="min-h-screen bg-[var(--color-s-50)] pb-20">
+      {/* BANNER DINÂMICO (ESTILO DISCORD) */}
+      <div className="relative h-60 md:h-72 w-full bg-slate-900">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-[var(--color-s-50)]" />
+        <img 
+          src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop" 
+          className="w-full h-full object-cover opacity-50"
+          alt="Paris Banner"
+        />
+        <button className="absolute bottom-6 right-6 p-3 bg-white/10 backdrop-blur-md text-white rounded-2xl hover:bg-white/20 transition-all border border-white/20">
+          <FiCamera size={20} />
+        </button>
+      </div>
 
-      <div className="max-w-4xl mx-auto px-6 relative z-10">
-        <div className="bg-white rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden">
-          
-          <div className="h-40 bg-slate-900 relative">
-             <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000')] bg-cover bg-center" />
-          </div>
-
-          <div className="px-10 pb-12">
-            <div className="relative flex flex-col md:flex-row items-end -mt-16 gap-8">
-              {/* Foto de Perfil com Upload */}
-              <div className="relative group">
-                <div className="w-40 h-40 rounded-3xl border-[6px] border-white overflow-hidden bg-slate-100 shadow-2xl relative">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* AVATAR OVERLAP */}
+        <div className="relative -mt-24 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-6">
+            <div className="relative">
+              <div className="w-44 h-44 rounded-[3.5rem] bg-[var(--color-s-50)] p-2">
+                <div className="w-full h-full rounded-[3rem] bg-white shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white">
                   {user?.image ? (
-                    <img 
-                      src={user.image} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    <img src={user.image} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-5xl font-black text-slate-300">
-                      {user?.name?.charAt(0) || "U"}
-                    </div>
-                  )}
-                  {isUploading && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-bold uppercase tracking-widest">
-                      Salvando...
-                    </div>
+                    <FiUser size={60} className="text-slate-200" />
                   )}
                 </div>
-                
-                <input 
-                  type="file" 
-                  hidden 
-                  ref={fileInputRef} 
-                  onChange={handleUpload} 
-                  accept="image/*" 
-                />
-                
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 p-3 bg-white rounded-2xl shadow-xl text-slate-900 hover:text-[var(--clara-rose)] transition-all active:scale-90"
-                >
-                  <FiCamera size={20} />
-                </button>
               </div>
-
-              <div className="flex-1 pb-4">
-                <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3 uppercase tracking-tighter">
-                  {user?.name || "Usuário"}
-                  <span className="flex items-center gap-1.5 text-[10px] font-black px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full tracking-[0.1em]">
-                    ALUNO ATIVO
-                    <img src="/static/flower.svg" alt="" className="w-3 h-3 animate-spin-slow" />
-                  </span>
-                </h1>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Conta Verificada</p>
-              </div>
+              <button
+                type="button" 
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute bottom-4 right-4 w-11 h-11 bg-[var(--interface-accent)] text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-[var(--color-s-50)] hover:scale-110 transition-all"
+              >
+                <FiCamera size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={avatarInputRef}
+                onChange={handleUploadImage}
+                className="hidden"
+                accept="image/*" 
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-16">
-              <section className="space-y-6">
-                <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Credenciais</h2>
-                
-                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center gap-5">
-                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-slate-400">
-                    <FiMail size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">E-mail de acesso</p>
-                    <p className="text-sm font-bold text-slate-900">{user?.email || "---"}</p>
-                  </div>
-                </div>
-
-                <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center gap-5">
-                  <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-[var(--clara-rose)]">
-                    <FiShield size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">Seu Plano</p>
-                    <p className="text-sm font-bold text-slate-900">Francês Premium</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="space-y-6">
-                <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Segurança e Acesso</h2>
-                <div className="grid grid-cols-1 gap-4">
-                  <Link 
-                    href="/auth/resetar-senha" 
-                    className="flex items-center justify-between p-6 bg-white border-2 border-slate-100 rounded-[2rem] hover:border-[var(--clara-rose)] transition-all group"
-                  >
-                    <div className="flex items-center gap-4">
-                      <FiLock className="text-slate-400 group-hover:text-[var(--clara-rose)]" size={20} />
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-600">Alterar Senha</span>
-                    </div>
-                  </Link>
-
-                  <button className="flex items-center justify-between p-6 bg-white border-2 border-slate-100 rounded-[2rem] hover:border-slate-900 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <FiEdit3 className="text-slate-400 group-hover:text-slate-900" size={20} />
-                      <span className="text-xs font-black uppercase tracking-widest text-slate-600">Editar Dados</span>
-                    </div>
-                  </button>
-                </div>
-              </section>
+            <div className="pb-4">
+              <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">
+                {formData.name}
+              </h1>
+              <div className="flex items-center gap-3 mt-3">
+                <span className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-[var(--interface-accent)] uppercase tracking-widest shadow-sm">
+                  @{formData.username}
+                </span>
+                <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <FiCalendar className="mb-0.5" /> Aluno desde 2024
+                </span>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* CONTEÚDO */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="lg:col-span-2 p-10 border-none shadow-2xl shadow-slate-200/50 bg-white rounded-[3rem]">
+            <h2 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+              <FiInfo className="text-[var(--interface-accent)]" /> Informações do Perfil
+            </h2>
+            
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome Público</label>
+                  <input 
+                    className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    value={formData.name}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setHasChanges(true); }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username (@)</label>
+                  <div className="relative">
+                    <FiAtSign className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                      value={formData.username}
+                      onChange={(e) => { 
+                        const val = e.target.value.toLowerCase().replace(/\s/g, "");
+                        setFormData({...formData, username: val}); 
+                        setHasChanges(true); 
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Biografia</label>
+                <textarea 
+                  className="w-full px-6 py-5 bg-slate-50 border-none rounded-[2rem] text-sm font-medium text-slate-600 min-h-[150px] focus:ring-2 focus:ring-blue-100 transition-all outline-none leading-relaxed"
+                  value={formData.bio}
+                  onChange={(e) => { setFormData({...formData, bio: e.target.value}); setHasChanges(true); }}
+                  placeholder="Conte sua história com a língua francesa..."
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* CARD LATERAL DE XP */}
+          <Card className="p-10 border-none shadow-2xl bg-slate-900 rounded-[3rem] text-white flex flex-col justify-between overflow-hidden relative">
+            <div className="relative z-10">
+              <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Conquistas</h2>
+              <div className="space-y-8">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
+                  <p className="text-3xl font-black text-[var(--interface-accent)] italic">B1 INTERMÉDIAIRE</p>
+                </div>
+                <div className="h-[1px] bg-white/10 w-full" />
+                <div className="flex justify-between items-center">
+                   <span className="text-[10px] font-black uppercase text-slate-400">Total de Lições</span>
+                   <span className="text-xl font-black">124</span>
+                </div>
+                <div className="flex justify-between items-center">
+                   <span className="text-[10px] font-black uppercase text-slate-400">Streak Atual</span>
+                   <span className="text-xl font-black text-orange-400">15 Dias 🔥</span>
+                </div>
+              </div>
+            </div>
+            {/* Decoração */}
+            <div className="absolute -right-10 -bottom-10 text-white/5 rotate-12">
+              <FiUser size={250} />
+            </div>
+          </Card>
+        </div>
       </div>
+
+      <SaveChangesBar 
+        hasChanges={hasChanges} 
+        loading={loading}
+        onSave={handleSaveProfile} 
+        onDiscard={() => {
+          setFormData({ name: user?.name || "", username: user?.username || "", bio: "Estudante apaixonado por Francês! 🇫🇷" });
+          setHasChanges(false);
+        }} 
+      />
     </main>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FiPlay, FiCheckCircle, FiLock, FiStar, FiChevronRight } from "react-icons/fi";
+import { Loading } from "@/components/ui/loading";
 
 type Lesson = {
   id: string;
@@ -27,34 +29,16 @@ type Track = {
 export default function MyTrackPage() {
   const [track, setTrack] = useState<Track | null>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const trackId = searchParams.get("id") || "default-id";
 
   useEffect(() => {
     async function loadTrackData() {
-      try {
-        const trackId = "trilha-viagem"; 
-        const response = await fetch(`/api/tracks/${trackId}`);
-        
-        if (!response.ok) throw new Error("Falha ao buscar trilha");
-        
-        const data = await response.json();
-        setTrack(data);
-      } catch (error) {
-        console.error("Erro ao carregar dados do Prisma:", error);
-      } finally {
-        setLoading(false);
-      }
+      const response = await fetch(`/api/tracks/${trackId}`);
     }
+  }, [trackId]);   
 
-    loadTrackData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] pt-24 pb-20 px-6">

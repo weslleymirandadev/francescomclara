@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiLayers, FiCheck, FiX, FiArrowLeft } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loading } from "@/components/ui/loading";
 
 type Flashcard = {
   id: string;
@@ -67,13 +68,7 @@ export default function FlashcardsPage() {
     }, 200);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-s-50)]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--clara-rose)]"></div>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
     <main className="min-h-screen bg-[var(--color-s-50)] pt-24 pb-12 px-6">

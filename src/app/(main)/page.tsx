@@ -8,9 +8,10 @@ import { formatPrice } from "@/lib/price";
 import { useRouter } from "next/navigation";
 import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText } from "lucide-react";
 import Image from "next/image";
-import { Icon } from '@iconify/react';
+import { Icon } from "@iconify/react";
 import { getGlobalData } from "./actions/settings";
-import { Loading } from   '@/components/ui/loading'
+import { Loading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
 
 type Lesson = {
   id: string;
@@ -527,7 +528,37 @@ export default function Home() {
               </div>
             );
           })}
-      </div>
+        </div>
+
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="bg-slate-900 rounded-[3rem] p-12 relative overflow-hidden group">
+              {/* Decoração de fundo */}
+              <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                <Icon icon="ph:chats-teardrop-fill" width={200} />
+              </div>
+
+              <div className="relative z-10 max-w-2xl">
+                <span className="text-[var(--interface-accent)] font-black uppercase text-[10px] tracking-[0.3em] mb-4 block">
+                  Communauté d'apprentissage
+                </span>
+                <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-6">
+                  Ficou com alguma dúvida <br/> nas lições?
+                </h2>
+                <p className="text-slate-400 font-medium mb-10 leading-relaxed">
+                  Participe do nosso fórum exclusivo. Lá você pode tirar dúvidas diretamente 
+                  com a Clara, ajudar outros alunos e praticar seu francês com a comunidade.
+                </p>
+              </div>
+                
+              <Link href="/forum">
+                <Button className="bg-[var(--interface-accent)] hover:bg-white hover:text-slate-900 text-white px-10 h-16 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">
+                  Explorar o Fórum
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
 
         <section id="planos" className="py-12 border-t border-[var(--color-s-200)]">
           <div className="text-center max-w-2xl mx-auto mb-16">
