@@ -9,6 +9,8 @@ datasource db {
 model User {
   id                String           @id @default(cuid())
   name              String?
+  username          String?          @unique // O "nome de guerra" no fórum (@joao123)
+  bio               String?          @db.Text
   email             String?          @unique
   image             String?
   resetToken        String?          @unique
@@ -140,7 +142,8 @@ model Lesson {
   module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
   flashcards  Flashcard[]
-  isPremium Boolean @default(false)
+  isPremium   Boolean          @default(false)
+  forumPosts  ForumPost[]
 
   @@index([moduleId])
   @@index([type])
@@ -210,12 +213,16 @@ model ForumPost {
   authorId  String
   title     String
   content   Json
-  trackId   String?       // Opcional: pode estar relacionado a uma trilha
+  trackId   String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
-  comments  ForumComment[]
+  
   author    User           @relation(fields: [authorId], references: [id])
   track     Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  comments  ForumComment[]
+
+  lessonId  String?
+  lesson    Lesson?        @relation(fields: [lessonId], references: [id])
 
   @@index([trackId])
 }
