@@ -25,9 +25,9 @@ export function AdminSidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-(--color-s-200)">
+      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-[var(--color-s-200)]">
         <div className="flex items-center gap-2 px-6 py-8">
-          <h1 className="text-lg font-bold text-interface-accent tracking-wider uppercase">
+          <h1 className="text-lg font-bold text-[var(--interface-accent)] tracking-wider uppercase">
             Admin Panel
           </h1>
         </div>
@@ -42,11 +42,11 @@ export function AdminSidebar() {
                 className={`
                   group flex items-center px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200
                   ${isActive 
-                    ? 'bg-interface-accent text-white shadow-md' 
-                    : 'text-s-600 hover:bg-s-50 hover:text-interface-accent'}
+                    ? 'bg-[var(--interface-accent)] text-white shadow-md' 
+                    : 'text-[var(--color-s-600)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)]'}
                 `}
               >
-                <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'group-hover:text-interface-accent'}`} />
+                <item.icon className={`mr-3 h-5 w-5 ${isActive ? 'text-white' : 'group-hover:text-[var(--interface-accent)]'}`} />
                 {item.name}
               </Link>
             );
@@ -54,7 +54,7 @@ export function AdminSidebar() {
         </nav>
       </aside>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-(--color-s-200) flex justify-around items-center px-2 py-3 z-100 h-16">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-[var(--color-s-200)] flex justify-around items-center px-2 py-3 z-[100] h-16">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -62,7 +62,7 @@ export function AdminSidebar() {
               key={item.name}
               href={item.href}
               className={`flex flex-col items-center justify-center flex-1 gap-1 transition-colors ${
-                isActive ? 'text-interface-accent' : 'text-s-400'
+                isActive ? 'text-[var(--interface-accent)]' : 'text-[var(--color-s-400)]'
               }`}
             >
               <item.icon size={20} />
@@ -70,7 +70,7 @@ export function AdminSidebar() {
                 {item.shortName}
               </span>
               {isActive && (
-                <div className="absolute top-0 w-8 h-1 bg-interface-accent rounded-b-full" />
+                <div className="absolute top-0 w-8 h-1 bg-[var(--interface-accent)] rounded-b-full" />
               )}
             </Link>
           );

@@ -390,7 +390,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
       />
 
       <div className="max-w-6xl mx-auto md:py-4">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-(--color-s-50) pb-4 gap-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-s-50 pb-4 gap-6">
           <nav className="flex items-center w-full md:max-w-[calc(100vw-700px)] relative">
             <div className="overflow-x-auto scrollbar-hide flex items-center w-full pb-2 md:pb-0 snap-x touch-pan-x">
               {mounted ? (
@@ -420,7 +420,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                           setHasChanges={setHasChanges}
                         />
                       ))}
-                      <div className="shrink-0 pr-4">
+                      <div className="flex-shrink-0 pr-4">
                         <StaticAddButton onClick={handleAddObjective} />
                       </div>
                     </div>

@@ -27,7 +27,7 @@ export function StoryEditor({ content, onChange }: StoryEditorProps) {
               value={data.videoUrl}
               onChange={(e) => onChange({ ...data, videoUrl: e.target.value })}
               placeholder="https://vimeo.com/..."
-              className="w-full pl-12 pr-4 py-4 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-2xl font-bold text-s-700 outline-none transition-all"
+              className="w-full pl-12 pr-4 py-4 bg-s-50 border-2 border-transparent focus:border-s-100 focus:bg-white rounded-2xl font-bold text-s-700 outline-none transition-all"
             />
           </div>
         </div>
@@ -44,7 +44,7 @@ export function StoryEditor({ content, onChange }: StoryEditorProps) {
             value={data.script}
             onChange={(e) => onChange({ ...data, script: e.target.value })}
             placeholder="Transcreva o diálogo ou os pontos chave aqui..."
-            className="w-full p-6 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-[32px] font-medium text-s-600 outline-none transition-all min-h-[200px] resize-none"
+            className="w-full p-6 bg-s-50 border-2 border-transparent focus:border-s-100 focus:bg-white rounded-[32px] font-medium text-s-600 outline-none transition-all min-h-[200px] resize-none"
           />
         </div>
       </div>

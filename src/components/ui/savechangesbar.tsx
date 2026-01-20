@@ -24,7 +24,7 @@ export function SaveChangesBar({
   if (!hasChanges) return null;
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-100 w-[90%] max-w-xl">
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-xl">
       <div className="bg-slate-900 rounded-3xl p-4 shadow-2xl border border-white/10 backdrop-blur-md flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-center gap-3 pl-2">
           <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />

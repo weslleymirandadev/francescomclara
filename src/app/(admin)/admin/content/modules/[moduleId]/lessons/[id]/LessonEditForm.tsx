@@ -71,12 +71,12 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
             <input 
               value={lesson.title}
               onChange={(e) => handleUpdate({ title: e.target.value })}
-              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-(--color-s-100) w-full bg-transparent"
+              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-s-100 w-full bg-transparent"
             />
           </div>
 
           {/* CONTROLES DE TIPO E PRIVACIDADE */}
-          <div className="flex flex-wrap items-center gap-4 bg-s-50 p-2 rounded-[28px] border border-(--color-s-100) w-fit">
+          <div className="flex flex-wrap items-center gap-4 bg-s-50 p-2 rounded-[28px] border border-s-100 w-fit">
             {/* Seletor de Tipo */}
             <div className="flex gap-1">
               {(['CLASS', 'STORY', 'READING', 'FLASHCARD'] as LessonType[]).map((type) => (
@@ -96,7 +96,7 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
               ))}
             </div>
 
-            <div className="h-8 w-px bg-s-200 mx-1" />
+            <div className="h-8 w-[1px] bg-s-200 mx-1" />
 
             {/* Toggle Premium */}
             <button 
@@ -104,7 +104,7 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
               className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] transition-all border ${
                 lesson.isPremium 
                 ? "bg-amber-500 border-amber-600 text-white shadow-lg shadow-amber-500/20" 
-                : "bg-white border-(--color-s-100) text-s-500"
+                : "bg-white border-s-100 text-s-500"
               }`}
             >
               {lesson.isPremium ? <Lock size={14} strokeWidth={3} /> : <LockOpen size={14} strokeWidth={3} />}

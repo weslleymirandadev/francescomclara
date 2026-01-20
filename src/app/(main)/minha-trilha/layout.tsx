@@ -1,35 +1,27 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { hasActiveSubscription } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Minha Trilha - Aprenda Idiomas",
-  description: "Página de Minha Trilha do aplicativo Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
+
+  return {
+    title: `Minha Trilha - ${siteName}`,
+    description: description,
+  }
 };
 
-export default async function MinhaTrilhaLayout({
+export default function MinhaTrilhaLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
-  
-  // Se não estiver logado, redirecionar para login
-  if (!session?.user?.id) {
-    redirect("/auth/login");
-  }
-
-  // Verificar se tem plano ativo
-  const hasSubscription = await hasActiveSubscription(session.user.id);
-  
-  if (!hasSubscription) {
-    redirect("/assinar");
-  }
-
   return (
-    <div className="min-h-screen bg-s-50 px-6">   
+    <div className="min-h-screen bg-[var(--color-s-50)] px-6">   
         {children}
     </div>
   );

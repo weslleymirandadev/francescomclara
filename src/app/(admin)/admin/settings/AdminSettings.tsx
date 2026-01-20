@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Palette, 
-  CreditCard, 
-  Lock, 
-  Save,
+  CreditCard,
   Bell,
   Globe,
-  X,
-  RotateCcw
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,12 +39,14 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   const [hasChanges, setHasChanges] = useState(false);
   
   const [formData, setFormData] = useState<SettingsFormData>({
-    siteName: initialSettings?.siteName || "Francês com Clara",
+    siteDescription: initialSettings?.siteDescription || "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
+    seoDescription: initialSettings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.",
     siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
     siteNameHighlight: initialSettings?.siteNameHighlight || "Clara",
-    siteIcon: initialSettings?.siteIcon || "🌸",
-    interfaceIcon: initialSettings?.interfaceIcon || "/static/franca.png",
+    siteIcon: initialSettings?.siteIcon || "/static/flower.svg",
     highlightColor: initialSettings?.highlightColor || "--clara-rose",
+    interfaceIcon: initialSettings?.interfaceIcon || "/static/franca.png",
+    siteName: initialSettings?.siteName || "Francês com Clara",
     supportEmail: initialSettings?.supportEmail || "contato@clara.fr",
     stripeMode: initialSettings?.stripeMode ?? true,
     maintenanceMode: initialSettings?.maintenanceMode ?? false,
@@ -60,32 +59,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
     tiktokActive: initialSettings?.tiktokActive ?? false,
     tiktokUrl: initialSettings?.tiktokUrl || "",
   });
-
-  // Atualiza o formData quando initialSettings mudar (após refresh)
-  useEffect(() => {
-    if (initialSettings) {
-      setFormData({
-        siteName: initialSettings?.siteName || "Francês com Clara",
-        siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
-        siteNameHighlight: initialSettings?.siteNameHighlight || "Clara",
-        siteIcon: initialSettings?.siteIcon || "🌸",
-        interfaceIcon: initialSettings?.interfaceIcon || "/static/franca.png",
-        highlightColor: initialSettings?.highlightColor || "#D44D8C",
-        supportEmail: initialSettings?.supportEmail || "contato@clara.fr",
-        stripeMode: initialSettings?.stripeMode ?? true,
-        maintenanceMode: initialSettings?.maintenanceMode ?? false,
-        instagramActive: initialSettings?.instagramActive ?? true,
-        instagramUrl: initialSettings?.instagramUrl || "",
-        youtubeActive: initialSettings?.youtubeActive ?? true,
-        youtubeUrl: initialSettings?.youtubeUrl || "",
-        whatsappActive: initialSettings?.whatsappActive ?? true,
-        whatsappUrl: initialSettings?.whatsappUrl || "",
-        tiktokActive: initialSettings?.tiktokActive ?? false,
-        tiktokUrl: initialSettings?.tiktokUrl || "",
-      });
-      setHasChanges(false);
-    }
-  }, [initialSettings]);
 
   const handleChange = (key: string, value: any) => {
     setFormData(prev => ({ ...prev, [key]: value }));
@@ -101,17 +74,54 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
   async function handleSave() {
     setLoading(true);
-    const res = await updateSettings(formData);
-    setLoading(false);
-
-    if (res.success) {
-      toast.success("Configurações aplicadas! 🌸");
-      setHasChanges(false);
-      router.refresh();
-    } else {
-      toast.error("Erro ao salvar no banco de dados.");
+    try {
+      const res = await updateSettings(formData);
+      if (res.success) {
+        toast.success("Configurações aplicadas!", {
+          icon: (
+            <img 
+              src="/static/flower.svg" 
+              className="w-5 h-5 object-contain" 
+              alt="/static/flower.svg" 
+            />
+          ),
+        });
+        setHasChanges(false);
+        router.refresh();
+      } else {
+        toast.error("Erro ao salvar no banco de dados.");
+      }
+    } finally {
+      setLoading(false);
     }
   }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      handleChange("interfaceIcon", objectUrl);
+      toast.success("Novo ícone carregado localmente! 🚩");
+    }
+  };
+
+  const resetColor = () => {
+    handleChange("highlightColor", "--clara-rose");
+    toast.success("Cor original restaurada!", {
+      icon: (
+        <img 
+          src="/static/flower.svg" 
+          className="w-5 h-5 object-contain" 
+          alt="/static/flower.svg" 
+        />
+      ),
+    });
+  };
+
+  const resetIcon = () => {
+    handleChange("interfaceIcon", "/static/franca.png");
+    toast.success("Bandeira original restaurada! 🚩");
+  };
 
   if (loading) return <Loading />;
 
@@ -128,8 +138,9 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
-              Paramètres 🌸
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+              Paramètres 
+              <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
               Configure a identidade e as integrações da plataforma
@@ -141,16 +152,16 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-clara-rose">
+                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-[var(--clara-rose)]">
                   <Palette size={20} />
                 </div>
                 <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Identidade Visual</h2>
               </div>
 
-              <div className="grid grid-cols-1 gap-8 w-full">
+              <div className="grid grid-cols-1 gap-8">
                 {/* CONSTRUTOR DE NOME */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
-                  <div className="space-y-2 col-span-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texto Base</label>
                     <Input 
                       value={formData.siteNameFirstPart}
@@ -159,7 +170,8 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       className="h-12 rounded-xl bg-white border-none font-bold text-slate-700 shadow-sm" 
                     />
                   </div>
-                  <div className="space-y-2 col-span-1">
+
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Destaque</label>
                     <Input 
                       value={formData.siteNameHighlight}
@@ -169,34 +181,150 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       className="h-12 rounded-xl bg-white border-none font-bold shadow-sm" 
                     />
                   </div>
-                  <div className="space-y-2 col-span-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Emoji / Detalhe</label>
-                    <Input 
-                      value={formData.siteIcon}
-                      onChange={e => handleChange("siteIcon", e.target.value)}
-                      placeholder="🌸"
-                      className="h-12 rounded-xl bg-white border-none font-bold text-center text-lg shadow-sm" 
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-full w-full">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ícone de Interface (Bandeira)</label>
-                    <div className="flex gap-4 items-center w-full">
-                      <div className="w-12 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200">
-                        <img src={formData.interfaceIcon} alt="Preview" className="w-6 object-contain" />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Ícone do Site
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => handleChange("siteIcon", "/static/flower.svg")}
+                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline cursor-pointer"
+                      >
+                        Original
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Favicon (Aba do Navegador)</label>
+  <div className="flex items-center gap-2">
+    <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100">
+      <img src={formData.favicon} className="w-6 h-6 object-contain" alt="favicon" />
+    </div>
+    <Input 
+      value={formData.favicon || ""} 
+      onChange={e => handleChange("favicon", e.target.value)}
+      className="h-10 flex-1" 
+    />
+  </div>
+</div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        {formData.siteIcon?.includes('/') || formData.siteIcon?.startsWith('blob:') ? (
+                          <img src={formData.siteIcon} className="w-8 h-8 object-contain" alt="Preview" />
+                        ) : (
+                          <span className="text-2xl">{formData.siteIcon || "🌸"}</span>
+                        )}
                       </div>
-                      <Input 
-                        value={formData.interfaceIcon}
-                        onChange={e => handleChange("interfaceIcon", e.target.value)}
-                        placeholder="/static/frança.png"
-                        className="h-12 rounded-xl bg-slate-50 border-none font-medium text-slate-600 flex-1" 
+
+                      <div className="relative flex-1">
+                        <Input 
+                          value={formData.siteIcon || ""} 
+                          onChange={e => handleChange("siteIcon", e.target.value)}
+                          placeholder="Emoji ou caminho..."
+                          className="h-12 w-full rounded-xl bg-white border-none font-bold text-sm shadow-sm pr-10" 
+                        />
+                        
+                        <label className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer hover:text-rose-500 text-slate-400 transition-colors">
+                          <Plus size={18} />
+                          <input 
+                            type="file" 
+                            accept=".svg" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                handleChange("siteIcon", url);
+                              }
+                            }} 
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ícone de Interface</label>
+                      <button 
+                        onClick={resetIcon}
+                        className="text-[9px] font-bold text-blue-400 uppercase hover:underline cursor-pointer"
+                      >
+                        Original
+                      </button>
+                    </div>
+                    <div 
+                      className="group relative h-12 w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center px-4 gap-4 hover:border-blue-400 transition-all cursor-pointer"
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                    >
+                      <img 
+                        src={formData.interfaceIcon} 
+                        alt="Preview" 
+                        className="w-6 h-4 object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/static/franca.png' }}
+                      />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Clique para alterar ícone</span>
+                      <input 
+                        id="file-upload"
+                        type="file" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleChange("interfaceIcon", `/static/${file.name}`);
+                        }}
                       />
                     </div>
                   </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        Descrição do Rodapé
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => handleChange("siteDescription", "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")}
+                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline"
+                      >
+                        Original
+                      </button>
+                    </div>
+                    <textarea 
+                      value={formData.siteDescription}
+                      onChange={e => handleChange("siteDescription", e.target.value)}
+                      className="w-full min-h-[80px] p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
+                      placeholder="Texto que aparece abaixo da logo no rodapé..."
+                    />
+                  </div>
+
+                  <div className="space-y-2 md:col-span-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                        SEO Description (Google)
+                      </label>
+                      <button 
+                        type="button"
+                        onClick={() => handleChange("seoDescription", "Aprenda francês de forma prática e cultural com a Clara.")}
+                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline"
+                      >
+                        Original
+                      </button>
+                    </div>
+                    <Input 
+                      value={formData.seoDescription}
+                      onChange={e => handleChange("seoDescription", e.target.value)}
+                      className="h-12 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm"
+                      placeholder="Descrição para motores de busca..."
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* E-MAIL DE SUPORTE */}
-                  <div className="space-y-2 col-span-2">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Suporte</label>
                     <Input 
                       value={formData.supportEmail}
@@ -206,24 +334,33 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   </div>
 
                   {/* SELETOR DE COR DINÂMICO */}
-                  <div className="space-y-2 col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
-                    <div className="flex gap-3">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
+                      <button 
+                        type="button"
+                        onClick={resetColor}
+                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline cursor-pointer"
+                      >
+                        Original
+                      </button>
+                    </div>
+                    <div className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm overflow-hidden shrink-0"
-                        style={{ backgroundColor: formData.highlightColor == "--clara-rose" ? "#D44D8C" : formData.highlightColor }}
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative flex-shrink-0"
+                        style={{ backgroundColor: formData.highlightColor?.startsWith('--') ? `var(${formData.highlightColor})` : (formData.highlightColor || '#D44D8C') }}
                       >
                         <input 
                           type="color" 
-                          value={formData.highlightColor == "--clara-rose" ? "#D44D8C" : formData.highlightColor}
+                          value={formData.highlightColor?.startsWith('--') ? '#D44D8C' : (formData.highlightColor || '#D44D8C')}
                           onChange={e => handleChange("highlightColor", e.target.value)}
-                          className="w-full h-full cursor-pointer opacity-0"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                       </div>
                       <Input 
-                        value={formData.highlightColor}
+                        value={formData.highlightColor || ""} // Garante que nunca seja undefined para não dar erro de controlled input
                         onChange={e => handleChange("highlightColor", e.target.value)}
-                        className="h-12 rounded-xl bg-slate-50 border-none font-mono text-xs text-slate-500" 
+                        className="h-12 border-none bg-transparent font-mono text-xs" 
                       />
                     </div>
                   </div>
@@ -272,30 +409,151 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           </div>
 
           <div className="lg:col-span-5 space-y-8">
-            <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <Bell size={18} className="text-slate-400" />
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Notificações</h2>
-              </div>
-              <div className="space-y-4">
-                {[
-                  { label: "Novos Alunos", key: "notifyNewUsers" },
-                  { label: "Pagamentos", key: "notifyPayments" },
-                  { label: "Acessos", key: "notifyAccess" }
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between group">
-                    <p className="text-xs font-bold text-slate-700">{item.label}</p>
-                    <Switch 
-                      checked={formData[item.key]} 
-                      onCheckedChange={(val) => {
-                        setFormData({ ...formData, [item.key]: val });
-                        setHasChanges(true);
-                      }}
-                    />
+            <section className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6 md:p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm">
+                    <CreditCard size={20} />
                   </div>
-                ))}
+                  <h2 className="text-lg font-frenchpress text-slate-800 uppercase tracking-tight">Pagamentos</h2>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">Modo Produção</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black">Stripe Gateway</p>
+                  </div>
+                  <Switch 
+                    checked={formData.stripeMode}
+                    onCheckedChange={v => handleChange("stripeMode", v)}
+                  />
+                </div>
+
+                <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
+                  <div>
+                    <p className="text-xs font-bold text-slate-700">Modo Manutenção</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black">Plataforma Offline</p>
+                  </div>
+                  <Switch 
+                    checked={formData.maintenanceMode}
+                    onCheckedChange={v => handleChange("maintenanceMode", v)}
+                  />
+                </div>
               </div>
             </section>
+
+            <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-rose-50 text-[var(--interface-accent)] rounded-2xl flex items-center justify-center">
+                  <Bell size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tighter">Fluxos de Engajamento</h3>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest text-balance">
+                    Configure como e quando o sistema deve falar com seus alunos
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Automação 01: Expiração de Plano */}
+                <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
+                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-900">Aviso de Vencimento</span>
+                        </div>
+                        <Switch 
+                          checked={formData.notifyPlanExpiring} 
+                          onCheckedChange={(val) => { setFormData({...formData, notifyPlanExpiring: val}); setHasChanges(true); }}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Avisar o aluno</span>
+                        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
+                          <input 
+                            type="number"
+                            value={formData.daysToNotifyExpiring}
+                            onChange={(e) => { setFormData({...formData, daysToNotifyExpiring: parseInt(e.target.value)}); setHasChanges(true); }}
+                            className="w-10 h-8 text-center text-xs font-bold bg-transparent outline-none"
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">dias antes do plano acabar</span>
+                      </div>
+
+                      <textarea 
+                        value={formData.expiringMessage}
+                        onChange={(e) => { setFormData({...formData, expiringMessage: e.target.value}); setHasChanges(true); }}
+                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        placeholder="Sua mensagem de renovação..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Automação 02: Inatividade */}
+                <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
+                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-900">Alerta de Inatividade</span>
+                        </div>
+                        <Switch 
+                          checked={formData.notifyInactivity} 
+                          onCheckedChange={(val) => { setFormData({...formData, notifyInactivity: val}); setHasChanges(true); }}
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Se o aluno não logar por</span>
+                        <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
+                          <input 
+                            type="number"
+                            value={formData.inactivityDays}
+                            onChange={(e) => { setFormData({...formData, inactivityDays: parseInt(e.target.value)}); setHasChanges(true); }}
+                            className="w-10 h-8 text-center text-xs font-bold bg-transparent outline-none"
+                          />
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">dias, enviar mensagem</span>
+                      </div>
+
+                      <textarea 
+                        value={formData.inactivityMessage}
+                        onChange={(e) => { setFormData({...formData, inactivityMessage: e.target.value}); setHasChanges(true); }}
+                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        placeholder="Mensagem de saudade..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white group cursor-pointer hover:bg-black transition-all relative overflow-hidden">
+              <div className="relative z-10">
+                <Globe size={24} className="mb-4 text-emerald-400" />
+                <h3 className="text-xl font-black uppercase tracking-tighter">API & Integrações</h3>
+                <p className="text-[10px] text-slate-400 font-medium mb-4 italic text-balance">
+                  Configure Stripe, SMTP e chaves externas
+                </p>
+                <div className="flex flex-col gap-2 items-start">
+                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
+                    Configurar Stripe →
+                  </Button>
+                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform text-slate-400">
+                    Servidor de E-mail (SMTP) →
+                  </Button>
+                </div>
+              </div>
+              <Globe size={80} className="absolute -right-4 -bottom-4 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+            </div>
           </div>
         </div>
       </div>

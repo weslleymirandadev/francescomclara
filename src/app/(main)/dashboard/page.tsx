@@ -1,11 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { FaBook, FaBookOpen, FaGraduationCap, FaRegClock, FaSearch } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { FaBook, FaBookOpen, FaGraduationCap, FaRegClock, FaSearch } from "react-icons/fa";
+import { BiDirections } from "react-icons/bi";
+import { CheckCircle2 } from "lucide-react";
+import { FiMessageSquare } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
+import { Loading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { MyPostsWidget } from "./components/MyPostsWidget";
+
+interface Track {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  cefrLevel: string;
+  modules: any[];
+}
 
 interface Lesson {
   id: string;
@@ -31,21 +47,19 @@ interface Course {
 }
 
 interface DashboardData {
-  user: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-  };
-  courses: Course[];
+  user: { id: string; name: string | null; email: string; image: string | null; };
+  tracks: Track[];
 }
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [data, setData] = useState<{ user: DashboardData['user']; courses: Course[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [data, setData] = useState<{ 
+    user: DashboardData['user']; 
+    tracks: Track[]
+  } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -60,18 +74,12 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('/api/user/enrollments', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      const response = await fetch('/api/user/enrollments');
+      const { tracks } = await response.json();
 
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard data');
       }
-
-      const { courses } = await response.json();
 
       setData({
         user: {
@@ -80,7 +88,7 @@ export default function Dashboard() {
           email: session?.user?.email || '',
           image: session?.user?.image || null,
         },
-        courses,
+        tracks: tracks || [],
       });
 
     } catch (error) {
@@ -90,18 +98,15 @@ export default function Dashboard() {
     }
   };
 
-  const filteredCourses = data?.courses.filter(course => 
-    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
-  if (loading) {
+  const filteredTracks = (data?.tracks || []).filter((track: Track) => {
+    const search = searchTerm.toLowerCase();
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
+      track.name?.toLowerCase().includes(search) ||
+      track.description?.toLowerCase().includes(search)
     );
-  }
+  });
+
+  if (loading || !data) return <Loading />;
 
   if (!data) {
     return (
@@ -121,125 +126,197 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Meu Aprendizado</h1>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar cursos..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+  <div className="min-h-screen bg-[var(--color-s-50)] pt-24 pb-20">
+    <main className="max-w-7xl mx-auto px-6">
+      
+      {/* HEADER DO DASHBOARD */}
+      <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
+            Bonjour, <span className="text-[var(--interface-accent)]">{data.user.name?.split(' ')[0]}!</span>
+          </h1>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
+            Pronto para continuar sua jornada no Francês?
+          </p>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Courses Section */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <FaBook className="mr-2 text-blue-600" />
-              Meus Cursos
-            </h2>
-            <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
-              {filteredCourses.length} curso{filteredCourses.length !== 1 ? 's' : ''}
-            </span>
+        <div className="relative w-full md:w-80">
+          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="BUSCAR CURSOS..."
+            className="w-full pl-12 pr-4 h-14 bg-white border-none shadow-xl rounded-2xl font-bold text-xs uppercase tracking-widest placeholder:text-slate-300 focus:ring-2 focus:ring-[var(--interface-accent)] transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {!(session?.user as any)?.level && (
+        <Card className="mb-12 border-none shadow-2xl bg-slate-900 rounded-[2.5rem] overflow-hidden relative group">
+          {/* Decoração de fundo */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--interface-accent)] opacity-10 blur-[100px] -mr-20 -mt-20 group-hover:opacity-20 transition-opacity duration-700" />
+          
+          <div className="relative z-10 p-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-[var(--interface-accent)] border border-white/10 shadow-inner">
+                <FaGraduationCap size={32} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-none">
+                  Defina seu nível de Francês
+                </h2>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-3">
+                  Libere as trilhas ideais para o seu conhecimento atual.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <Button 
+                className="flex-1 md:flex-none h-14 px-8 bg-[var(--interface-accent)] hover:bg-[var(--interface-accent)] hover:scale-105 active:scale-95 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all duration-300 cursor-pointer shadow-lg shadow-[var(--interface-accent)]/20"
+                onClick={() => router.push('/nivelamento')}
+              >
+                Fazer Teste Grátis
+              </Button>
+              
+              <Button 
+                variant="outline"
+                className="flex-1 md:flex-none h-14 px-8 border-white/10 bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all duration-300 cursor-pointer"
+                onClick={async () => {
+                  await fetch('/api/user/set-level', { 
+                    method: 'POST', 
+                    body: JSON.stringify({ level: 'A1' }) 
+                  });
+                  window.location.reload();
+                }}
+              >
+                Sou Iniciante (A1)
+              </Button>
+            </div>
           </div>
+        </Card>
+      )}
 
-          {filteredCourses.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredCourses.map((course) => (
-                <motion.div
-                  key={course.id}
-                  whileHover={{ y: -5 }}
-                  className="bg-white overflow-hidden shadow rounded-lg"
-                >
-                  <Link href={`/dashboard/cursos/${course.id}`}>
-                    <div className="h-48 bg-gray-200 overflow-hidden">
-                      {course.imageUrl ? (
-                        <img
-                          className="w-full h-full object-cover"
-                          src={course.imageUrl}
-                          alt={course.title}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-linear-to-r from-blue-500 to-blue-700 flex items-center justify-center">
-                          <FaGraduationCap className="h-16 w-16 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center mb-2">
-                        <span className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 rounded-full">
-                          {course.level}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {course.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                        {course.description}
-                      </p>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <FaBookOpen className="mr-1" />
-                        <span className="mr-4">
-                          {course.modules.length} módulo{course.modules.length !== 1 ? 's' : ''}
-                        </span>
-                        <FaRegClock className="mr-1" />
-                        <span>
-                          {Math.ceil(
-                            course.modules.reduce(
-                              (total, module) =>
-                                total + module.lessons.reduce((sum, lesson) => sum + (lesson.duration || 0), 0),
-                              0
-                            ) / 60
-                          )}{' '}
-                          min
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
+        <Card className="p-6 border-none shadow-xl bg-white rounded-[2rem] flex flex-col justify-center items-center text-center group hover:bg-[var(--interface-accent)] transition-all duration-500">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mb-3 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
+            <FaBookOpen size={20} />
+          </div>
+          <h4 className="text-2xl font-black text-slate-900 group-hover:text-white">{data?.tracks?.length || 0}</h4>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white/80">Cursos Ativos</p>
+        </Card>
+
+        <Card className="p-6 border-none shadow-xl bg-white rounded-[2rem] flex flex-col justify-center items-center text-center group hover:bg-emerald-500 transition-all duration-500">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mb-3 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white transition-colors">
+            <CheckCircle2 size={20} />
+          </div>
+          <h4 className="text-2xl font-black text-slate-900 group-hover:text-white">85%</h4>
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white/80">Concluído</p>
+        </Card>
+
+        {/* CARD DE ATALHO PARA O FÓRUM - SUPER IMPORTANTE */}
+        <Link href="/forum" className="md:col-span-2">
+          <Card className="p-6 h-full border-none shadow-xl bg-slate-900 rounded-[2.5rem] flex items-center justify-between px-10 group hover:scale-[1.02] transition-all overflow-hidden relative">
+            <div className="relative z-10">
+              <h4 className="text-white text-xl font-black uppercase tracking-tighter">Alguma dúvida?</h4>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Pergunte agora no fórum da Clara</p>
             </div>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <FaBookOpen className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">
-                Nenhum curso encontrado
-              </h3>
-              <p className="mt-1 text-gray-500">
-                {searchTerm
-                  ? 'Nenhum curso corresponde à sua busca.'
-                  : 'Você ainda não está inscrito em nenhum curso.'}
-              </p>
-              {searchTerm ? (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="mt-4 text-sm text-blue-600 hover:text-blue-500"
-                >
-                  Limpar busca
-                </button>
-              ) : (
-                <Link
-                  href="/cursos"
-                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Explorar cursos
-                </Link>
+            <div className="w-14 h-14 rounded-2xl bg-[var(--interface-accent)] text-white flex items-center justify-center shadow-lg relative z-10 group-hover:rotate-12 transition-transform">
+              <FiMessageSquare size={24} />
+            </div>
+            {/* Decoração de fundo */}
+            <div className="absolute -right-4 -bottom-4 opacity-10 text-white rotate-12 group-hover:scale-150 transition-transform duration-700">
+              <FiMessageSquare size={120} />
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      <div>
+        <div className="flex justify-between items-end mb-6 px-2">
+          <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
+            Minha Atividade
+          </h2>
+          {/* Link para a página de edição/exclusão que você já tem */}
+          <Link 
+            href="/forum/meus-posts" 
+            className="text-xs font-black text-[var(--interface-accent)] uppercase tracking-widest hover:underline"
+          >
+            Gerenciar Posts
+          </Link>
+        </div>
+        
+        {/* O WIDGET ENTRA AQUI */}
+        <MyPostsWidget />
+      </div>
+
+      {/* CURSOS SECTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {filteredTracks.map((track: Track) => {
+          const isEnrolled = true;
+
+          const userLevel = (session?.user as any)?.level || 'A1';
+          const LEVEL_WEIGHT: any = { 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6 };
+          const isLocked = LEVEL_WEIGHT[track.cefrLevel] > LEVEL_WEIGHT[userLevel];
+
+          return (
+            <motion.div
+              key={track.id}
+              whileHover={!isLocked ? { y: -10 } : {}}
+              className={`relative bg-white rounded-[2.5rem] overflow-hidden shadow-2xl transition-all ${isLocked ? 'opacity-60 grayscale' : ''}`}
+            >
+              {/* Overlay de Bloqueio */}
+              {isLocked && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/40 backdrop-blur-[2px] text-white p-6 text-center">
+                  <FaRegClock size={30} className="mb-2" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Bloqueado</p>
+                  <p className="text-[9px] opacity-80 uppercase">Requer nível {track.cefrLevel}</p>
+                </div>
               )}
-            </div>
-          )}
-        </section>
-      </main>
-    </div>
-  );
+
+              <Link href={isLocked ? "#" : `/dashboard/cursos/${track.id}`} className={isLocked ? "cursor-not-allowed" : ""}>
+                <div className="relative h-56 overflow-hidden">
+                  {track.imageUrl ? (
+                    <img src={track.imageUrl} className="w-full h-full object-cover" alt={track.name} />
+                  ) : (
+                    <div className="w-full h-full bg-slate-900 flex items-center justify-center text-white">
+                      <FaGraduationCap size={40} />
+                    </div>
+                  )}
+                  <div className="absolute top-4 left-4">
+                    <span className="px-4 py-1.5 text-[9px] font-black bg-white/90 text-slate-800 rounded-full uppercase tracking-widest">
+                      {track.cefrLevel}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-8">
+                  <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-3">
+                    {track.name || ""}
+                  </h3>
+                  
+                  <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                    <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase">
+                        <FaBookOpen className="text-[var(--interface-accent)]" /> {track.modules.length} Módulos
+                    </div>
+                    
+                    {/* Botão Dinâmico baseada no estado que você queria */}
+                    <button className={`px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${
+                      isLocked 
+                      ? 'bg-slate-200 text-slate-400' 
+                      : 'bg-[var(--interface-accent)] text-white hover:shadow-lg'
+                    }`}>
+                      {isLocked ? "Nível Insuficiente" : "Continuar"}
+                    </button>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+    </main>
+  </div>
+);
 }

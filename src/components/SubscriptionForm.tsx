@@ -186,7 +186,8 @@ const cardSchema = z.object({
         });
       }
     }
-  })
+  }),
+  installments: z.number().min(1, "Selecione o número de parcelas")
 });
 
 
@@ -212,11 +213,9 @@ interface SessionData {
 interface SubscriptionFormProps {
   amount: number;
   items: CartItem[];
-  subscriptionPlanId?: string; // ID do plano de assinatura (opcional)
-  period?: 'MONTHLY' | 'YEARLY'; // Período da assinatura
 }
 
-export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: SubscriptionFormProps) {
+export function SubscriptionForm({ amount, items }: SubscriptionFormProps) {
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
@@ -241,6 +240,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
   });
 
   const documentType = watch("documentType");
+  const installments = watch("installments");
 
   function maskCpf(value: string) {
     let v = value.replace(/\D/g, "");
@@ -290,6 +290,21 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
   const formatCVV = (value: string) => {
     return value.replace(/\D/g, "").slice(0, 4);
   };
+
+  function getInstallmentFactor(qty: number) {
+    if (qty <= 1) return 1;
+    const step = 0.02; // 2% adicional por parcela acima de 1x
+    return 1 + (qty - 1) * step;
+  }
+
+  function getInstallmentTotal(amount: number, qty: number) {
+    return amount * getInstallmentFactor(qty);
+  }
+
+  function getInstallmentPerPayment(amount: number, qty: number) {
+    if (qty <= 0) return amount;
+    return getInstallmentTotal(amount, qty) / qty;
+  }
 
   function handleKeyDown(
     e: React.KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
@@ -379,7 +394,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
       const deviceId = window.MP_DEVICE_SESSION_ID;
 
       // Criar assinatura
-      const subscriptionResponse = await fetch("/api/mercado-pago/subscription/create", {
+      const subscriptionResponse = await fetch("/api/mercado-pago/pay", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -388,7 +403,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
         body: JSON.stringify({
           token: token, // Token do cartão para checkout transparente
           method: paymentMethodId, // ID da bandeira (Ex: 'visa')
-          installments: 1, // Assinatura recorrente sempre em 1x
+          installments: data.installments,
           payer: {
             email: payerEmail,
             firstName: payerName.split(' ')[0] || '',
@@ -399,14 +414,14 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
           userId: session.user.id,
           items: items.map(item => ({
             id: item.id,
+            type: item.type,
             title: item.title,
             price: item.price,
             quantity: 1,
           })),
           total: amount,
-          subscriptionPlanId: subscriptionPlanId, // Passar ID do plano se disponível
-          frequencyType: period === 'YEARLY' ? 'months' : 'months',
-          frequency: period === 'YEARLY' ? 12 : 1, // Anual = 12 meses, Mensal = 1 mês
+          frequencyType: 'months',
+          frequency: 1, // Mensal
           // Dados do cartão para salvar no banco
           cardData: {
             cardNumber: cardNumberClean,
@@ -428,14 +443,14 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
       // Se for transparente e já autorizado, redirecionar para sucesso
       if (subscriptionResult.isTransparent && subscriptionResult.status === 'authorized') {
         toast.success("Assinatura criada e autorizada com sucesso!");
-        router.push(`/assinar/sucesso?payment_id=${subscriptionResult.id}`);
+        router.push(`/checkout/success?payment_id=${subscriptionResult.id}`);
       } else if (subscriptionResult.requiresRedirect && subscriptionResult.init_point) {
         // Redirecionar para checkout do Mercado Pago
         window.location.href = subscriptionResult.init_point;
       } else {
         // Assinatura pendente
         toast.success("Assinatura criada! Aguardando autorização.");
-        router.push(`/assinar/sucesso?payment_id=${subscriptionResult.id}`);
+        router.push(`/checkout/success?payment_id=${subscriptionResult.id}`);
       }
     } catch (error: any) {
       console.error('Erro ao criar assinatura:', error);
@@ -453,7 +468,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
   return (
     <section className="space-y-4 pt-4">
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-gray-900">Assinatura</h2>
+        <h2 className="text-sm font-medium text-gray-900">Assinatura</h2>
         <p className="text-xs text-gray-500">
           Complete sua assinatura mensal. O pagamento será cobrado automaticamente todo mês.
         </p>
@@ -461,7 +476,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
 
       <form
         onSubmit={handleSubmit(onSubmitCard)}
-        className="space-y-4 rounded-md"
+        className="space-y-4 rounded-md border border-gray-200 p-4"
       >
         <p className="text-xs text-gray-500">
           Valor total: <span className="font-semibold">{formatPrice(amount)}</span>
@@ -479,11 +494,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                   trigger("cardNumber");
                 },
               })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cardNumber ? "border-red-400" : ""}`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.cardNumber ? "border-red-400" : ""}`}
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
             >
               Número do cartão
             </label>
@@ -505,11 +520,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                     setValue("expiry", v, { shouldValidate: true });
                   },
                 })}
-                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.expiry ? "border-red-400" : ""}`}
+                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.expiry ? "border-red-400" : ""}`}
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
               >
                 Validade (MM/AA)
               </label>
@@ -530,11 +545,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                     trigger("cvv");
                   },
                 })}
-                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cvv ? "border-red-400" : ""}`}
+                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.cvv ? "border-red-400" : ""}`}
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
               >
                 CVV
               </label>
@@ -553,11 +568,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                   e.target.value = e.target.value.toUpperCase();
                 },
               })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.holderName ? "border-red-400" : ""}`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.holderName ? "border-red-400" : ""}`}
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
             >
               Nome do titular (como no cartão)
             </label>
@@ -571,11 +586,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
               type="email"
               onKeyDown={handleKeyDown}
               {...register("email")}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.email ? "border-red-400" : ""}`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.email ? "border-red-400" : ""}`}
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.email ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.email ? "text-red-400" : "text-gray-300"}`}
             >
               E-mail
             </label>
@@ -597,7 +612,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                     trigger("document");
                   },
                 })}
-                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.documentType ? "border-red-400" : ""}`}
+                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.documentType ? "border-red-400" : ""}`}
               >
                 <option value="CPF" className="text-black">CPF</option>
                 <option value="CNPJ" className="text-black">CNPJ</option>
@@ -606,7 +621,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                 {documentType}
               </div>
               <label
-                className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all peer-focus:text-pink-500 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
+                className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all peer-focus:text-green-700 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
               >
                 Documento
               </label>
@@ -701,11 +716,11 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                     }
                   },
                 })}
-                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.document ? "border-red-400" : ""}`}
+                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.document ? "border-red-400" : ""}`}
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.document ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-green-700 ${errors.document ? "text-red-400" : "text-gray-300"}`}
               >
                 {documentType === "CPF" ? "CPF" : "CNPJ"}
               </label>
@@ -726,10 +741,50 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
             </div>
           </div>
 
+          <div className="relative w-full">
+            <select
+              onKeyDown={handleKeyDown}
+              {...register("installments", { valueAsNumber: true })}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-green-600 focus:ring-1 focus:ring-green-600 ${errors.installments ? "border-red-400" : ""}`}
+            >
+              <option value="" className="text-black">
+                Selecionar
+              </option>
+              {Array.from({ length: 5 }).map((_, index) => {
+                const qty = index + 1;
+                const amountInReais = amount; // Converter de centavos para reais
+                const perInstallment = getInstallmentPerPayment(amountInReais, qty);
+                const total = getInstallmentTotal(amountInReais, qty);
+                return (
+                  <option key={qty} value={qty} className="text-black">
+                    {`${qty}x de R$${formatPrice(perInstallment)} (total R$${formatPrice(total)})`}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-black">
+              {installments
+                ? `${installments}x de R$${formatPrice(getInstallmentPerPayment(
+                  amount, // Converter de centavos para reais
+                  installments,
+                ))}`
+                : "Selecionar"}
+            </div>
+            <label
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all peer-focus:text-green-700 ${errors.installments ? "text-red-400" : "text-[#99A1AF]"
+                }`}
+            >
+              Número de parcelas
+            </label>
+            {errors.installments && (
+              <span className="text-xs text-red-500">{errors.installments.message}</span>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={processing}
-            className="mt-2 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+            className="mt-2 inline-flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-500 disabled:opacity-60"
           >
             {processing ? "Processando..." : "Assinar agora"}
           </button>

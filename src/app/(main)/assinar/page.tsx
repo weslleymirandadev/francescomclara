@@ -6,27 +6,22 @@ import { useSession, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { SubscriptionForm } from "@/components/SubscriptionForm";
 import { formatPrice } from "@/lib/price";
-import { Crown, Check } from "lucide-react";
 
 interface SubscriptionPlan {
   id: string;
   name: string;
   description: string | null;
-  monthlyPrice: number; // em centavos
-  yearlyPrice: number; // em centavos
-  price?: number; // Compatibilidade
+  price: number; // em centavos
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
-  isBestValue: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
-  features: string[] | any;
-  tracks?: Array<{
+  period: 'MONTHLY' | 'YEARLY';
+  features: any;
+  courses: Array<{
     id: string;
-    name: string;
-    description: string | null;
-    imageUrl: string | null;
+    title: string;
+    price: number | null;
   }>;
   active: boolean;
 }
@@ -38,10 +33,8 @@ function AssinarPageContent() {
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
   const planId = searchParams.get('planId') || 'default';
-  const periodParam = searchParams.get('period') as 'MONTHLY' | 'YEARLY' | null;
 
   // Buscar plano de assinatura
   useEffect(() => {
@@ -63,14 +56,6 @@ function AssinarPageContent() {
         const data = await response.json();
         setPlan(data);
         setError(null);
-        
-        // Definir período inicial baseado no parâmetro da URL ou padrão
-        if (periodParam && (periodParam === 'MONTHLY' || periodParam === 'YEARLY')) {
-          setSelectedPeriod(periodParam);
-        } else {
-          // Se não tiver parâmetro, usar mensal como padrão
-          setSelectedPeriod('MONTHLY');
-        }
       } catch (err) {
         console.error('Erro ao buscar plano:', err);
         setError('Erro ao carregar plano de assinatura');
@@ -80,7 +65,7 @@ function AssinarPageContent() {
     };
 
     fetchPlan();
-  }, [planId, periodParam]);
+  }, [planId]);
 
   // Se o usuário não estiver autenticado, redirecionar para login
   useEffect(() => {
@@ -141,19 +126,12 @@ function AssinarPageContent() {
     );
   }
 
-  // Calcular preço baseado no período selecionado
-  const basePrice = selectedPeriod === 'YEARLY' 
-    ? (plan.yearlyPrice || plan.price || 0)
-    : (plan.monthlyPrice || plan.price || 0);
-  const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : basePrice;
-  
-  // Usar tracks se disponível, caso contrário usar courses (compatibilidade)
-  const tracks = (plan.tracks as any) || [];
-  const items = tracks.map((item: any) => ({
-    id: item.id,
+  const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : plan.price;
+  const items = plan.courses.map(course => ({
+    id: course.id,
     type: 'course' as const,
-    title: item.name || item.title,
-    price: item.price || 0
+    title: course.title,
+    price: course.price || 0
   }));
 
   return (
@@ -161,87 +139,36 @@ function AssinarPageContent() {
       <div className="mx-auto max-w-3xl space-y-8 rounded-lg bg-white p-6 shadow">
         <header className="space-y-1 border-b border-gray-200 pb-4">
           <p className="text-xs uppercase tracking-wide text-gray-400">Assinatura</p>
-          <h1 className="text-2xl p-2 rounded-lg inline-flex items-center justify-center font-semibold text-white bg-linear-to-r from-clara-rose to-pink-500">
-            <Crown className="w-8 h-8 inline-block mr-2" />
-            {plan.name}  
-          </h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{plan.name}</h1>
           <p className="text-sm text-gray-500 mt-2">
             {plan.description}
           </p>
-          <div className="flex gap-2 mt-4 mb-2">
-            <button
-              onClick={() => setSelectedPeriod('MONTHLY')}
-              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all ${
-                selectedPeriod === 'MONTHLY'
-                  ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <div className="text-center">
-                <div>Mensal</div>
-                {plan.monthlyPrice && (
-                  <div className="text-xs font-normal mt-1">
-                    {formatPrice(plan.monthlyPrice || plan.price || 0)}/mês
-                  </div>
-                )}
-              </div>
-            </button>
-            <button
-              onClick={() => setSelectedPeriod('YEARLY')}
-              className={`flex-1 px-4 py-3 rounded-lg font-bold text-sm transition-all relative ${
-                selectedPeriod === 'YEARLY'
-                  ? 'bg-linear-to-r from-clara-rose to-pink-500 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <span>Anual</span>
-                  {plan.yearlyPrice > 0 && plan.monthlyPrice > 0 && (
-                    <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded">
-                      Economia
-                    </span>
-                  )}
-                </div>
-                {plan.yearlyPrice > 0 && (
-                  <div className="text-xs font-normal mt-1">
-                    {formatPrice(Math.round(plan.yearlyPrice / 12))}/mês
-                  </div>
-                )}
-              </div>
-            </button>
-          </div>
-          <p className="text-xs text-black mt-1">
-            O pagamento será cobrado agora e depois será cobrado automaticamente&nbsp;
-            {selectedPeriod === 'YEARLY' ? (
-              <>
-                <span className="underline underline-offset-2 decoration-pink-500">anualmente</span>.
-              </>
-            ) : (
-              <>
-                <span className="underline underline-offset-2 decoration-pink-500">todo mês</span>.
-              </>
-            )}
+          <p className="text-xs text-gray-400 mt-1">
+            {plan.period === 'YEARLY' 
+              ? 'O pagamento será cobrado anualmente.' 
+              : 'O pagamento será cobrado automaticamente todo mês.'}
           </p>
         </header>
 
         <section className="space-y-4">
-          <div>
-            <h2 className="text-sm font-bold text-gray-900 mb-3">Vantagens incluídas no plano:</h2>
+          <div className="rounded-md border border-gray-200 p-4 bg-gray-50">
+            <h2 className="text-sm font-medium text-gray-900 mb-3">Cursos incluídos no plano:</h2>
             <ul className="space-y-2">
-              {plan.features && Array.isArray(plan.features) && plan.features.length > 0 ? (
-                plan.features.map((feature: string, index: number) => (
+              {plan.courses.length > 0 ? (
+                plan.courses.map((course) => (
                   <li
-                    key={index}
-                    className="flex items-start gap-3 text-sm text-gray-700"
+                    key={course.id}
+                    className="flex items-start justify-between gap-4 text-sm"
                   >
-                    <Check className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" />
-                    <span>{feature}</span>
+                    <span className="text-gray-700">{course.title}</span>
+                    <span className="text-gray-500 text-xs">
+                      Incluído
+                    </span>
                   </li>
                 ))
               ) : (
                 <li className="text-sm text-gray-500">
-                  Nenhuma vantagem definida para este plano
+                  Acesso a todos os cursos da plataforma
                 </li>
               )}
             </ul>
@@ -249,25 +176,20 @@ function AssinarPageContent() {
 
           <div className="flex items-center justify-between rounded-md bg-gray-50 p-4">
             <span className="text-sm font-medium text-gray-700">
-              {selectedPeriod === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}
+              {plan.period === 'YEARLY' ? 'Valor anual' : 'Valor mensal'}
             </span>
             <div className="text-right">
               {plan.discountEnabled && plan.originalPrice && (
-                <span className="text-xs line-through text-gray-400 block mb-1">
+                <span className="text-xs line-through text-gray-400 block">
                   {formatPrice(plan.originalPrice)}
                 </span>
               )}
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-lg font-semibold text-gray-900">
                 {formatPrice(total)}
               </span>
-              {selectedPeriod === 'YEARLY' && (
-                <span className="text-xs text-gray-500 block mt-1">
+              {plan.period === 'YEARLY' && (
+                <span className="text-xs text-gray-500 block">
                   {formatPrice(Math.round(total / 12))} por mês
-                </span>
-              )}
-              {selectedPeriod === 'MONTHLY' && plan.yearlyPrice > 0 && (
-                <span className="text-xs text-green-600 font-semibold block mt-1">
-                  Economize {formatPrice((plan.monthlyPrice || plan.price || 0) - Math.round(plan.yearlyPrice / 12))}/mês com o plano anual
                 </span>
               )}
             </div>
@@ -286,9 +208,7 @@ function AssinarPageContent() {
 
           <SubscriptionForm 
             amount={total} 
-            items={items}
-            subscriptionPlanId={plan.id}
-            period={selectedPeriod}
+            items={items} 
           />
         </footer>
       </div>

@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     // Remover acesso às trilhas
     await Promise.all(
-      subscription.items.map((item: any) => {
+      subscription.items.map(item => {
         if (item.trackId) {
           return prisma.enrollment.deleteMany({
             where: {

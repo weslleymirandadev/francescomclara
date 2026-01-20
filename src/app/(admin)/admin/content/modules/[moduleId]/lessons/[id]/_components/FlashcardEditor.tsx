@@ -33,7 +33,7 @@ export function FlashcardEditor({ content, onChange }: FlashcardEditorProps) {
 
   return (
     <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between border-b border-(--color-s-100) pb-6">
+      <div className="flex items-center justify-between border-b border-s-100 pb-6">
         <div>
           <h3 className="text-lg font-black uppercase tracking-tighter text-s-800">
             Cartões de Memorização
@@ -53,7 +53,7 @@ export function FlashcardEditor({ content, onChange }: FlashcardEditorProps) {
 
       <div className="grid gap-4">
         {cards.length === 0 ? (
-          <div className="py-20 text-center border-2 border-dashed border-(--color-s-50) rounded-[32px] bg-s-25/30">
+          <div className="py-20 text-center border-2 border-dashed border-s-50 rounded-[32px] bg-s-25/30">
             <BrainCircuit size={40} className="mx-auto text-s-100 mb-4" />
             <p className="text-s-300 font-bold italic text-sm">Nenhum cartão adicionado ainda.</p>
           </div>
@@ -61,14 +61,14 @@ export function FlashcardEditor({ content, onChange }: FlashcardEditorProps) {
           cards.map((card, index) => (
             <div 
               key={index} 
-              className="group relative grid grid-cols-1 md:grid-cols-2 gap-4 bg-s-50/50 p-6 rounded-[32px] border border-transparent hover:border-(--color-s-100) hover:bg-white transition-all"
+              className="group relative grid grid-cols-1 md:grid-cols-2 gap-4 bg-s-50/50 p-6 rounded-[32px] border border-transparent hover:border-s-100 hover:bg-white transition-all"
             >
               <div className="space-y-2">
                 <label className="text-[9px] font-black uppercase text-s-300 ml-1">Frente (Pergunta)</label>
                 <textarea
                   value={card.front}
                   onChange={(e) => updateCard(index, "front", e.target.value)}
-                  className="w-full p-4 bg-white border border-(--color-s-100) rounded-2xl font-bold text-s-700 text-sm outline-none focus:ring-2 focus:ring-interface-accent/10 resize-none h-24"
+                  className="w-full p-4 bg-white border border-s-100 rounded-2xl font-bold text-s-700 text-sm outline-none focus:ring-2 focus:ring-interface-accent/10 resize-none h-24"
                   placeholder="Ex: Comment dit-on 'Bonjour'?"
                 />
               </div>
@@ -77,7 +77,7 @@ export function FlashcardEditor({ content, onChange }: FlashcardEditorProps) {
                 <textarea
                   value={card.back}
                   onChange={(e) => updateCard(index, "back", e.target.value)}
-                  className="w-full p-4 bg-white border border-(--color-s-100) rounded-2xl font-bold text-s-700 text-sm outline-none focus:ring-2 focus:ring-interface-accent/10 resize-none h-24"
+                  className="w-full p-4 bg-white border border-s-100 rounded-2xl font-bold text-s-700 text-sm outline-none focus:ring-2 focus:ring-interface-accent/10 resize-none h-24"
                   placeholder="Ex: Como se diz 'Bom dia'?"
                 />
               </div>

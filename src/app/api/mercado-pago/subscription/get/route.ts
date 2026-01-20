@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       );
     }
 
-    // Buscar informações atualizadas do Mercado Pago (Preapproval API)
+    // Buscar informações atualizadas do Mercado Pago
     let mpSubscription = null;
     try {
       const response = await fetch(`${mpApiUrl}/preapproval/${subscriptionId}`, {
@@ -67,12 +67,6 @@ export async function GET(req: Request) {
       // Continuar mesmo se falhar, retornar dados do banco
     }
 
-    // Adicionar informações de reembolso se disponível
-    const metadata = subscription.metadata as any;
-    const refundWindowDays = metadata.refundWindowDays || (metadata.period === 'YEARLY' ? 30 : 7);
-    const daysSinceCreation = Math.floor((Date.now() - subscription.createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    const canRefund = daysSinceCreation <= refundWindowDays && subscription.status !== 'CANCELLED';
-
     return NextResponse.json({
       success: true,
       data: {
@@ -85,12 +79,6 @@ export async function GET(req: Request) {
         items: subscription.items,
         user: subscription.user,
         mpSubscription: mpSubscription,
-        refundInfo: {
-          canRefund,
-          refundWindowDays,
-          daysSinceCreation,
-          daysRemaining: Math.max(0, refundWindowDays - daysSinceCreation),
-        },
         createdAt: subscription.createdAt,
         updatedAt: subscription.updatedAt,
       }

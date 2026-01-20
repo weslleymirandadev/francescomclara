@@ -14,7 +14,7 @@ export function StaticAddButton({ onClick }: { onClick: () => void }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center shrink-0 ml-2 border-l border-(--color-s-50)">
+    <div ref={setNodeRef} style={style} className="flex items-center shrink-0 ml-2 border-l border-s-50">
       <button 
         onClick={onClick}
         className="p-4 text-s-300 hover:text-interface-accent transition-colors cursor-pointer"

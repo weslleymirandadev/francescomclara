@@ -1,18 +1,28 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Configurações - Francês com Clara",
-  description: "Gerencie as configurações da plataforma Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
+
+  return {
+    title: `Configurações - ${siteName}`,
+    description: description,
+  }
 };
 
 export default function AdminSettingsLayout({
-    children,
+  children,
 }: {
     children: React.ReactNode;
     }) {
     return (
-    <div className="min-h-screen pb-2 md:px-6">
+      <div className="min-h-screen pb-2 md:px-6">
         {children}
-    </div>
+      </div>
     );
 }
