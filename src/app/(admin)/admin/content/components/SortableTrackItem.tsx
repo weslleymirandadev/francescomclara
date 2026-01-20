@@ -59,7 +59,7 @@ export function SortableTrackItem({
   const isOpen = openTracks.includes(track.id);
 
   return (
-    <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : ''}`}>
+    <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : 'border-(--color-s-50)'}`}>
       {/* Container Principal: Coluna no mobile (flex-col), Linha no desktop (md:flex-row) */}
       <div className={`group p-6 flex flex-col md:flex-row items-stretch md:items-start gap-6 transition-all ${!track.active ? 'bg-s-100' : 'bg-white'}`}>
         
@@ -137,7 +137,7 @@ export function SortableTrackItem({
           <EditableDescription track={track} onValueChange={handleTrackDescriptionChange} />
 
           {/* Rodapé: Botões de Ação e Planos */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-s-50/50">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-(--color-s-50)/50">
             <div className="flex flex-wrap gap-1.5 justify-start w-full">
               {plans?.map((plan) => {
                 const hasAccess = track.subscriptionPlans?.some((spt: any) => spt.subscriptionPlanId === plan.id);
@@ -157,7 +157,7 @@ export function SortableTrackItem({
                       }));
                       setHasChanges(true);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase border transition-all flex items-center gap-2 cursor-pointer hover:shadow-xl hover:border ${hasAccess ? "bg-green-500 border-green-600 text-white" : "bg-s-50 border-s-20 text-s-800 opacity-60"}`}
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase border transition-all flex items-center gap-2 cursor-pointer hover:shadow-xl hover:border ${hasAccess ? "bg-green-500 border-green-600 text-white" : "bg-s-50 border-(--color-s-20) text-s-800 opacity-60"}`}
                   >
                     <div className={`w-1.5 h-1.5 rounded-full ${hasAccess ? "bg-white" : "bg-s-600"}`} />
                     {plan.name}

@@ -22,7 +22,7 @@ export const EditableDescription = ({ track, onValueChange }: { track: any, onVa
         onBlur={() => setIsEditing(false)}
         placeholder='Escreva a descrição da trilha aqui.'
         className={`w-full bg-white/20 border rounded-2xl p-4 text-s-700 text-sm font-medium leading-relaxed focus:ring-0 transition-all min-h-[100px] pr-14 resize-none shadow-inner ${
-          isEditing ? 'border-[var(--interface-accent)]' : 'border-s-50'
+          isEditing ? 'border-interface-accent' : 'border-(--color-s-50)'
         }`}
       />
       
@@ -31,7 +31,7 @@ export const EditableDescription = ({ track, onValueChange }: { track: any, onVa
           <button 
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => document.getElementById(`desc-${track.id}`)?.focus()}
-            className="text-s-800 hover:text-[var(--interface-accent)] p-1 transition-colors cursor-pointer"
+            className="text-s-800 hover:text-interface-accent p-1 transition-colors cursor-pointer"
           >
             <LuPencil size={14} />
           </button>

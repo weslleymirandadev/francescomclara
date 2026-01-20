@@ -1,34 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-interface PreapprovalRequest {
-  reason: string;
-  external_reference: string;
-  payer_email: string;
-  card_token_id?: string;
-  auto_recurring: {
-    frequency: number;
-    frequency_type: 'days' | 'months';
-    transaction_amount: number;
-    currency_id: 'BRL';
-    start_date?: string;
-    end_date?: string;
-  };
-  back_url?: string;
-  status?: 'authorized' | 'pending';
-  payment_method_id?: string;
-  installments?: number;
-  payer?: {
-    email: string;
-    first_name?: string;
-    last_name?: string;
-    identification?: {
-      type: string;
-      number: string;
-    };
-  };
-}
-
 /**
  * Cria uma assinatura recorrente usando a API de Preapproval do Mercado Pago
  * Suporta dois modos:
@@ -42,14 +14,21 @@ export async function POST(req: Request) {
       userId,
       items,
       total,
+      subscriptionPlanId, // ID do plano de assinatura no banco
       token, // Token do cartão (opcional - se fornecido, cria assinatura transparente)
       method, // Método de pagamento (opcional - usado apenas com token)
       installments = 1, // Parcelas (opcional - usado apenas com token)
-      frequencyType = 'months', // 'days' ou 'months'
-      frequency = 1, // Frequência de cobrança (ex: 1 = mensal, 2 = bimestral)
+      frequencyType: initialFrequencyType = 'months', // 'days' ou 'months'
+      frequency: initialFrequency = 1, // Frequência de cobrança (ex: 1 = mensal, 2 = bimestral)
+      period, // Período da assinatura (MONTHLY ou YEARLY)
       // Dados do cartão para salvar (opcional - usado apenas com token)
       cardData,
     } = await req.json();
+
+    // Variáveis mutáveis para frequência (podem ser sobrescritas pelo plano ou period)
+    let frequencyType = initialFrequencyType;
+    let frequency = initialFrequency;
+    let finalPeriod: 'MONTHLY' | 'YEARLY' = period || 'MONTHLY';
 
     if (!userId) {
       return NextResponse.json(
@@ -72,6 +51,48 @@ export async function POST(req: Request) {
       );
     }
 
+    // Buscar plano de assinatura se fornecido
+    let subscriptionPlan = null;
+    if (subscriptionPlanId) {
+      subscriptionPlan = await prisma.subscriptionPlan.findUnique({
+        where: { id: subscriptionPlanId },
+        include: { tracks: { include: { track: true } } }
+      });
+
+      if (!subscriptionPlan) {
+        return NextResponse.json(
+          { error: "Plano de assinatura não encontrado" },
+          { status: 404 }
+        );
+      }
+
+      // Usar dados do plano se disponível
+      // Se period foi passado explicitamente, usar ele; senão tentar usar do plano
+      if (period) {
+        finalPeriod = period;
+      } else if (subscriptionPlan.period) {
+        finalPeriod = subscriptionPlan.period;
+      }
+      
+      if (finalPeriod === 'MONTHLY') {
+        frequencyType = 'months';
+        frequency = 1;
+      } else if (finalPeriod === 'YEARLY') {
+        frequencyType = 'months';
+        frequency = 12;
+      }
+    } else if (period) {
+      // Se não tem plano mas tem period, usar period
+      finalPeriod = period;
+      if (finalPeriod === 'MONTHLY') {
+        frequencyType = 'months';
+        frequency = 1;
+      } else if (finalPeriod === 'YEARLY') {
+        frequencyType = 'months';
+        frequency = 12;
+      }
+    }
+
     const isTransparent = !!token;
     console.log(`Criando assinatura ${isTransparent ? 'transparente' : 'com redirecionamento'}`);
     console.log('Items recebidos:', JSON.stringify(items, null, 2));
@@ -83,7 +104,7 @@ export async function POST(req: Request) {
       select: { id: true, name: true }
     });
     
-    const existingTrackIds = new Set(existingTracks.map(t => t.id));
+    const existingTrackIds = new Set(existingTracks.map((t: any) => t.id));
     const missingTracks = trackIds.filter(id => !existingTrackIds.has(id));
     
     if (missingTracks.length > 0) {
@@ -95,7 +116,7 @@ export async function POST(req: Request) {
 
     // Enriquecer items com dados das trilhas
     const enrichedItems = items.map(item => {
-      const track = existingTracks.find(t => t.id === item.id);
+      const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
         title: track?.name || item.title,
@@ -105,25 +126,53 @@ export async function POST(req: Request) {
       };
     });
 
-    // Calcular o total (em centavos)
-    const calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
+    // Calcular o total (em centavos) - usar preço do plano baseado no período selecionado
+    let calculatedTotalInCents: number;
+    if (subscriptionPlan) {
+      if (subscriptionPlan.discountEnabled && subscriptionPlan.discountPrice) {
+        calculatedTotalInCents = subscriptionPlan.discountPrice;
+      } else {
+        // Usar monthlyPrice ou yearlyPrice baseado no período
+        if (finalPeriod === 'YEARLY') {
+          calculatedTotalInCents = subscriptionPlan.yearlyPrice || subscriptionPlan.price || 0;
+        } else {
+          calculatedTotalInCents = subscriptionPlan.monthlyPrice || subscriptionPlan.price || 0;
+        }
+      }
+    } else {
+      calculatedTotalInCents = total || enrichedItems.reduce((sum, item) => sum + (item.price! * item.quantity), 0);
+    }
     const calculatedTotalInReais = calculatedTotalInCents / 100;
     
-    const description = enrichedItems.length === 1
-      ? `Assinatura: ${enrichedItems[0].title}`
-      : `Assinatura: ${enrichedItems.length} trilhas`;
+    const description = subscriptionPlan 
+      ? subscriptionPlan.name
+      : (enrichedItems.length === 1
+          ? `Assinatura: ${enrichedItems[0].title}`
+          : `Assinatura: ${enrichedItems.length} trilhas`);
 
-    // Preparar dados para Preapproval
+    // Preparar dados para Subscription
     const externalReference = `subscription-${userId}-${Date.now()}`;
     
-    // Calcular data de início (hoje) e fim (12 meses depois)
+    // Calcular data de início (hoje)
     const startDate = new Date();
     startDate.setHours(0, 0, 0, 0);
-    const subscriptionEndDate = new Date();
-    subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 12);
-    subscriptionEndDate.setHours(23, 59, 59, 999);
 
-    const preapprovalData: PreapprovalRequest = {
+    // Obter meliSessionId do header (crucial para checkout transparente/antifraude)
+    const meliSessionId = req.headers.get('X-meli-session-id');
+
+    const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      'X-Idempotency-Key': crypto.randomUUID(),
+    };
+
+    if (meliSessionId) {
+      headers['X-meli-session-id'] = meliSessionId;
+    }
+
+    // Criar Subscription via API REST do Mercado Pago
+    const subscriptionData: any = {
       reason: description,
       external_reference: externalReference,
       payer_email: payer.email,
@@ -133,10 +182,8 @@ export async function POST(req: Request) {
         transaction_amount: calculatedTotalInReais,
         currency_id: 'BRL',
         start_date: startDate.toISOString(),
-        end_date: subscriptionEndDate.toISOString(),
       },
-      back_url: `${process.env.NEXT_PUBLIC_URL}/checkout/success`,
-      status: token ? 'authorized' : 'pending', // Se tiver token, já autoriza
+      back_url: `${process.env.NEXT_PUBLIC_URL}/assinar/sucesso`,
       payer: {
         email: payer.email,
         first_name: payer.firstName || payer.name?.split(' ')[0] || '',
@@ -150,31 +197,22 @@ export async function POST(req: Request) {
 
     // Se tiver token, adicionar dados do cartão para checkout transparente
     if (token) {
-      preapprovalData.card_token_id = token;
+      subscriptionData.card_token_id = token;
+      subscriptionData.status = 'authorized'; // Autorizar imediatamente
       if (method) {
-        preapprovalData.payment_method_id = method;
+        subscriptionData.payment_method_id = method;
       }
       if (installments > 1) {
-        preapprovalData.installments = installments;
+        subscriptionData.installments = installments;
       }
+    } else {
+      subscriptionData.status = 'pending';
     }
-
-    // Obter meliSessionId do header (crucial para checkout transparente/antifraude)
-    const meliSessionId = req.headers.get('X-meli-session-id');
-
-    // Criar Preapproval via API REST do Mercado Pago
-    const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-      'X-Idempotency-Key': crypto.randomUUID(),
-      'X-meli-session-id': meliSessionId!
-    };
 
     const response = await fetch(`${mpApiUrl}/preapproval`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(preapprovalData),
+      body: JSON.stringify(subscriptionData),
     });
 
     if (!response.ok) {
@@ -194,41 +232,43 @@ export async function POST(req: Request) {
       );
     }
 
-    const preapprovalResponse = await response.json();
+    const subscriptionResponse = await response.json();
 
-    if (!preapprovalResponse?.id) {
-      console.error('Resposta do Mercado Pago sem ID:', preapprovalResponse);
+    if (!subscriptionResponse?.id) {
+      console.error('Resposta do Mercado Pago sem ID:', subscriptionResponse);
       return NextResponse.json(
         { error: "Falha ao processar assinatura no gateway" },
         { status: 500 }
       );
     }
 
-    const mpPreapprovalId = preapprovalResponse.id.toString();
-    const isAuthorized = preapprovalResponse.status === 'authorized';
+    const mpSubscriptionId = subscriptionResponse.id.toString();
+    const isAuthorized = subscriptionResponse.status === 'authorized';
 
     console.log('Assinatura criada com sucesso:', {
-      id: mpPreapprovalId,
-      status: preapprovalResponse.status,
+      id: mpSubscriptionId,
+      status: subscriptionResponse.status,
       isAuthorized,
-      init_point: preapprovalResponse.init_point,
+      init_point: subscriptionResponse.init_point,
     });
 
-    // Calcular data de término para matrículas
+    // Calcular data de término para matrículas baseado no período
     const enrollmentEndDate = new Date();
-    if (frequencyType === 'months') {
-      enrollmentEndDate.setMonth(enrollmentEndDate.getMonth() + (12 * frequency));
+    if (finalPeriod === 'YEARLY') {
+      enrollmentEndDate.setFullYear(enrollmentEndDate.getFullYear() + 1);
     } else {
-      enrollmentEndDate.setDate(enrollmentEndDate.getDate() + (365 * frequency));
+      // Mensal - renovar mensalmente, então data de término é 1 mês
+      enrollmentEndDate.setMonth(enrollmentEndDate.getMonth() + 1);
     }
 
     // Criar registro de pagamento/assinatura no banco e conceder acesso se autorizado
     const payment = await prisma.payment.create({
       data: {
         userId,
-        mpPaymentId: mpPreapprovalId,
-        status: isAuthorized ? 'APPROVED' : (preapprovalResponse.status || 'pending'),
+        mpPaymentId: mpSubscriptionId,
+        status: isAuthorized ? 'APPROVED' : (subscriptionResponse.status?.toUpperCase() || 'PENDING'),
         amount: calculatedTotalInCents,
+        subscriptionPlanId: subscriptionPlan?.id || null,
         metadata: {
           type: 'subscription',
           isTransparent: isTransparent,
@@ -236,6 +276,8 @@ export async function POST(req: Request) {
           ...(installments > 1 && { installments }),
           frequency,
           frequencyType,
+          period: finalPeriod,
+          refundWindowDays: finalPeriod === 'YEARLY' ? 30 : 7, // Janela de reembolso
           items: enrichedItems.map(item => ({
             id: item.id,
             title: item.title,
@@ -243,8 +285,8 @@ export async function POST(req: Request) {
             quantity: item.quantity
           })),
           external_reference: externalReference,
-          ...(preapprovalResponse.init_point && { init_point: preapprovalResponse.init_point }),
-          ...(preapprovalResponse.sandbox_init_point && { sandbox_init_point: preapprovalResponse.sandbox_init_point }),
+          ...(subscriptionResponse.init_point && { init_point: subscriptionResponse.init_point }),
+          ...(subscriptionResponse.sandbox_init_point && { sandbox_init_point: subscriptionResponse.sandbox_init_point }),
         },
         items: {
           create: enrichedItems.map(item => ({
@@ -329,14 +371,14 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      id: preapprovalResponse.id,
-      status: preapprovalResponse.status,
-      init_point: preapprovalResponse.init_point,
-      sandbox_init_point: preapprovalResponse.sandbox_init_point,
+      id: subscriptionResponse.id,
+      status: subscriptionResponse.status,
+      init_point: subscriptionResponse.init_point,
+      sandbox_init_point: subscriptionResponse.sandbox_init_point,
       external_reference: externalReference,
       isTransparent: isTransparent,
       // Se for transparente e já autorizado, não precisa redirecionar
-      requiresRedirect: !isTransparent || preapprovalResponse.status !== 'authorized',
+      requiresRedirect: !isTransparent || subscriptionResponse.status !== 'authorized',
     });
 
   } catch (err) {

@@ -17,12 +17,12 @@ export async function updateSettings(data: any) {
     await prisma.siteSettings.upsert({
       where: { id: "settings" },
       update: {
+        siteName: data.siteName,
         siteNameFirstPart: data.siteNameFirstPart,
         siteNameHighlight: data.siteNameHighlight,
         siteIcon: data.siteIcon,
-        highlightColor: data.highlightColor,
         interfaceIcon: data.interfaceIcon,
-        siteName: data.siteName,
+        highlightColor: data.highlightColor,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,
@@ -34,19 +34,15 @@ export async function updateSettings(data: any) {
         whatsappUrl: data.whatsappUrl,
         tiktokActive: data.tiktokActive,
         tiktokUrl: data.tiktokUrl,
-        notifyNewModule: data.notifyNewModule,
-        notifyPlanExpiring: data.notifyPlanExpiring,
-        notifyInactivity: data.notifyInactivity,
-        inactivityDays: data.inactivityDays,
       },
       create: {
         id: "settings",
+        siteName: data.siteName,
         siteNameFirstPart: data.siteNameFirstPart,
         siteNameHighlight: data.siteNameHighlight,
         siteIcon: data.siteIcon,
-        highlightColor: data.highlightColor,
         interfaceIcon: data.interfaceIcon,
-        siteName: data.siteName,
+        highlightColor: data.highlightColor,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,
@@ -58,10 +54,6 @@ export async function updateSettings(data: any) {
         whatsappUrl: data.whatsappUrl,
         tiktokActive: data.tiktokActive,
         tiktokUrl: data.tiktokUrl,
-        notifyNewModule: data.notifyNewModule || true,
-        notifyPlanExpiring: data.notifyPlanExpiring || true,
-        notifyInactivity: data.notifyInactivity || false,
-        inactivityDays: data.inactivityDays || 7,
       }
     });
 

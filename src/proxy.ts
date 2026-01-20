@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
+import { hasActiveSubscription } from "@/lib/permissions";
 import path from "path";
 
 // Rotas que devem ser ignoradas completamente pelo middleware
@@ -61,7 +62,19 @@ export async function proxy(req: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
-  
+
+    // Proteger rotas que requerem assinatura ativa
+    if (pathname === '/flashcards' || pathname.startsWith('/flashcards/')) {
+      const hasSubscription = await hasActiveSubscription(token.sub!);
+      if (!hasSubscription) {
+        return NextResponse.redirect(new URL('/assinar', req.url));
+      }
+    }
+
+    // Redirecionar /minha-trilha para página principal
+    if (pathname === '/minha-trilha' || pathname.startsWith('/minha-trilha/')) {
+      return NextResponse.redirect(new URL('/', req.url));
+    }
   }
 
   // 7. Permissões para /admin

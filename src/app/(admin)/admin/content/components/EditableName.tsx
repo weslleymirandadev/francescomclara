@@ -21,7 +21,7 @@ export const EditableName = ({ track, onNameChange }: { track: any, onNameChange
         onFocus={() => setIsEditing(true)}
         onBlur={() => setIsEditing(false)}
         className={`font-black uppercase text-2xl md:text-3xl tracking-tighter font-frenchpress bg-transparent border-none focus:ring-0 p-0 flex-1 min-w-0 transition-colors ${
-          isEditing ? 'text-[var(--interface-accent)]' : 'text-s-800'
+          isEditing ? 'text-interface-accent' : 'text-s-800'
         }`}
       />
       {!isEditing && (

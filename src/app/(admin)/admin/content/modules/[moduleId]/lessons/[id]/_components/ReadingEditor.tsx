@@ -27,7 +27,7 @@ export function ReadingEditor({ content, onChange }: ReadingEditorProps) {
           value={data.text}
           onChange={(e) => onChange({ ...data, text: e.target.value })}
           placeholder="Era uma vez... (Suporta Markdown ou Texto Simples)"
-          className="w-full p-8 bg-s-50 border-2 border-transparent focus:border-s-100 focus:bg-white rounded-[40px] font-medium text-s-700 text-lg outline-none transition-all min-h-[500px] resize-none leading-relaxed shadow-inner"
+          className="w-full p-8 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-[40px] font-medium text-s-700 text-lg outline-none transition-all min-h-[500px] resize-none leading-relaxed shadow-inner"
         />
       </div>
     </div>

@@ -44,9 +44,8 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
         
         <header className="space-y-4 border-b border-slate-50 pb-6">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
-              Étudiants 
-              <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
+            <h1 className="text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
+              Étudiants 🌸
             </h1>
             <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
               Gestão da base oficial de alunos
@@ -60,7 +59,7 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                 placeholder="Procurar aluno..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-slate-50 border-none focus:ring-1 focus:ring-[var(--interface-accent)] rounded-xl h-12 text-sm"
+                className="bg-s-50 border-none focus:ring-1 focus:ring-interface-accent rounded-xl h-12 text-sm"
               />
             </div>
             
@@ -125,7 +124,7 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                       {user.plan}
                     </span>
                     
-                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-rose-50 text-slate-200 hover:text-[var(--interface-accent)] rounded-xl transition-all">
+                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-rose-50 text-slate-200 hover:text-interface-accent rounded-xl transition-all">
                       <FiArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </div>
