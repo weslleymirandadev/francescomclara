@@ -332,6 +332,8 @@ model SubscriptionPlan {
   description     String?
   price           Int                     // Preço em centavos
   discountPrice   Int?                    // Preço com desconto em centavos (opcional)
+  monthlyPrice    Int?
+  yearlyPrice     Int?
   discountEnabled Boolean                 @default(false)
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
   period          SubscriptionPlanPeriod   // MONTHLY ou YEARLY
@@ -384,7 +386,6 @@ model SiteSettings {
   favicon           String   @default("/static/favicon.svg")
   highlightColor    String   @default("--clara-rose")
   siteDescription   String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
-  seoDescription    String   @default("Aprenda francês de forma prática e cultural com a Clara.")
 
   notifyNewModule     Boolean @default(true)
   notifyPlanExpiring  Boolean @default(true)

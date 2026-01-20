@@ -7,11 +7,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   const siteName = settings?.siteName || "Francês com Clara";
-  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
     title: `Fórum - ${siteName}`,
-    description: description,
+    description: "Participe de discussões e troque ideias com outros estudantes de francês no nosso fórum interativo.",
   }
 };
 

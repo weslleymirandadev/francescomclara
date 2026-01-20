@@ -7,11 +7,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   const siteName = settings?.siteName || "Francês com Clara";
-  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
     title: `Nivelamento - ${siteName}`,
-    description: description,
+    description: "Realize o teste de nivelamento para identificar seu nível de proficiência em francês e receber recomendações personalizadas de estudo.",
   }
 };
 

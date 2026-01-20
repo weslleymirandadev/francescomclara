@@ -7,11 +7,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   const siteName = settings?.siteName || "Francês com Clara";
-  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
     title: `Conteúdo - ${siteName}`,
-    description: description,
+    description: "Gerencie e organize o conteúdo do seu site de forma eficiente e intuitiva.",
   }
 };
 

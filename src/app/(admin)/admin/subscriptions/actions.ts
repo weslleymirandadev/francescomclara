@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 export async function getSubscriptionPlans() {
   try {
     const plans = await prisma.subscriptionPlan.findMany({
-      orderBy: { monthlyPrice: 'asc' }
+      orderBy: { price: 'asc' }
     })
     // Garantir que todos os planos tenham os campos necessários (para compatibilidade com planos antigos)
     return plans.map((plan: any) => ({

@@ -31,7 +31,6 @@ async function main() {
       highlightColor: "--clara-rose",
       supportEmail: "contato@clara.fr",
       siteDescription: "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
-      seoDescription: "Aprenda francês de forma prática e cultural com a Clara.",
       stripeMode: true,
       maintenanceMode: false,
       instagramActive: true,
