@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useRef } from "react"
-import Link from "next/link"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { FiSearch, FiArrowRight } from "react-icons/fi"
 import { LuUserCheck, LuUsers } from "react-icons/lu"
 import { Loading } from '@/components/ui/loading'
+import { toast } from "react-hot-toast"
+import { useRouter } from "next/navigation"
 
 interface User {
   id: string
@@ -15,26 +15,62 @@ interface User {
   plan: string
   status: string
   date: string
+  role: "USER" | "MODERATOR" | "ADMIN"
 }
 
 export default function UserListClient({ users = [] }: { users: User[] }) {
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFocusSearch = () => {
     inputRef.current?.focus();
   };
 
-  const filteredUsers = users.filter((user) => {
-    const name = user.name ?? ""
-    const email = user.email ?? ""
-    
-    return (
-      name.toLowerCase().includes(search.toLowerCase()) ||
-      email.toLowerCase().includes(search.toLowerCase())
-    )
-  })
+  const rolePriority = {
+    ADMIN: 1,
+    MODERATOR: 2,
+    USER: 3,
+  };
+
+  const filteredUsers = users
+    .filter((user) => {
+      const name = user.name ?? "";
+      const email = user.email ?? "";
+      return (
+        name.toLowerCase().includes(search.toLowerCase()) ||
+        email.toLowerCase().includes(search.toLowerCase())
+      );
+    })
+    .sort((a, b) => {
+      if (rolePriority[a.role] !== rolePriority[b.role]) {
+        return rolePriority[a.role] - rolePriority[b.role];
+      }
+      return (a.name ?? "").localeCompare(b.name ?? "");
+    });
+
+  const handleUpdateRole = async (userId: string, newRole: "USER" | "MODERATOR" | "ADMIN") => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+
+      if (response.ok) {
+        toast.success("Cargo atualizado!");
+        router.refresh();
+      } else {
+        toast.error("Erro ao salvar no servidor.");
+      }
+    } catch (error) {
+      toast.error("Erro de conexão.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) return <Loading />;
 
@@ -120,14 +156,25 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <select
+                      value={user.role}
+                      onChange={(e) => handleUpdateRole(user.id, e.target.value as any)}
+                      className={`
+                        px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border-none cursor-pointer transition-all
+                        ${user.role === 'ADMIN' ? 'bg-rose-500 text-white' : 
+                          user.role === 'MODERATOR' ? 'bg-amber-400 text-black' : 
+                          'bg-slate-100 text-slate-600'}
+                      `}
+                    >
+                      <option value="USER">Usuário</option>
+                      <option value="MODERATOR">Moderador</option>
+                      <option value="ADMIN">Admin</option>
+                    </select>
+
                     <span className="hidden sm:inline-block px-3 py-1 rounded-lg bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest">
                       {user.plan}
                     </span>
-                    
-                    <Link href={`/admin/users/${user.id}`} className="p-2 hover:bg-rose-50 text-slate-200 hover:text-[var(--interface-accent)] rounded-xl transition-all">
-                      <FiArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-                    </Link>
                   </div>
                 </div>
               ))}

@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import { Loading } from '@/components/ui/loading'
+import Link from "next/link";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface AnalyticsData {
   users: { total: number; active: number };
@@ -46,6 +49,31 @@ export default function AdminAnalytics() {
     fetchAnalytics();
   }, []);
 
+  const handleExportPDF = () => {
+    if (!data) return;
+
+    const doc = new jsPDF();
+    
+    // Design do Relatório
+    doc.setFont("helvetica", "bold");
+    doc.text("FLUXO DE CAIXA E VENDAS - FRANCÊS COM CLARA", 14, 20);
+    
+    autoTable(doc, {
+      startY: 30,
+      head: [['Indicador', 'Valor']],
+      body: [
+        ['Faturamento Mensal', formatPrice(data.revenue.monthly)],
+        ['Faturamento Total', formatPrice(data.revenue.total)],
+        ['Alunos Totais', data.users.total.toString()],
+        ['Alunos Ativos', data.users.active.toString()],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [244, 63, 94] } // Rosa da Clara
+    });
+
+    doc.save("financeiro-clara.pdf");
+  };
+
   if (loading) return <Loading />;
 
   const ltvValue = data?.users.total 
@@ -65,7 +93,11 @@ export default function AdminAnalytics() {
             </h1>
             <p className="text-[var(--slate-500)] text-xs md:text-sm font-medium mt-1 italic">Saúde financeira em tempo real</p>
           </div>
-          <button className="w-full sm:w-auto bg-[var(--slate-900)] text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm hover:bg-[var(--interface-accent)] transition-all active:scale-95 cursor-pointer">
+          <button
+            type="button"
+            className="w-full sm:w-auto bg-[var(--slate-900)] text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm hover:bg-[var(--interface-accent)] transition-all active:scale-95 cursor-pointer"
+            onClick={handleExportPDF}
+          >
             <Download size={14} /> Exportar Relatório
           </button>
         </header>
@@ -145,15 +177,21 @@ export default function AdminAnalytics() {
                     </div>
                   </div>
                   
-                  <div className="text-right shrink-0 flex items-center gap-4 cursor-pointer">
-                    <div>
-                      <p className="font-black text-[var(--slate-900)] text-[9px] md:text-sm tracking-widest">ATIVO</p>
-                      <p className="text-[8px] md:text-[10px] font-bold text-[var(--slate-400)] italic">
-                        {new Date(student.createdAt).toLocaleDateString('pt-BR')}
-                      </p>
+                  <Link 
+                    href={`/admin/users/${student.id}`} 
+                    key={student.id} 
+                    className="flex items-center justify-between p-4 md:p-6 md:px-10 hover:bg-[var(--slate-50)]/30 transition-all group cursor-pointer"
+                  >
+                    <div className="text-right shrink-0 flex items-center gap-4">
+                      <div>
+                        <p className="font-black text-[var(--slate-900)] text-[9px] md:text-sm tracking-widest">ATIVO</p>
+                        <p className="text-[8px] md:text-[10px] font-bold text-[var(--slate-400)] italic">
+                          {new Date(student.createdAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <ArrowRight size={16} className="text-[var(--slate-200)] group-hover:text-[var(--interface-accent)]" />
                     </div>
-                    <ArrowRight size={16} className="text-[var(--slate-200)] group-hover:text-[var(--interface-accent)] hidden sm:block" />
-                  </div>
+                  </Link>
                 </div>
               ))
             ) : (
