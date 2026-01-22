@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
 
@@ -7,6 +8,7 @@ const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
  * Cancela uma assinatura do Mercado Pago
  */
 export async function POST(req: Request) {
+  const token = await getMercadoPagoToken();
   try {
     const { subscriptionId, userId } = await req.json();
 
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         status: 'cancelled'

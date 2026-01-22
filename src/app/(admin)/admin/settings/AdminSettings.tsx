@@ -60,6 +60,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
     tiktokActive: initialSettings?.tiktokActive ?? false,
     tiktokUrl: initialSettings?.tiktokUrl || "",
     daysToNotifyExpiring: initialSettings?.daysToNotifyExpiring ?? 7,
+    inactivityDays: initialSettings?.inactivityDays ?? 7,
   });
 
   const handleChange = (field: string, value: any) => {
@@ -176,7 +177,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
               </div>
 
               <div className="grid grid-cols-1 gap-8">
-                {/* CONSTRUTOR DE NOME */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texto Base</label>
@@ -276,7 +276,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* E-MAIL DE SUPORTE */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Suporte</label>
                     <Input 
@@ -286,7 +285,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     />
                   </div>
 
-                  {/* SELETOR DE COR DINÂMICO */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
@@ -311,7 +309,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                         />
                       </div>
                       <Input 
-                        value={formData.highlightColor || ""} // Garante que nunca seja undefined para não dar erro de controlled input
+                        value={formData.highlightColor || ""}
                         onChange={e => handleChange("highlightColor", e.target.value)}
                         className="h-12 border-none bg-transparent font-mono text-xs" 
                       />
@@ -376,7 +374,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
                   <div>
                     <p className="text-xs font-bold text-slate-700">Modo Produção</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-black">Stripe Gateway</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black">Mercado Pago</p>
                   </div>
                   <Switch 
                     checked={formData.stripeMode}
@@ -431,14 +429,9 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
                           <input 
                             type="number"
-                            value={formData.daysToNotifyExpiring || 0} 
+                            value={formData.daysToNotifyExpiring} 
                             onChange={(e) => { 
-                              setFormData({
-                                ...formData, 
-                                daysToNotifyExpiring: parseInt(e.target.value) || 0 
-                              }); 
-                              setHasChanges(true); 
-                            }}
+                              setFormData({ ...formData, daysToNotifyExpiring: parseInt(e.target.value)}); setHasChanges(true); }}
                             className="w-16 h-8 text-center font-bold text-xs border-none focus:ring-0"
                           />
                         </div>
@@ -495,23 +488,27 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
               </div>
             </section>
 
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white group cursor-pointer hover:bg-black transition-all relative overflow-hidden">
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
               <div className="relative z-10">
                 <Globe size={24} className="mb-4 text-emerald-400" />
-                <h3 className="text-xl font-black uppercase tracking-tighter">API & Integrações</h3>
-                <p className="text-[10px] text-slate-400 font-medium mb-4 italic text-balance">
-                  Configure Stripe, SMTP e chaves externas
-                </p>
-                <div className="flex flex-col gap-2 items-start">
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
-                    Configurar Stripe →
-                  </Button>
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform text-slate-400">
-                    Servidor de E-mail (SMTP) →
-                  </Button>
+                <h3 className="text-xl font-black uppercase tracking-tighter">Status das Conexões</h3>
+                
+                <div className="space-y-3 mt-6">
+                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-[10px] font-bold uppercase">Mercado Pago</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-black">CONECTADO</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10">
+                    <span className="text-[10px] font-bold uppercase">E-mail (Resend)</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-black">ATIVO</span>
+                  </div>
                 </div>
+                
+                <p className="text-[9px] text-slate-500 mt-6 italic">
+                  As chaves de API são gerenciadas via Environment Variables para sua segurança.
+                </p>
               </div>
-              <Globe size={80} className="absolute -right-4 -bottom-4 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
             </div>
           </div>
         </div>

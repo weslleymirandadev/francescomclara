@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 /**
  * Cria uma assinatura recorrente usando a API de Preapproval do Mercado Pago
@@ -8,6 +9,8 @@ import prisma from "@/lib/prisma";
  * 2. Sem token: redireciona para checkout do Mercado Pago
  */
 export async function POST(req: Request) {
+  const token = await getMercadoPagoToken();
+
   try {
     const {
       payer,
@@ -163,7 +166,7 @@ export async function POST(req: Request) {
     const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'X-Idempotency-Key': crypto.randomUUID(),
     };
 

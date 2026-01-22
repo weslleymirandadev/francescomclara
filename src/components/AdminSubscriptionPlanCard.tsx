@@ -9,13 +9,13 @@ interface AdminSubscriptionPlanCardProps {
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
-  price?: number; // Compatibilidade
   isBestValue?: boolean;
   active: boolean;
   features: string[] | any;
   onEdit?: (plan: any) => void;
   disabled?: boolean;
   className?: string;
+  type: string;
 }
 
 export function AdminSubscriptionPlanCard({
@@ -23,15 +23,15 @@ export function AdminSubscriptionPlanCard({
   name,
   monthlyPrice,
   yearlyPrice,
-  price,
   isBestValue = false,
   active,
   features,
+  type,
   onEdit,
   disabled = false,
   className = "",
 }: AdminSubscriptionPlanCardProps) {
-  const finalMonthlyPrice = monthlyPrice || price || 0;
+  const finalMonthlyPrice = monthlyPrice || 0;
   const finalYearlyPrice = yearlyPrice || 0;
   const yearlyMonthlyPrice = finalYearlyPrice > 0 ? Math.round(finalYearlyPrice / 12) : 0;
 
@@ -42,10 +42,10 @@ export function AdminSubscriptionPlanCard({
         name,
         monthlyPrice,
         yearlyPrice,
-        price,
         isBestValue,
         active,
         features,
+        type,
       });
     }
   };

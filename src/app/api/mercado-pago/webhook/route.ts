@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
+
+const token = await getMercadoPagoToken();
 
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
 
@@ -15,7 +18,7 @@ interface PaymentItem {
 }
 
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN!,
+  accessToken: token,
 });
 
 const paymentStatusMap: Record<string, PaymentStatus> = {
@@ -94,7 +97,7 @@ async function getSubscription(subscriptionId: string) {
     const response = await fetch(`${mpApiUrl}/preapproval/${subscriptionId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
 

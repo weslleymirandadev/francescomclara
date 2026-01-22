@@ -45,13 +45,10 @@ export async function GET(
       description: plan.description || '',
       monthlyPrice: plan.monthlyPrice,
       yearlyPrice: plan.yearlyPrice,
-      price: plan.price || plan.monthlyPrice, // Compatibilidade com código antigo
-      originalPrice: plan.price || plan.monthlyPrice,
       discountPrice: plan.discountPrice,
       discountEnabled: plan.discountEnabled,
       isBestValue: plan.isBestValue,
       type: plan.type,
-      period: plan.period || 'MONTHLY', // Compatibilidade
       features: plan.features,
       tracks: plan.tracks
         .filter((spt: any) => spt.track)
@@ -112,11 +109,9 @@ export async function PATCH(
       description,
       monthlyPrice,
       yearlyPrice,
-      price, // Compatibilidade
       discountPrice,
       discountEnabled,
       type,
-      period, // Compatibilidade
       features,
       trackIds,
       active,
@@ -164,14 +159,7 @@ export async function PATCH(
         );
       }
     }
-    // Compatibilidade com código antigo
-    if (price !== undefined) {
-      updateData.price = Math.round(price);
-      // Se não tiver monthlyPrice definido, usar price como monthlyPrice
-      if (updateData.monthlyPrice === undefined) {
-        updateData.monthlyPrice = Math.round(price);
-      }
-    }
+    
     if (discountPrice !== undefined) updateData.discountPrice = discountPrice ? Math.round(discountPrice) : null;
     if (discountEnabled !== undefined) updateData.discountEnabled = discountEnabled;
     if (isBestValue !== undefined) updateData.isBestValue = isBestValue;
@@ -184,15 +172,7 @@ export async function PATCH(
       }
       updateData.type = type;
     }
-    if (period !== undefined) {
-      if (!['MONTHLY', 'YEARLY'].includes(period)) {
-        return NextResponse.json(
-          { error: "Periodo deve ser MONTHLY ou YEARLY" },
-          { status: 400 }
-        );
-      }
-      updateData.period = period;
-    }
+    
     if (features !== undefined) updateData.features = features;
     if (active !== undefined) updateData.active = active;
 

@@ -1,24 +1,16 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 import { Payment, SubscriptionPlan } from '@prisma/client';
 
-interface RecentStudentRaw {
-  id: string;
-  name: string | null;
-  createdAt: Date;
-  enrollments: { track: { name: string } | null }[];
-}
-
 type PaymentWithPlan = Payment & {
-  subscriptionPlan: { type: string; period: string } | null;
+  subscriptionPlan: { type: string; monthlyPrice: number; yearlyPrice: number } | null;
 };
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
     const user = session?.user as { role?: string } | undefined;
 
     if (!user || user.role !== 'ADMIN') {
@@ -27,7 +19,6 @@ export async function GET() {
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfMonthISO = startOfMonth.toISOString();
 
     const [totalUsers, recentStudentsRaw, activeUsers] = await Promise.all([
       prisma.user.count(),
@@ -43,7 +34,7 @@ export async function GET() {
             select: { track: { select: { name: true } } }
           }
         }
-      }) as Promise<RecentStudentRaw[]>,
+      }),
       prisma.user.count({
         where: {
           enrollments: { some: { OR: [{ endDate: null }, { endDate: { gte: now } }] } },
@@ -52,56 +43,75 @@ export async function GET() {
       })
     ]);
 
-    const allPlans = await prisma.subscriptionPlan.findMany({ where: { active: true } }) as SubscriptionPlan[];
+    const allPlans = await prisma.subscriptionPlan.findMany({ 
+      where: { active: true } 
+    }) as SubscriptionPlan[];
     
     const approvedPayments = await prisma.payment.findMany({
       where: { status: 'APPROVED' },
-      include: { subscriptionPlan: { select: { type: true, period: true } } },
+      include: { 
+        subscriptionPlan: { 
+          select: { 
+            type: true, 
+            monthlyPrice: true, 
+            yearlyPrice: true 
+          } 
+        } 
+      },
       orderBy: { createdAt: 'desc' }
     }) as PaymentWithPlan[];
 
-    const usersByPlanType = { INDIVIDUAL: new Set<string>(), FAMILY: new Set<string>() };
-    const usersByPeriod = { MONTHLY: new Set<string>(), YEARLY: new Set<string>() };
-    const processedUsers = new Set<string>();
+    const stats = {
+      individual: new Set<string>(),
+      family: new Set<string>(),
+      monthly: new Set<string>(),
+      yearly: new Set<string>()
+    };
 
-    approvedPayments.forEach((payment: any) => {
-      const userId = payment.userId;
+    approvedPayments.forEach((payment) => {
+      const plan = payment.subscriptionPlan;
       
-      // Se o pagamento tem um plano associado diretamente
-      if (payment.subscriptionPlan) {
-        const { type, period } = payment.subscriptionPlan;
-        if (type === 'INDIVIDUAL') usersByPlanType.INDIVIDUAL.add(payment.userId);
-        else if (type === 'FAMILY') usersByPlanType.FAMILY.add(payment.userId);
-        if (period === 'MONTHLY') usersByPeriod.MONTHLY.add(payment.userId);
-        else if (period === 'YEARLY') usersByPeriod.YEARLY.add(payment.userId);
-        processedUsers.add(payment.userId);
+      if (plan) {
+        if (plan.type === 'INDIVIDUAL') stats.individual.add(payment.userId);
+        else if (plan.type === 'FAMILY') stats.family.add(payment.userId);
+
+        if (payment.amount >= (plan.yearlyPrice * 0.8)) {
+          stats.yearly.add(payment.userId);
+        } else {
+          stats.monthly.add(payment.userId);
+        }
       } else {
-        // Tentar fazer match com planos baseado no preço e metadata
         const metadata = payment.metadata as any;
-        if (metadata && metadata.type === 'subscription') {
-          // Tentar encontrar um plano que corresponda ao valor do pagamento
-            const matchingPlan = allPlans.find((plan: any) => {
-            const planPrice = plan.discountEnabled && plan.discountPrice 
-              ? plan.discountPrice 
-              : plan.price;
-            return Math.abs(planPrice - payment.amount) < 100; // Tolerância de 1 real
+        if (metadata?.type === 'subscription') {
+          const matchingPlan = allPlans.find((p: SubscriptionPlan) => {
+            const mPrice = p.monthlyPrice ?? 0;
+            const yPrice = p.yearlyPrice ?? 0;
+
+            return Math.abs(mPrice - payment.amount) < 500 || 
+                  Math.abs(yPrice - payment.amount) < 500;
           });
+
           if (matchingPlan) {
-            if (matchingPlan.type === 'INDIVIDUAL') usersByPlanType.INDIVIDUAL.add(payment.userId);
-            else if (matchingPlan.type === 'FAMILY') usersByPlanType.FAMILY.add(payment.userId);
-            if (matchingPlan.period === 'MONTHLY') usersByPeriod.MONTHLY.add(payment.userId);
-            else if (matchingPlan.period === 'YEARLY') usersByPeriod.YEARLY.add(payment.userId);
-            processedUsers.add(payment.userId);
+            if (matchingPlan.type === 'INDIVIDUAL') stats.individual.add(payment.userId);
+            else if (matchingPlan.type === 'FAMILY') stats.family.add(payment.userId);
+            
+            const planYearlyPrice = matchingPlan.yearlyPrice ?? 0;
+            
+            if (Math.abs(planYearlyPrice - payment.amount) < 500) {
+              stats.yearly.add(payment.userId);
+            } else {
+              stats.monthly.add(payment.userId);
+            }
           }
         }
       }
     });
 
-    const [monthlyRevenue, totalRevenue, totalRefunds, monthlyRefunds] = await Promise.all([
-      prisma.payment.aggregate({ where: { status: 'APPROVED', createdAt: { gte: startOfMonthISO } }, _sum: { amount: true } }),
+    const [monthlySum, totalSum, refundsSum, monthlyRefundsSum] = await Promise.all([
+      prisma.payment.aggregate({ where: { status: 'APPROVED', createdAt: { gte: startOfMonth } }, _sum: { amount: true } }),
       prisma.payment.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
       prisma.refund.aggregate({ where: { status: { in: ['COMPLETED', 'APPROVED'] } }, _sum: { amount: true } }),
-      prisma.refund.aggregate({ where: { status: { in: ['COMPLETED', 'APPROVED'] }, createdAt: { gte: startOfMonthISO } }, _sum: { amount: true } })
+      prisma.refund.aggregate({ where: { status: { in: ['COMPLETED', 'APPROVED'] }, createdAt: { gte: startOfMonth } }, _sum: { amount: true } })
     ]);
 
     return NextResponse.json({
@@ -110,16 +120,16 @@ export async function GET() {
         active: activeUsers
       },
       plans: {
-        individual: usersByPlanType.INDIVIDUAL.size,
-        family: usersByPlanType.FAMILY.size,
-        monthly: usersByPeriod.MONTHLY.size,
-        yearly: usersByPeriod.YEARLY.size
+        individual: stats.individual.size,
+        family: stats.family.size,
+        monthly: stats.monthly.size,
+        yearly: stats.yearly.size
       },
       revenue: {
-        monthly: (monthlyRevenue._sum.amount || 0) - (monthlyRefunds._sum.amount || 0),
-        total: (totalRevenue._sum.amount || 0) - (totalRefunds._sum.amount || 0)
+        monthly: (monthlySum._sum.amount || 0) - (monthlyRefundsSum._sum.amount || 0),
+        total: (totalSum._sum.amount || 0) - (refundsSum._sum.amount || 0)
       },
-      recentStudents: recentStudentsRaw.map((s) => ({
+      recentStudents: recentStudentsRaw.map((s: any) => ({
         id: s.id,
         name: s.name || "Sem nome",
         createdAt: s.createdAt,
@@ -128,7 +138,7 @@ export async function GET() {
     });
 
   } catch (error: any) {
-    console.error('DETAILED_ADMIN_STATS_ERROR:', error);
+    console.error('ADMIN_STATS_ERROR:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

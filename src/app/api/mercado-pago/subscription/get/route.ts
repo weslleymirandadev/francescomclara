@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
 
@@ -7,6 +8,8 @@ const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
  * Busca informações de uma assinatura
  */
 export async function GET(req: Request) {
+  const token = await getMercadoPagoToken();
+
   try {
     const { searchParams } = new URL(req.url);
     const subscriptionId = searchParams.get('subscriptionId');
@@ -55,7 +58,7 @@ export async function GET(req: Request) {
       const response = await fetch(`${mpApiUrl}/preapproval/${subscriptionId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

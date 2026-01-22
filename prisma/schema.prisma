@@ -9,10 +9,12 @@ datasource db {
 model User {
   id                String           @id @default(cuid())
   name              String?
-  username          String?          @unique // O "nome de guerra" no fórum (@joao123)
+  username          String?          @unique
   bio               String?          @db.Text
   email             String?          @unique
   image             String?
+  banner            String?
+  level             CEFRLevel        @default(A1)
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   role              UserRole         @default(USER)
@@ -325,13 +327,11 @@ model SubscriptionPlan {
   id              String                  @id @default(cuid())
   name            String
   description     String?
-  price           Int                     // Preço em centavos
   discountPrice   Int?                    // Preço com desconto em centavos (opcional)
-  monthlyPrice    Int?
-  yearlyPrice     Int?
+  monthlyPrice    Int?                    @default(0)
+  yearlyPrice     Int?                    @default(0)
   isBestValue     Boolean                 @default(false)
   discountEnabled Boolean                 @default(false)
-  period          String
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
   features        Json?                   // Lista de features do plano
   tracks          SubscriptionPlanTrack[]
@@ -357,36 +357,38 @@ model SubscriptionPlanTrack {
 }
 
 model SiteSettings {
-  id                 String   @id @default("settings")
-  siteName           String   @default("Francês com Clara")
-  supportEmail       String   @default("contato@francescomclara.com")
+  id                   String   @id @default("settings")
+  siteName             String   @default("Francês com Clara")
+  supportEmail         String   @default("contato@francescomclara.com")
   
-  stripeMode         Boolean  @default(true)
-  maintenanceMode    Boolean  @default(false)
+  stripeMode           Boolean  @default(true)
+  maintenanceMode      Boolean  @default(false)
 
-  instagramActive    Boolean  @default(true)
-  youtubeActive      Boolean  @default(false)
-  whatsappActive     Boolean  @default(false)
-  tiktokActive       Boolean  @default(false)
+  instagramActive      Boolean  @default(true)
+  youtubeActive        Boolean  @default(false)
+  whatsappActive       Boolean  @default(false)
+  tiktokActive         Boolean  @default(false)
 
-  instagramUrl       String   @default("#")
-  youtubeUrl         String   @default("#")
-  whatsappUrl        String   @default("#")
-  tiktokUrl          String   @default("#")
+  instagramUrl         String   @default("#")
+  youtubeUrl           String   @default("#")
+  whatsappUrl          String   @default("#")
+  tiktokUrl            String   @default("#")
 
-  siteNameFirstPart  String   @default("Francês com")
-  siteNameHighlight  String   @default("Clara")
-  siteIcon           String   @default("/static/flower.svg")
-  interfaceIcon      String   @default("/static/franca.png")
-  favicon            String   @default("/static/favicon.svg")
-  highlightColor     String   @default("--clara-rose")
-  siteDescription    String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
+  siteNameFirstPart    String   @default("Francês com")
+  siteNameHighlight    String   @default("Clara")
+  siteIcon             String   @default("/static/flower.svg")
+  interfaceIcon        String   @default("/static/franca.png")
+  favicon              String   @default("/static/favicon.svg")
+  highlightColor       String   @default("--clara-rose")
+  siteDescription      String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
 
-  notifyNewModule    Boolean  @default(true)
-  notifyPlanExpiring Boolean  @default(true)
-  notifyInactivity   Boolean  @default(false)
-  inactivityDays     Int      @default(7)
-  expiringMessage    String?  @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
+  notifyNewModule      Boolean  @default(true)
+  notifyPlanExpiring   Boolean  @default(true)
+  notifyInactivity     Boolean  @default(false)
+  inactivityDays       Int      @default(7)
+  daysToNotifyExpiring Int      @default(7)
+  expiringMessage      String?  @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
+  inactivityMessage    String?  @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
 
-  updatedAt          DateTime @updatedAt
+  updatedAt            DateTime @updatedAt
 }

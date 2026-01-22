@@ -1,8 +1,4 @@
-import { 
-  PrismaClient, 
-  LessonType, 
-  SubscriptionPlanType, 
-} from "@prisma/client";
+import { PrismaClient, SubscriptionPlanType, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
@@ -30,51 +26,35 @@ async function main() {
   });
 
   // 2. PLANOS (Lógica: Dois registros para o "Pro", um mensal e um anual com desconto)
-  const plansData = [
+  const plansData: Prisma.SubscriptionPlanCreateInput[] = [
     {
-      id: 'plano-pro-mensal',
+      id: 'plano-pro',
       name: 'Plano Pro',
-      description: 'Acesso total flexível mês a mês.',
-      price: 9700, // R$ 97,00
+      description: 'Acesso total à plataforma com suporte e materiais.',
+      monthlyPrice: 9700, 
+      yearlyPrice: 89700,
       type: SubscriptionPlanType.INDIVIDUAL,
-      period: "MONTHLY",
       active: true,
       features: ["Acesso a todas as trilhas", "Suporte da Clara", "Flashcards"],
     },
     {
-      id: 'plano-pro-anual',
-      name: 'Plano Pro',
-      description: 'O melhor custo-benefício para sua fluência.',
-      price: 89700, // R$ 897,00 (sai R$ 74,75/mês)
-      type: SubscriptionPlanType.INDIVIDUAL,
-      period: "YEARLY",
-      active: true,
-      features: ["Tudo do Mensal", "Desconto de 2 meses", "Certificado de conclusão"],
-    },
-    {
-      id: 'plano-familia-anual',
+      id: 'plano-familia',
       name: 'Plano Família',
-      description: 'Aprenda junto com quem você ama.',
-      price: 149700, // R$ 1.497,00
+      description: 'Aprenda francês com até 4 pessoas da sua família.',
+      monthlyPrice: 0, 
+      yearlyPrice: 149700,
       type: SubscriptionPlanType.FAMILY,
-      period: "YEARLY",
       active: true,
-      features: ["Até 4 contas separadas", "Suporte prioritário", "Relatórios de progresso"],
+      features: ["Até 4 contas", "Suporte prioritário"],
     }
   ];
 
-  const plans = [];
+  const createdPlans = [];
   for (const p of plansData) {
-    const plan = await prisma.subscriptionPlan.upsert({
-      where: { id: p.id },
-      update: { 
-        name: p.name, 
-        price: p.price, 
-        active: true,
-      },
-      create: p as any,
+    const plan = await prisma.subscriptionPlan.create({
+      data: p
     });
-    plans.push(plan);
+    createdPlans.push(plan);
   }
 
   // 3. OBJETIVOS (Com suas imagens originais do Discord)
@@ -112,22 +92,14 @@ async function main() {
       }
     });
 
-    // Vincula a trilha a todos os planos
-    for (const plan of plans) {
-      await prisma.subscriptionPlanTrack.upsert({
-        where: {
-          subscriptionPlanId_trackId: {
-            subscriptionPlanId: plan.id,
-            trackId: track.id
-          }
-        },
-        update: {},
-        create: {
-          subscriptionPlanId: plan.id,
-          trackId: track.id
-        }
-      });
-    }
+    for (const plan of createdPlans) {
+    await prisma.subscriptionPlanTrack.create({
+      data: {
+        subscriptionPlanId: plan.id,
+        trackId: track.id
+      }
+    });
+  }
   }
 
   console.log('✅ Seed finalizado: Planos Pro (Mensal/Anual) e Família configurados!');

@@ -12,15 +12,13 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   description: string | null;
-  monthlyPrice: number; // em centavos
-  yearlyPrice: number; // em centavos
-  price?: number; // Compatibilidade
+  monthlyPrice: number;
+  yearlyPrice: number;
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
   isBestValue: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
   features: string[] | any;
   tracks?: Array<{
     id: string;
@@ -143,8 +141,8 @@ function AssinarPageContent() {
 
   // Calcular preço baseado no período selecionado
   const basePrice = selectedPeriod === 'YEARLY' 
-    ? (plan.yearlyPrice || plan.price || 0)
-    : (plan.monthlyPrice || plan.price || 0);
+    ? (plan.yearlyPrice || 0)
+    : (plan.monthlyPrice || 0);
   const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : basePrice;
   
   // Usar tracks se disponível, caso contrário usar courses (compatibilidade)
@@ -181,7 +179,7 @@ function AssinarPageContent() {
                 <div>Mensal</div>
                 {plan.monthlyPrice && (
                   <div className="text-xs font-normal mt-1">
-                    {formatPrice(plan.monthlyPrice || plan.price || 0)}/mês
+                    {formatPrice(plan.monthlyPrice || 0)}/mês
                   </div>
                 )}
               </div>
@@ -267,7 +265,7 @@ function AssinarPageContent() {
               )}
               {selectedPeriod === 'MONTHLY' && plan.yearlyPrice > 0 && (
                 <span className="text-xs text-green-600 font-semibold block mt-1">
-                  Economize {formatPrice((plan.monthlyPrice || plan.price || 0) - Math.round(plan.yearlyPrice / 12))}/mês com o plano anual
+                  Economize {formatPrice((plan.monthlyPrice || 0) - Math.round(plan.yearlyPrice / 12))}/mês com o plano anual
                 </span>
               )}
             </div>

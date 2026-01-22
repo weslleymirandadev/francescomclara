@@ -8,7 +8,6 @@ interface SubscriptionPlanCardProps {
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
-  price?: number; // Compatibilidade
   isBestValue?: boolean;
   features: string[] | any;
   onSubscribe?: (planId: string) => void;
@@ -20,13 +19,12 @@ export function SubscriptionPlanCard({
   name,
   monthlyPrice,
   yearlyPrice,
-  price,
   isBestValue = false,
   features,
   onSubscribe,
   className = "",
 }: SubscriptionPlanCardProps) {
-  const finalMonthlyPrice = monthlyPrice || price || 0;
+  const finalMonthlyPrice = monthlyPrice || 0;
   const finalYearlyPrice = yearlyPrice || 0;
   const yearlyMonthlyPrice = finalYearlyPrice > 0 ? Math.round(finalYearlyPrice / 12) : 0;
 

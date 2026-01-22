@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
 
@@ -8,6 +9,8 @@ const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
  * Permite atualizar o valor, frequência ou outros parâmetros
  */
 export async function POST(req: Request) {
+  const token = await getMercadoPagoToken();
+
   try {
     const {
       subscriptionId,
@@ -82,7 +85,7 @@ export async function POST(req: Request) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(updateData),
     });

@@ -26,6 +26,7 @@ async function findOrCreateSocialUser(email: string, name: string, image?: strin
         name,
         image,
         role: await resolveUserRole(email) as UserRole,
+        level: "A1"
       },
     });
   }
@@ -168,15 +169,24 @@ export const authOptions: NextAuthOptions = {
     // JWT → carrega ID e role do usuário para o token
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.username = (user as any).username;
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! }
+        });
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.username = dbUser.username;
+          token.level = dbUser.level;
+          token.banner = dbUser.banner;
+        }
       }
 
       if (trigger === "update" && session) {
-        token.name = session.name;
-        token.username = session.username;
-        token.bio = session.bio;
+        token.name = session.name || token.name;
+        token.username = session.username || token.username;
+        token.level = session.level || token.level;
+        token.banner = session.banner || token.banner;
       }
 
       return token;
@@ -188,6 +198,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).username = (token as any).username;
+        (session.user as any).level = token.level;
+        (session.user as any).banner = token.banner;
       }
       return session;
     },

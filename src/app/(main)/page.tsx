@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
-import { formatPrice } from "@/lib/price";
 import { useRouter } from "next/navigation";
 import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText, Sparkles, Lock, Crown, Play } from "lucide-react";
 import Image from "next/image";
@@ -70,12 +69,10 @@ type SubscriptionPlan = {
   yearlyPrice: number;
   monthlyPrice: number;
   isBestValue: boolean;
-  price: number;
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period: 'MONTHLY' | 'YEARLY';
   features: any;
   tracks: Array<{
     id: string;
@@ -444,17 +441,14 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Use "plans" em vez de "subscriptionPlans" se for esse o nome no seu useState */}
               {plans && plans.length > 0 ? (
                 plans.map((plan: any) => (
                   <SubscriptionPlanCard
                     key={plan.id}
                     id={plan.id}
                     name={plan.name}
-                    // Passamos o price direto para o card tratar a lógica de mensal/anual
-                    price={plan.price}
-                    monthlyPrice={plan.period === 'MONTHLY' ? plan.price : 0}
-                    yearlyPrice={plan.period === 'YEARLY' ? plan.price : 0}
+                    monthlyPrice={plan.monthlyPrice || 0}
+                    yearlyPrice={plan.yearlyPrice || 0}
                     features={plan.features}
                     isBestValue={plan.id === 'plano-pro-anual'}
                     onSubscribe={(id) => handleRedirect(`/assinar?planId=${id}`)}
