@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { FiPlay, FiCheckCircle, FiLock, FiStar, FiChevronRight } from "react-icons/fi";
 import { Loading } from "@/components/ui/loading";
+import { de } from "date-fns/locale";
+import { Suspense } from 'react'
 
 type Lesson = {
   id: string;
@@ -26,7 +28,7 @@ type Track = {
   modules: Module[];
 };
 
-export default function MyTrackPage() {
+export function MyTrackPage() {
   const [track, setTrack] = useState<Track | null>(null);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -34,9 +36,33 @@ export default function MyTrackPage() {
 
   useEffect(() => {
     async function loadTrackData() {
-      const response = await fetch(`/api/tracks/${trackId}`);
+      // Simulando um delay de rede
+      setLoading(true);
+      
+      // Dados fakes para teste de layout
+      const fakeData: Track = {
+        id: trackId,
+        name: "Trilha de Francês Iniciante",
+        progress: 35,
+        modules: [
+          {
+            id: "m1",
+            title: "Básico do Básico",
+            lessons: [
+              { id: "l1", title: "Saudações", completed: true, locked: false },
+              { id: "l2", title: "Números", completed: false, locked: false },
+              { id: "l3", title: "Verbo Être", completed: false, locked: true },
+            ]
+          }
+        ]
+      };
+
+      // Em vez de fetch, usamos o fake
+      setTrack(fakeData);
+      setLoading(false);
     }
-  }, [trackId]);   
+    loadTrackData();
+  }, [trackId]);
 
   if (loading) return <Loading />;
 
@@ -134,5 +160,13 @@ export default function MyTrackPage() {
 
       </div>
     </main>
+  );
+}
+
+export default function MinhaTrilhaPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <MyTrackPage />
+    </Suspense>
   );
 }
