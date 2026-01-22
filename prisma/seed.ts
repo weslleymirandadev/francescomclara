@@ -2,7 +2,6 @@ import {
   PrismaClient, 
   LessonType, 
   SubscriptionPlanType, 
-  SubscriptionPlanPeriod 
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -38,7 +37,7 @@ async function main() {
       description: 'Acesso total flexível mês a mês.',
       price: 9700, // R$ 97,00
       type: SubscriptionPlanType.INDIVIDUAL,
-      period: SubscriptionPlanPeriod.MONTHLY,
+      period: "MONTHLY",
       active: true,
       features: ["Acesso a todas as trilhas", "Suporte da Clara", "Flashcards"],
     },
@@ -48,7 +47,7 @@ async function main() {
       description: 'O melhor custo-benefício para sua fluência.',
       price: 89700, // R$ 897,00 (sai R$ 74,75/mês)
       type: SubscriptionPlanType.INDIVIDUAL,
-      period: SubscriptionPlanPeriod.YEARLY,
+      period: "YEARLY",
       active: true,
       features: ["Tudo do Mensal", "Desconto de 2 meses", "Certificado de conclusão"],
     },
@@ -58,7 +57,7 @@ async function main() {
       description: 'Aprenda junto com quem você ama.',
       price: 149700, // R$ 1.497,00
       type: SubscriptionPlanType.FAMILY,
-      period: SubscriptionPlanPeriod.YEARLY,
+      period: "YEARLY",
       active: true,
       features: ["Até 4 contas separadas", "Suporte prioritário", "Relatórios de progresso"],
     }
@@ -72,9 +71,8 @@ async function main() {
         name: p.name, 
         price: p.price, 
         active: true,
-        period: p.period 
       },
-      create: p,
+      create: p as any,
     });
     plans.push(plan);
   }

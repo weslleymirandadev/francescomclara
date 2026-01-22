@@ -331,6 +331,7 @@ model SubscriptionPlan {
   yearlyPrice     Int?
   isBestValue     Boolean                 @default(false)
   discountEnabled Boolean                 @default(false)
+  period          String
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
   features        Json?                   // Lista de features do plano
   tracks          SubscriptionPlanTrack[]
