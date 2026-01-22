@@ -72,7 +72,7 @@ export async function upsertSubscriptionPlan(data: any) {
     revalidatePath("/admin/subscriptions")
     return { success: true }
   } catch (error) {
-    console.error("Erro ao salvar plano:", error)
+    console.error("Erro ao salvar plano:", error);
     return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
   }
 }
