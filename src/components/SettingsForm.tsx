@@ -8,11 +8,11 @@ export function SettingsForm() {
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-3xl p-8 border border-s-200 shadow-sm space-y-8"
+      className="bg-white rounded-3xl p-8 border border-(--color-s-200) shadow-sm space-y-8"
     >
       {/* Seção de Perfil */}
       <section className="space-y-6">
-        <div className="flex items-center gap-4 pb-4 border-b border-s-100">
+        <div className="flex items-center gap-4 pb-4 border-b border-(--color-s-100)">
           <div className="w-12 h-12 bg-pink-50 text-clara-rose rounded-2xl flex items-center justify-center">
             <FiUser size={24} />
           </div>
@@ -25,7 +25,7 @@ export function SettingsForm() {
             <input 
               type="text" 
               placeholder="Seu nome"
-              className="w-full px-4 py-3 bg-s-50 border border-s-200 rounded-xl focus:ring-2 focus:ring-interface-accent focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 bg-s-50 border border-(--color-s-200) rounded-xl focus:ring-2 focus:ring-interface-accent focus:border-transparent outline-none transition-all"
             />
           </div>
 
@@ -35,7 +35,7 @@ export function SettingsForm() {
               type="email" 
               disabled
               value="estudante@exemplo.com"
-              className="w-full px-4 py-3 bg-s-100 border border-s-200 rounded-xl text-s-500 cursor-not-allowed"
+              className="w-full px-4 py-3 bg-s-100 border border-(--color-s-200) rounded-xl text-s-500 cursor-not-allowed"
             />
           </div>
         </div>

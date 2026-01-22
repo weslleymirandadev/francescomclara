@@ -9,11 +9,15 @@ export async function generateMetadata(): Promise<Metadata> {
     where: { id: "settings" }
   });
 
+  const siteName = settings?.siteName || "Francês com Clara";
+
   return {
-    title: settings?.siteName || "Francês com Clara",
-    description: settings?.seoDescription || "Página de aprendizado de idiomas.",
+    title: siteName,
+    description: "Aprenda francês de forma prática e cultural com a Clara.",
     icons: {
-      icon: settings?.interfaceIcon || '/static/favicon.svg',
+      icon: settings?.favicon || '/static/favicon.svg', 
+      shortcut: settings?.favicon || '/static/favicon.svg',
+      apple: settings?.favicon || '/static/favicon.svg',
     },
   };
 }

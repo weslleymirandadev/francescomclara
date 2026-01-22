@@ -1,20 +1,34 @@
 import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
+import { Header } from '@/components/layout/Header';
 
-export const metadata: Metadata = {
-  title: "Autenticação - Frances Com Clara",
-  description: "Faça login ou registre-se em Frances Com Clara",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  return {
+    title: `Autenticação - ${settings?.siteName || "Francês com Clara"}`,
+    description: "Área de autenticação para usuários acessarem suas contas com segurança.",
+  }
 };
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-[var(--color-s-50)]">
+      <Header settings={settings || undefined} />
+      
+      <main className="pt-10">
         {children}
-      </div>
+      </main>
     </div>
   );
 }

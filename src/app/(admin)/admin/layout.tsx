@@ -5,10 +5,19 @@ import { authOptions } from '@/lib/auth';
 import { Toaster } from '@/components/ui/toaster';
 import { Metadata } from 'next';
 import { Header } from '@/components/layout/Header'
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Administração - Francês com Clara",
-  description: "Painel de administração da plataforma Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+
+  return {
+    title: `Administração - ${siteName}`,
+    description: "Painel administrativo para gerenciar o conteúdo e configurações do seu site de forma eficiente.",
+  }
 };
 
 export default async function AdminLayout({

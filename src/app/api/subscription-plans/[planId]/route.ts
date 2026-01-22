@@ -43,12 +43,15 @@ export async function GET(
       id: plan.id,
       name: plan.name,
       description: plan.description || '',
-      price: plan.discountEnabled && plan.discountPrice ? plan.discountPrice : plan.price,
-      originalPrice: plan.price,
+      monthlyPrice: plan.monthlyPrice,
+      yearlyPrice: plan.yearlyPrice,
+      price: plan.price || plan.monthlyPrice, // Compatibilidade com código antigo
+      originalPrice: plan.price || plan.monthlyPrice,
       discountPrice: plan.discountPrice,
       discountEnabled: plan.discountEnabled,
+      isBestValue: plan.isBestValue,
       type: plan.type,
-      period: plan.period,
+      period: plan.period || 'MONTHLY', // Compatibilidade
       features: plan.features,
       tracks: plan.tracks
         .filter((spt: any) => spt.track)
@@ -107,14 +110,17 @@ export async function PATCH(
     const {
       name,
       description,
-      price,
+      monthlyPrice,
+      yearlyPrice,
+      price, // Compatibilidade
       discountPrice,
       discountEnabled,
       type,
-      period,
+      period, // Compatibilidade
       features,
       trackIds,
       active,
+      isBestValue,
     } = body;
 
     // Verificar se o plano existe
@@ -134,9 +140,41 @@ export async function PATCH(
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (price !== undefined) updateData.price = Math.round(price);
+    if (monthlyPrice !== undefined) {
+      updateData.monthlyPrice = Math.round(monthlyPrice);
+      // Se yearlyPrice também foi fornecido, validar
+      const finalYearlyPrice = yearlyPrice !== undefined ? Math.round(yearlyPrice) : existingPlan.yearlyPrice;
+      const yearlyMonthlyPrice = Math.round(finalYearlyPrice / 12);
+      if (yearlyMonthlyPrice >= updateData.monthlyPrice) {
+        return NextResponse.json(
+          { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
+          { status: 400 }
+        );
+      }
+    }
+    if (yearlyPrice !== undefined) {
+      updateData.yearlyPrice = Math.round(yearlyPrice);
+      // Se monthlyPrice também foi fornecido, validar
+      const finalMonthlyPrice = monthlyPrice !== undefined ? Math.round(monthlyPrice) : existingPlan.monthlyPrice;
+      const yearlyMonthlyPrice = Math.round(updateData.yearlyPrice / 12);
+      if (yearlyMonthlyPrice >= finalMonthlyPrice) {
+        return NextResponse.json(
+          { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
+          { status: 400 }
+        );
+      }
+    }
+    // Compatibilidade com código antigo
+    if (price !== undefined) {
+      updateData.price = Math.round(price);
+      // Se não tiver monthlyPrice definido, usar price como monthlyPrice
+      if (updateData.monthlyPrice === undefined) {
+        updateData.monthlyPrice = Math.round(price);
+      }
+    }
     if (discountPrice !== undefined) updateData.discountPrice = discountPrice ? Math.round(discountPrice) : null;
     if (discountEnabled !== undefined) updateData.discountEnabled = discountEnabled;
+    if (isBestValue !== undefined) updateData.isBestValue = isBestValue;
     if (type !== undefined) {
       if (!['INDIVIDUAL', 'FAMILY'].includes(type)) {
         return NextResponse.json(

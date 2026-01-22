@@ -1,12 +1,21 @@
 import { Metadata } from 'next';
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Planos - Francês com Clara",
-  description: "Gerencie os planos da plataforma Francês com Clara."
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+
+  return {
+    title: `Planos - ${siteName}`,
+    description: "Gerencie os planos de assinatura disponíveis para seus usuários de forma eficaz.",
+  }
 };
 
 export default function AdminSubscriptionLayout({
-  children,
+   children,
 }: {
     children: React.ReactNode;
     }) {
@@ -15,4 +24,4 @@ export default function AdminSubscriptionLayout({
         {children}
     </div>
     );
-  }
+}

@@ -102,7 +102,7 @@ export default function ObjectiveBanner({ objective, currentImg, onSettingsChang
           </div>
           {isOpen && (
             <div className="fixed inset-0 z-100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-lg rounded-[40px] p-8 shadow-2xl border border-s-100">
+              <div className="bg-white w-full max-w-lg rounded-[40px] p-8 shadow-2xl border border-(--color-s-100)">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-s-900 font-black uppercase text-xs tracking-[0.2em]">Seletor de Ícones</h3>
                   <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-s-100 rounded-full transition-colors">

@@ -12,7 +12,7 @@ export default async function MainPageLayout({
   return (
     <div>
       <Header />
-        <main className="pt-[66px]">
+        <main className="pt-12">
           {children}
         </main>
       <Footer settings={settings!} />

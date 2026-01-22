@@ -1,8 +1,17 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Minha Trilha - Aprenda Idiomas",
-  description: "Página de Minha Trilha do aplicativo Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+
+  return {
+    title: `Minha Trilha - ${siteName}`,
+    description: "Monitore seu progresso e conquiste seus objetivos de aprendizado com a Minha Trilha personalizada.",
+  }
 };
 
 export default function MinhaTrilhaLayout({
@@ -11,7 +20,7 @@ export default function MinhaTrilhaLayout({
     children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-s-50 px-6">   
+    <div className="min-h-screen bg-[var(--color-s-50)] px-6">   
         {children}
     </div>
   );

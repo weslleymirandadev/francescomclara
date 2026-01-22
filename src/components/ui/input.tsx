@@ -57,7 +57,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={cn(
             "peer flex w-full rounded-xl border bg-white px-4 py-3 text-sm transition-all duration-200 outline-none",
-            "placeholder:opacity-0 focus:placeholder:opacity-100",
             colorClasses.border,
             colorClasses.ring,
             hasError && "border-rose-500 focus:border-rose-500 focus:ring-rose-100",

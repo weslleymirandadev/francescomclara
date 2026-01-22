@@ -7,23 +7,27 @@ datasource db {
 }
 
 model User {
-  id               String           @id @default(cuid())
-  name             String?
-  email            String?          @unique
-  image            String?
-  role             UserRole         @default(USER)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  accounts         Account[]
-  enrollments      Enrollment[]
-  forumComments    ForumComment[]
-  forumPosts       ForumPost[]
-  lessonProgresses LessonProgress[]
-  payments         Payment[]
-  paymentMethods   PaymentMethod[]
-  sessions         Session[]
-  passwords        UserPassword?
-  flashcards       Flashcard[]
+  id                String           @id @default(cuid())
+  name              String?
+  username          String?          @unique // O "nome de guerra" no fórum (@joao123)
+  bio               String?          @db.Text
+  email             String?          @unique
+  image             String?
+  resetToken        String?          @unique
+  resetTokenExpires DateTime?
+  role              UserRole         @default(USER)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  accounts          Account[]
+  enrollments       Enrollment[]
+  forumComments     ForumComment[]
+  forumPosts        ForumPost[]
+  lessonProgresses  LessonProgress[]
+  payments          Payment[]
+  paymentMethods    PaymentMethod[]
+  sessions          Session[]
+  passwords         UserPassword?
+  flashcards        Flashcard[]
 }
 
 model UserPassword {
@@ -95,7 +99,7 @@ model Track {
   description       String
   objectiveId       String
   objective         Objective               @relation(fields: [objectiveId], references: [id])
-  imageUrl          String?
+  imageUrl          String?                 @db.Text
   order             Int                     @default(0)
   active            Boolean                 @default(false)
   modules           Module[]
@@ -138,7 +142,8 @@ model Lesson {
   module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress    LessonProgress[]
   flashcards  Flashcard[]
-  isPremium Boolean @default(false)
+  isPremium   Boolean          @default(false)
+  forumPosts  ForumPost[]
 
   @@index([moduleId])
   @@index([type])
@@ -208,12 +213,16 @@ model ForumPost {
   authorId  String
   title     String
   content   Json
-  trackId   String?       // Opcional: pode estar relacionado a uma trilha
+  trackId   String?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
-  comments  ForumComment[]
+  
   author    User           @relation(fields: [authorId], references: [id])
   track     Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  comments  ForumComment[]
+
+  lessonId  String?
+  lesson    Lesson?        @relation(fields: [lessonId], references: [id])
 
   @@index([trackId])
 }
@@ -312,20 +321,18 @@ enum SubscriptionPlanType {
   FAMILY
 }
 
-enum SubscriptionPlanPeriod {
-  MONTHLY
-  YEARLY
-}
-
 model SubscriptionPlan {
   id              String                  @id @default(cuid())
   name            String
   description     String?
   price           Int                     // Preço em centavos
   discountPrice   Int?                    // Preço com desconto em centavos (opcional)
+  monthlyPrice    Int?
+  yearlyPrice     Int?
+  isBestValue     Boolean                 @default(false)
   discountEnabled Boolean                 @default(false)
+  period          String
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
-  period          SubscriptionPlanPeriod   // MONTHLY ou YEARLY
   features        Json?                   // Lista de features do plano
   tracks          SubscriptionPlanTrack[]
   payments        Payment[]               // Pagamentos associados a este plano
@@ -334,7 +341,6 @@ model SubscriptionPlan {
   updatedAt       DateTime                @updatedAt
 
   @@index([type])
-  @@index([period])
   @@index([active])
 }
 
@@ -351,30 +357,36 @@ model SubscriptionPlanTrack {
 }
 
 model SiteSettings {
-  id              String   @id @default("settings")
-  siteName        String   @default("Francês com Clara")
-  supportEmail    String   @default("contato@francescomclara.com")
+  id                 String   @id @default("settings")
+  siteName           String   @default("Francês com Clara")
+  supportEmail       String   @default("contato@francescomclara.com")
   
-  stripeMode      Boolean  @default(true)
-  maintenanceMode Boolean  @default(false)
+  stripeMode         Boolean  @default(true)
+  maintenanceMode    Boolean  @default(false)
 
-  instagramActive Boolean  @default(true)
-  youtubeActive   Boolean  @default(true)
-  whatsappActive  Boolean  @default(true)
-  tiktokActive    Boolean  @default(false)
+  instagramActive    Boolean  @default(true)
+  youtubeActive      Boolean  @default(false)
+  whatsappActive     Boolean  @default(false)
+  tiktokActive       Boolean  @default(false)
 
-  instagramUrl    String   @default("#")
-  youtubeUrl      String   @default("#")
-  whatsappUrl     String   @default("#")
-  tiktokUrl       String   @default("#")
+  instagramUrl       String   @default("#")
+  youtubeUrl         String   @default("#")
+  whatsappUrl        String   @default("#")
+  tiktokUrl          String   @default("#")
 
   siteNameFirstPart  String   @default("Francês com")
   siteNameHighlight  String   @default("Clara")
-  siteIcon           String   @default("🌸")
-  interfaceIcon      String   @default("/static/frança.png")
+  siteIcon           String   @default("/static/flower.svg")
+  interfaceIcon      String   @default("/static/franca.png")
+  favicon            String   @default("/static/favicon.svg")
   highlightColor     String   @default("--clara-rose")
-  siteDescription String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
-  seoDescription  String   @default("Aprenda francês de forma prática e cultural com a Clara.")
+  siteDescription    String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
 
-  updatedAt       DateTime @updatedAt
+  notifyNewModule    Boolean  @default(true)
+  notifyPlanExpiring Boolean  @default(true)
+  notifyInactivity   Boolean  @default(false)
+  inactivityDays     Int      @default(7)
+  expiringMessage    String?  @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
+
+  updatedAt          DateTime @updatedAt
 }

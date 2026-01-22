@@ -19,6 +19,7 @@ export interface UserTableData {
   id: string
   name: string
   email: string | null
+  role: "USER" | "MODERATOR" | "ADMIN"
   plan: string
   status: "Ativo" | "Inativo"
   date: string
@@ -38,13 +39,14 @@ export async function getUsers(): Promise<UserTableData[]> {
     orderBy: { createdAt: 'desc' }
   })
 
-  return users.map((user: UserWithRelations): UserTableData => {
+  return users.map((user: any): UserTableData => {
     const lastPayment = user.payments?.[0];
     
     return {
       id: user.id,
       name: user.name || "Sem nome",
       email: user.email,
+      role: user.role,
       plan: lastPayment?.subscriptionPlan?.name || "Sem plano",
       status: lastPayment?.status === "PAID" ? "Ativo" : "Inativo",
       date: new Date(user.createdAt).toLocaleDateString('pt-BR')
