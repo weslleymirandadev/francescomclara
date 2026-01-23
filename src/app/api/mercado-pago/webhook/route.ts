@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 const token = await getMercadoPagoToken();
+const client = new MercadoPagoConfig({ accessToken: token });
 
 type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
 
@@ -16,10 +18,6 @@ interface PaymentItem {
   description: string;
   trackId: string;
 }
-
-const client = new MercadoPagoConfig({
-  accessToken: token,
-});
 
 const paymentStatusMap: Record<string, PaymentStatus> = {
   'pending': 'PENDING',
@@ -266,22 +264,45 @@ async function processRecurringPayment(
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null);
+    const { searchParams } = new URL(req.url);
+    const xSignature = req.headers.get("x-signature");
+    const xRequestId = req.headers.get("x-request-id");
+    const dataId = searchParams.get("data.id");
 
-    if (!body) {
-      console.error("Webhook sem body");
-      return sendOK({ error: "invalid_body" });
+    const secret = process.env.MP_WEBHOOK_SECRET;
+
+    if (!xSignature || !secret) {
+      console.error("Segurança: Webhook recebido sem assinatura ou secret não configurado.");
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    console.log("Webhook recebido:", JSON.stringify(body, null, 2));
+    if (secret && xSignature) {
+      const parts = xSignature.split(",");
+      let ts = "";
+      let hash = "";
+
+      parts.forEach(part => {
+        const [key, value] = part.split("=");
+        if (key.trim() === "ts") ts = value;
+        if (key.trim() === "v1") hash = value;
+      });
+
+      const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+      const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+      if (hmac !== hash) {
+        console.error("Segurança: Tentativa de Webhook falsificado detectada!");
+        return new NextResponse("Invalid signature", { status: 401 });
+      }
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body) return sendOK({ error: "invalid_body" });
 
     const eventType = body.type;
     const mpId = body?.data?.id;
 
-    if (!mpId) {
-      console.error("Webhook sem ID");
-      return sendOK({ error: "missing_id" });
-    }
+    if (!mpId) return sendOK({ error: "missing_id" });
 
     // Processar eventos de assinatura (Preapproval/Subscription)
     if (eventType === "preapproval") {

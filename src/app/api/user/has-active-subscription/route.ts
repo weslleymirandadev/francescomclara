@@ -8,16 +8,25 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
-      return NextResponse.json({ hasActiveSubscription: false });
+      return NextResponse.json(
+        { hasActiveSubscription: false, error: "Authentication required" }, 
+        { status: 401 }
+      );
     }
 
     const hasSubscription = await hasActiveSubscription(session.user.id);
-    
-    return NextResponse.json({ hasActiveSubscription: hasSubscription });
+
+    return NextResponse.json(
+      { hasActiveSubscription: hasSubscription },
+      { 
+        status: 200,
+        headers: { "Cache-Control": "no-store, max-age=0" } 
+      }
+    );
   } catch (error) {
     console.error('Error checking active subscription:', error);
     return NextResponse.json(
-      { error: 'An error occurred while checking subscription' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

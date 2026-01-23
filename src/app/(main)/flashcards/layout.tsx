@@ -2,15 +2,19 @@ import { Metadata }  from "next";
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  const siteName = settings?.siteName || "Francês com Clara";
+    const siteName = settings?.siteName || "Francês com Clara";
 
-  return {
-    title: `Flashcards - ${siteName}`,
-    description: "Pratique e aprimore seu vocabulário em francês com nossos flashcards interativos e eficazes.",
+    return {
+      title: `Flashcards - ${siteName}`,
+      description: "Pratique e aprimore seu vocabulário em francês com nossos flashcards interativos e eficazes.",
+    }
+  } catch (e) {
+    return { title: "Flashcards - Francês com Clara" }
   }
 };
 

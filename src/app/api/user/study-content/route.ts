@@ -4,11 +4,6 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/permissions";
 
-/**
- * GET - Retorna conteúdo de estudo baseado no status de assinatura do usuário
- * - Se tiver plano ativo: retorna todas as trilhas e conteúdo completo
- * - Se não tiver plano: retorna apenas conteúdo gratuito (isPremium = false)
- */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -20,13 +15,12 @@ export async function GET() {
     const userId = session.user.id;
     const hasSubscription = await hasActiveSubscription(userId);
 
-    // Buscar trilhas ativas
     const tracks = await prisma.track.findMany({
       where: {
         active: true
       },
       include: {
-        objective: true,
+        objective: { select: { name: true, description: true } },
         modules: {
           include: {
             lessons: {
@@ -55,11 +49,9 @@ export async function GET() {
       orderBy: { order: 'asc' },
     });
 
-    // Filtrar conteúdo baseado no status de assinatura
     const filteredTracks = tracks.map((track: any) => {
       const hasAccess = track.enrollments.length > 0 || hasSubscription;
       
-      // Se não tem acesso e não é assinante, mostrar apenas módulos/lições gratuitas
       if (!hasAccess && !hasSubscription) {
         const freeLessonsCount = track.modules.reduce((sum: number, m: any) => 
           sum + m.lessons.filter((l: any) => !l.isPremium).length, 0
@@ -67,14 +59,19 @@ export async function GET() {
         const totalLessonsCount = track.modules.reduce((sum: number, m: any) => sum + m.lessons.length, 0);
 
         return {
-          ...track,
+          id: track.id,
+          name: track.name,
+          description: track.description,
+          imageUrl: track.imageUrl,
+          order: track.order,
+          objective: track.objective,
           modules: track.modules.map((module: any) => {
             const freeLessons = module.lessons.filter((lesson: any) => !lesson.isPremium);
             const hasFreeLessons = freeLessons.length > 0;
             
             return {
               ...module,
-              lessons: freeLessons.slice(0, 3), // Limitar a 3 lições gratuitas por módulo
+              lessons: freeLessons.slice(0, 3),
               isLocked: module.isPremium || !hasFreeLessons,
               isPremium: module.isPremium
             };
@@ -85,9 +82,13 @@ export async function GET() {
         };
       }
 
-      // Se tem acesso ou é assinante, mostrar tudo
       return {
-        ...track,
+        id: track.id,
+        name: track.name,
+        description: track.description,
+        imageUrl: track.imageUrl,
+        order: track.order,
+        objective: track.objective,
         modules: track.modules.map((module: any) => ({
           ...module,
           lessons: module.lessons,
@@ -99,7 +100,6 @@ export async function GET() {
       };
     });
 
-    // Buscar progresso do usuário
     const progress = await prisma.lessonProgress.findMany({
       where: {
         userId,

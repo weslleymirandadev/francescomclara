@@ -2,15 +2,19 @@ import { Metadata } from "next";
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  const siteName = settings?.siteName || "Francês com Clara";
+    const siteName = settings?.siteName || "Francês com Clara";
 
-  return {
-    title: `Aulas - ${siteName}`,
-    description: "Gerencie e organize o conteúdo do seu site de forma eficiente e intuitiva.",
+    return {
+      title: `Aulas - ${siteName}`,
+      description: "Gerencie e organize o conteúdo do seu site de forma eficiente e intuitiva.",
+    }
+  } catch (e) {
+    return { title: "Aulas - Francês com Clara" }
   }
 };
 

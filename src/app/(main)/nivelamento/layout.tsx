@@ -2,15 +2,19 @@ import { Metadata }  from "next";
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  const siteName = settings?.siteName || "Francês com Clara";
+    const siteName = settings?.siteName || "Francês com Clara";
 
-  return {
-    title: `Nivelamento - ${siteName}`,
-    description: "Realize o teste de nivelamento para identificar seu nível de proficiência em francês e receber recomendações personalizadas de estudo.",
+    return {  
+      title: `Nivelamento - ${siteName}`,
+      description: "Realize o teste de nivelamento para identificar seu nível de proficiência em francês e receber recomendações personalizadas de estudo.",
+    }
+  } catch (e) {
+    return { title: "Nivelamento - Francês com Clara" }
   }
 };
 

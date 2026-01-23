@@ -10,22 +10,22 @@ export async function generateMetadata(): Promise<Metadata> {
     const siteName = settings?.siteName || "Francês com Clara";
 
     return {
-      title: `Dashboard - ${siteName}`,
-      description: "Visão geral do desempenho do seu site e acesso rápido às principais funcionalidades administrativas.",
+      title: `Manutenção - ${siteName}`,
+      description: "Estamos realizando melhorias no site. Voltaremos em breve!",
     }
   } catch (e) {
-    return { title: "Dashboard - Francês com Clara" }
+    return { title: "Manutenção - Francês com Clara" }
   }
 };
 
-export default function DashboardLayout({
-    children,
+export default function ManutencaoLayout({
+  children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return (
-      <div className="min-h-screen bg-[var(--color-s-50)] px-6">
-        {children}
-      </div>
-    );
+  return (
+    <div className="min-h-screen bg-s-50 pb-12 px-6">
+      {children}
+    </div>
+  );
 }

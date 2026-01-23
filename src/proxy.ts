@@ -2,100 +2,90 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/permissions";
+import { redis } from "@/lib/redis";
 
-const IGNORED_ROUTES = [
-  "/api/mercado-pago",
-];
+const IGNORED_ROUTES = ["/api/mercado-pago"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // 1. Usar a variável IGNORED_ROUTES aqui (isso remove o erro do TS)
-  if (IGNORED_ROUTES.some(route => pathname.startsWith(route))) {
-    return NextResponse.next();
-  }
-
-  // 2. Ignorar toda API (exceto as que você quer processar)
-  if (pathname.startsWith("/api")) {
-    return NextResponse.next();
-  }
-
-  // 3. Ignorar arquivos estáticos
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/assets") ||
-    pathname.includes(".") 
-  ) {
-    return NextResponse.next();
-  }
-
-  const settings = await prisma.siteSettings.findFirst({ where: { id: "settings" } });
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  // 1. TRAVA DE RATE LIMIT (Executa antes de tudo para rotas sensíveis)
+  const sensitiveRoutes = [
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/register",
+    "/api/user/change-password"
+  ];
+
+  if (sensitiveRoutes.some(route => pathname.startsWith(route))) {
+    const key = `rate-limit:${ip}:${pathname}`;
+    const current = await redis.incr(key);
+    if (current === 1) await redis.expire(key, 60);
+
+    if (current > 5) {
+      return new NextResponse(JSON.stringify({ error: "Muitas solicitações." }), { 
+        status: 429, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+  }
+
+  // 2. TRAVA DE ADMIN (Protege todas as rotas de API e Painel Admin)
+  if (pathname.startsWith("/api/admin") || pathname.startsWith("/admin")) {
+    if (!token || token.role !== "ADMIN") {
+      if (pathname.startsWith("/api")) {
+        return new NextResponse(JSON.stringify({ error: "Acesso negado" }), { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+  }
+
+  // 3. EXCEPÇÕES (Rotas que não precisam de sessão)
+  if (IGNORED_ROUTES.some(route => pathname.startsWith(route)) || 
+      pathname.startsWith("/_next") || 
+      pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  // 4. LÓGICA DE MANUTENÇÃO (Usando o token já carregado)
+  const settings = await prisma.siteSettings.findFirst({ where: { id: "settings" } });
   const isAdmin = token?.role === "ADMIN";
 
-  // 4. LÓGICA DE MANUTENÇÃO
   if (settings?.maintenanceMode && !isAdmin) {
-    const isMaintenancePage = pathname === "/manutencao";
-    const isAuthRoute = pathname.startsWith("/auth");
-
-    // Se não for admin e não estiver em rota permitida, vai para manutenção
-    if (!isMaintenancePage && !isAuthRoute) {
+    if (pathname !== "/manutencao" && !pathname.startsWith("/auth")) {
       return NextResponse.redirect(new URL("/manutencao", req.url));
-    }
-    
-    // Se estiver na página de manutenção ou auth, permite o acesso
-    if (isMaintenancePage || isAuthRoute) {
-      return NextResponse.next();
     }
   }
 
-  const isPublicApiRoute = (pathname === "/api/tracks") && req.method === "GET";
-
-  const isPublicRoute =
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/assinar") ||
-    pathname.startsWith("/api/public") ||
-    pathname.startsWith("/public") ||
-    pathname === "/" ||
+  // 5. PROTEÇÃO DE ROTAS DE UTILIZADOR (Auth obrigatória)
+  const isPublicRoute = 
+    pathname.startsWith("/auth") || 
+    pathname === "/" || 
     pathname === "/manutencao" ||
-    isPublicApiRoute;
+    pathname.startsWith("/api/public");
 
-  // 5. Proteger rotas autenticadas
   if (!isPublicRoute && !token) {
     const url = new URL("/auth/login", req.url);
-    url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
+    url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
+  // 6. VALIDAÇÕES DE ACESSO (Trilhas e Assinaturas)
   if (token) {
     if (pathname.startsWith('/dashboard/trilhas/')) {
-      const parts = pathname.split('/');
-      const trackId = parts[3];
+      const trackId = pathname.split('/')[3];
       if (trackId && !await hasTrackAccess(token.sub!, trackId)) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
 
-    if (pathname === '/flashcards' || pathname.startsWith('/flashcards/')) {
-      const hasSubscription = await hasActiveSubscription(token.sub!);
-      if (!hasSubscription) {
+    if (pathname.startsWith('/flashcards')) {
+      if (!await hasActiveSubscription(token.sub!)) {
         return NextResponse.redirect(new URL('/assinar', req.url));
       }
     }
-
-    if (pathname === '/minha-trilha' || pathname.startsWith('/minha-trilha/')) {
-      return NextResponse.redirect(new URL('/', req.url));
-    }
-  }
-
-  if (pathname.startsWith("/admin")) {
-    if (!token || token.role != "ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-  }
-
-  if (token && (pathname === "/auth/login" || pathname === "/auth/registrar")) {
-    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -106,10 +96,7 @@ async function hasTrackAccess(userId: string, trackId: string): Promise<boolean>
     where: {
       userId,
       trackId,
-      OR: [
-        { endDate: null },
-        { endDate: { gte: new Date() } }
-      ]
+      OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
     }
   });
   return !!enrollment;

@@ -14,13 +14,25 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     if (!file) return NextResponse.json({ error: "Arquivo não enviado" }, { status: 400 });
 
+    const MAX_SIZE = 5 * 1024 * 1024; 
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: "Ficheiro demasiado grande (Máx 5MB)" }, { status: 400 });
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: "Tipo de ficheiro não permitido" }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const filename = `banner-${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-    const uploadDir = path.join(process.cwd(), "public/uploads");
+    const extension = file.type.split("/")[1];
+    const filename = `banner-${session.user.id || Date.now()}.${extension}`;
     
+    const uploadDir = path.join(process.cwd(), "public/uploads");
     await mkdir(uploadDir, { recursive: true });
+    
     const filePath = path.join(uploadDir, filename);
     await writeFile(filePath, buffer);
 

@@ -2,15 +2,19 @@ import { Metadata } from "next";
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  const siteName = settings?.siteName || "Francês com Clara";
+    const siteName = settings?.siteName || "Francês com Clara";
 
-  return {
-    title: `Configurações - ${siteName}`,
-    description: "Personalize as configurações do seu site para melhor atender às suas necessidades administrativas.",
+    return {
+      title: `Configurações - ${siteName}`,
+      description: "Personalize as configurações do seu site para melhor atender às suas necessidades administrativas.",
+    }
+  } catch (e) {
+    return { title: "Configurações - Francês com Clara" }
   }
 };
 

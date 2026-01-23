@@ -7,28 +7,36 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
 
-  if (!id) {
-    return NextResponse.json({ error: "Track ID is required" }, { status: 400 });
+  if (!id || typeof id !== 'string' || id.length > 50) {
+    return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
 
   const session = await getServerSession(authOptions);
+
   if (!session?.user?.id) {
-    return NextResponse.json({ hasAccess: false });
+    return NextResponse.json({ hasAccess: false }, { status: 401 });
   }
 
   try {
     const userId = session.user.id;
     const now = new Date();
 
-    // Verifica se o usuário tem acesso à trilha
-    // endDate pode ser null (acesso vitalício) ou maior que hoje (acesso ativo)
+    const trackExists = await prisma.track.findUnique({
+      where: { id },
+      select: { id: true }
+    });
+
+    if (!trackExists) {
+      return NextResponse.json({ hasAccess: false, error: "Trilha não encontrada" }, { status: 404 });
+    }
+
     const enrollment = await prisma.enrollment.findFirst({
       where: {
         userId,
         trackId: id,
         OR: [
-          { endDate: null }, // Acesso vitalício
-          { endDate: { gte: now } } // Acesso ativo (não expirado)
+          { endDate: null },
+          { endDate: { gte: now } }
         ]
       },
     });
@@ -45,9 +53,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ hasAccess });
 
   } catch (error) {
-    console.error('Error checking access:', error);
+    console.error('Security Log - Access Check Error');
     return NextResponse.json(
-      { error: 'An error occurred while checking access' },
+      { error: 'An error occurred' },
       { status: 500 }
     );
   }

@@ -3,13 +3,17 @@ import { prisma } from "@/lib/prisma";
 import { Header } from '@/components/layout/Header';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  return {
-    title: `Autenticação - ${settings?.siteName || "Francês com Clara"}`,
-    description: "Área de autenticação para usuários acessarem suas contas com segurança.",
+    return {
+      title: `Autenticação - ${settings?.siteName || "Francês com Clara"}`,
+      description: "Área de autenticação para usuários acessarem suas contas com segurança.",
+    }
+  } catch (e) {
+    return { title: "Autenticação - Francês com Clara" }
   }
 };
 
