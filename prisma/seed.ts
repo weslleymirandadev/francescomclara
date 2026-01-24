@@ -15,6 +15,32 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter } as any);
 
 async function main() {
+  console.log("🚀 Iniciando seed...");
+
+  await prisma.siteSettings.upsert({
+    where: { id: "settings" },
+    update: {},
+    create: {
+      id: "settings",
+      siteName: "Francês com Clara",
+      siteNameFirstPart: "Francês com",
+      siteNameHighlight: "Clara",
+      siteIcon: "/static/flower.svg",
+      interfaceIcon: "/static/franca.png",
+      favicon: "/static/favicon.svg",
+      highlightColor: "--clara-rose",
+      supportEmail: "contato@clara.fr",
+      siteDescription: "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
+      seoDescription: "Aprenda francês de forma prática e cultural com a Clara.",
+      stripeMode: true,
+      maintenanceMode: false,
+      instagramActive: true,
+      youtubeActive: true,
+      whatsappActive: true,
+      tiktokActive: false,
+    },
+  });
+
   // 1. PLANOS DE ASSINATURA (Individuais e Família / Mensal e Anual)
   const plansData = [
     {
@@ -197,13 +223,6 @@ async function main() {
       });
     }
   }
-
-  // Criar SiteSettings se não existir
-  await prisma.siteSettings.upsert({
-    where: { id: 'settings' },
-    update: {},
-    create: {},
-  });
 
   console.log('✅ Banco de dados populado com todos os labels e objetivos!');
 }
