@@ -45,8 +45,13 @@ function SignInForm() {
         email: data.email,
         password: data.password,
       });
-      if (result?.error) setFormError("E-mail ou senha incorretos.");
-      else router.push(callbackUrl);
+
+      if (result?.error) {
+        setFormError("E-mail ou senha incorretos.");
+      } else {
+        router.refresh();
+        router.push(callbackUrl);
+      }
     } catch {
       setFormError("Erro ao autenticar.");
     } finally {
@@ -120,7 +125,7 @@ function SignInForm() {
               {...register("email")}
               error={errors.email?.message}
               placeholder="exemplo@email.com"
-              className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all placeholder:text-slate-300"
+              className="h-16 rounded-2xl border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
             />
 
             <div className="space-y-1">
@@ -130,7 +135,7 @@ function SignInForm() {
                 {...register("password")}
                 error={errors.password?.message}
                 placeholder="••••••••"
-                className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all placeholder:text-slate-300"
+                className="h-16 rounded-2xl border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
               />
               <div className="flex justify-end pr-1">
                 <Link href="/auth/esqueci-a-senha" className="text-[10px] font-black uppercase text-slate-500 hover:text-(--clara-rose) transition-colors">
@@ -156,7 +161,7 @@ function SignInForm() {
           {/* BOTÃO DO GOOGLE COM HOVER ROSA SOLICITADO */}
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl })}
+            onClick={() => signIn("google", { callbackUrl: "/minha-trilha" })}
             className="w-full h-14 cursor-pointer border-2 border-slate-100 bg-white hover:border-(--clara-rose) hover:bg-rose-50/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
           >
             <FaGoogle className="text-slate-400 group-hover:text-(--clara-rose) transition-colors" size={18} />
