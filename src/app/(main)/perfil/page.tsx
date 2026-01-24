@@ -1,132 +1,233 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
-import { FiMail, FiCalendar, FiShield, FiEdit3 } from "react-icons/fi";
+import { FiCamera, FiUser, FiEdit3, FiAtSign, FiCalendar, FiInfo } from "react-icons/fi";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
+import { SaveChangesBar } from "@/components/ui/savechangesbar";
+import { toast } from "react-hot-toast";
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const user = session?.user;
-  const [loading, setLoading] = useState(true);
+  
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState({ name: "", username: "", bio: "" });
 
   useEffect(() => {
-    function loadUserData() {
-      setTimeout(() => {
-        setLoading(false);
-        }, 1000);
+    if (user) {
+      setFormData({ 
+        name: user.name || "", 
+        username: user.username || "",
+        bio: "Estudante apaixonado por Francês! 🇫🇷" 
+      });
     }
-    loadUserData();
-  }, []);
+  }, [user]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-s-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
-      </div>
-    );
-  }
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/user/update-profile", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+      const result = await res.json();
+
+      if (!res.ok) throw new Error(result.error);
+
+      await update({
+        ...session?.user,
+        name: formData.name,
+        username: formData.username,
+        bio: formData.bio
+      });
+
+      toast.success("Perfil salvo!");
+      setHasChanges(false);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsUploading(true);
+    try {
+      const res = await fetch("/api/user/upload-image", { 
+        method: "POST", 
+        body: formData 
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        await update({ ...session?.user, image: data.imageUrl });
+        toast.success("Foto atualizada!");
+      }
+    } catch (err) {
+      toast.error("Erro no upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  if (!session || loading) return <Loading />;
 
   return (
-    <main className="min-h-screen pt-24 pb-12 bg-s-50">
-      <div className="max-w-4xl mx-auto px-6">
-        
-        {/* Card Principal */}
-        <div className="bg-white rounded-2xl shadow-sm border border-(--color-s-200) overflow-hidden">
-          
-          {/* Header do Perfil (Banner simples) */}
-          <div className="h-32 bg-linear-to-r from-interface-accent to-clara-rose opacity-90" />
+    <main className="min-h-screen bg-[var(--color-s-50)] pb-20">
+      {/* BANNER DINÂMICO (ESTILO DISCORD) */}
+      <div className="relative h-60 md:h-72 w-full bg-slate-900">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-[var(--color-s-50)]" />
+        <img 
+          src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop" 
+          className="w-full h-full object-cover opacity-50"
+          alt="Paris Banner"
+        />
+        <button className="absolute bottom-6 right-6 p-3 bg-white/10 backdrop-blur-md text-white rounded-2xl hover:bg-white/20 transition-all border border-white/20">
+          <FiCamera size={20} />
+        </button>
+      </div>
 
-          <div className="px-8 pb-8">
-            <div className="relative flex flex-col md:flex-row items-end -mt-12 gap-6">
-              {/* Foto de Perfil */}
-              <div className="relative group">
-                <div className="w-32 h-32 rounded-2xl border-4 border-white overflow-hidden bg-s-200 shadow-md">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* AVATAR OVERLAP */}
+        <div className="relative -mt-24 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex flex-col md:flex-row md:items-end gap-6">
+            <div className="relative">
+              <div className="w-44 h-44 rounded-[3.5rem] bg-[var(--color-s-50)] p-2">
+                <div className="w-full h-full rounded-[3rem] bg-white shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white">
                   {user?.image ? (
-                    <Image 
-                      src={user.image} 
-                      alt="Avatar" 
-                      width={128} 
-                      height={128}
-                      className="object-cover"
-                    />
+                    <img src={user.image} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-4xl font-bold text-s-400">
-                      {user?.name?.charAt(0) || "U"}
-                    </div>
+                    <FiUser size={60} className="text-slate-200" />
                   )}
                 </div>
-                <button className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-lg text-s-600 hover:text-clara-rose transition-colors">
-                  <FiEdit3 size={16} />
-                </button>
               </div>
-
-              {/* Nome e Badge */}
-              <div className="flex-1 pb-2">
-                <h1 className="text-2xl font-bold text-s-800 flex items-center gap-2">
-                  {user?.name || "Usuário"}
-                  <span className="text-xs font-bold px-2 py-1 bg-interface-accent/10 text-interface-accent rounded-full uppercase tracking-wider">
-                    Aluno Pro 🌸
-                  </span>
-                </h1>
-                <p className="text-s-500">Membro desde Janeiro de 2024</p>
-              </div>
+              <button
+                type="button" 
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute bottom-4 right-4 w-11 h-11 bg-[var(--interface-accent)] text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-[var(--color-s-50)] hover:scale-110 transition-all"
+              >
+                <FiCamera size={20} />
+              </button>
+              <input 
+                type="file" 
+                ref={avatarInputRef}
+                onChange={handleUploadImage}
+                className="hidden"
+                accept="image/*" 
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-              {/* Coluna 1: Informações Pessoais */}
-              <div className="space-y-6">
-                <h2 className="text-sm font-bold text-s-400 uppercase tracking-widest">Informações Pessoais</h2>
-                
-                <div className="flex items-center gap-4 p-4 bg-s-50 rounded-xl border border-(--color-s-100)">
-                  <div className="p-3 bg-white rounded-lg shadow-sm text-interface-accent">
-                    <FiMail size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-s-400 font-medium">E-mail</p>
-                    <p className="text-s-700 font-semibold">{user?.email || "Não informado"}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-4 bg-s-50 rounded-xl border border-(--color-s-100)">
-                  <div className="p-3 bg-white rounded-lg shadow-sm text-clara-rose">
-                    <FiShield size={20} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-s-400 font-medium">Nível de Acesso</p>
-                    <p className="text-s-700 font-semibold">Plano Individual</p>
-                  </div>
-                </div>
+            <div className="pb-4">
+              <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none">
+                {formData.name}
+              </h1>
+              <div className="flex items-center gap-3 mt-3">
+                <span className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-[var(--interface-accent)] uppercase tracking-widest shadow-sm">
+                  @{formData.username}
+                </span>
+                <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                  <FiCalendar className="mb-0.5" /> Aluno desde 2024
+                </span>
               </div>
-
-              {/* Coluna 2: Estatísticas Rápidas */}
-              <div className="space-y-6">
-                <h2 className="text-sm font-bold text-s-400 uppercase tracking-widest">Seu Progresso</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-interface-accent/5 rounded-xl border border-interface-accent/10 text-center">
-                    <p className="text-2xl font-bold text-interface-accent">12</p>
-                    <p className="text-xs text-s-500 font-medium">Aulas Concluídas</p>
-                  </div>
-                  <div className="p-4 bg-clara-rose/5 rounded-xl border border-clara-rose/10 text-center">
-                    <p className="text-2xl font-bold text-clara-rose">85</p>
-                    <p className="text-xs text-s-500 font-medium">Flashcards Masterizados</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Ações da Conta */}
-            <div className="mt-12 pt-8 border-t border-(--color-s-100) flex gap-4">
-              <button className="px-6 py-2 bg-s-800 text-white rounded-lg font-bold hover:bg-s-700 transition-colors">
-                Editar Perfil
-              </button>
-              <button className="px-6 py-2 bg-white text-s-600 border border-(--color-s-200) rounded-lg font-bold hover:bg-s-50 transition-colors">
-                Alterar Senha
-              </button>
             </div>
           </div>
         </div>
+
+        {/* CONTEÚDO */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="lg:col-span-2 p-10 border-none shadow-2xl shadow-slate-200/50 bg-white rounded-[3rem]">
+            <h2 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+              <FiInfo className="text-[var(--interface-accent)]" /> Informações do Perfil
+            </h2>
+            
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome Público</label>
+                  <input 
+                    className="w-full px-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                    value={formData.name}
+                    onChange={(e) => { setFormData({...formData, name: e.target.value}); setHasChanges(true); }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Username (@)</label>
+                  <div className="relative">
+                    <FiAtSign className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                      value={formData.username}
+                      onChange={(e) => { 
+                        const val = e.target.value.toLowerCase().replace(/\s/g, "");
+                        setFormData({...formData, username: val}); 
+                        setHasChanges(true); 
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Biografia</label>
+                <textarea 
+                  className="w-full px-6 py-5 bg-slate-50 border-none rounded-[2rem] text-sm font-medium text-slate-600 min-h-[150px] focus:ring-2 focus:ring-blue-100 transition-all outline-none leading-relaxed"
+                  value={formData.bio}
+                  onChange={(e) => { setFormData({...formData, bio: e.target.value}); setHasChanges(true); }}
+                  placeholder="Conte sua história com a língua francesa..."
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* CARD LATERAL DE XP */}
+          <Card className="p-10 border-none shadow-2xl bg-slate-900 rounded-[3rem] text-white flex flex-col justify-between overflow-hidden relative">
+            <div className="relative z-10">
+              <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Conquistas</h2>
+              <div className="space-y-8">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
+                  <p className="text-3xl font-black text-[var(--interface-accent)] italic">B1 INTERMÉDIAIRE</p>
+                </div>
+                <div className="h-[1px] bg-white/10 w-full" />
+                <div className="flex justify-between items-center">
+                   <span className="text-[10px] font-black uppercase text-slate-400">Total de Lições</span>
+                   <span className="text-xl font-black">124</span>
+                </div>
+                <div className="flex justify-between items-center">
+                   <span className="text-[10px] font-black uppercase text-slate-400">Streak Atual</span>
+                   <span className="text-xl font-black text-orange-400">15 Dias 🔥</span>
+                </div>
+              </div>
+            </div>
+            {/* Decoração */}
+            <div className="absolute -right-10 -bottom-10 text-white/5 rotate-12">
+              <FiUser size={250} />
+            </div>
+          </Card>
+        </div>
       </div>
+
+      <SaveChangesBar 
+        hasChanges={hasChanges} 
+        loading={loading}
+        onSave={handleSaveProfile} 
+        onDiscard={() => {
+          setFormData({ name: user?.name || "", username: user?.username || "", bio: "Estudante apaixonado por Francês! 🇫🇷" });
+          setHasChanges(false);
+        }} 
+      />
     </main>
   );
 }
