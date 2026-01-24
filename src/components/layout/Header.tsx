@@ -122,7 +122,7 @@ export function Header({ settings }: HeaderProps) {
 
           {/* USER DROPDOWN */}
           {session && (
-            <div className="relative group ml-4">
+            <div className="flex items-center gap-4 ml-4">
               {hasActiveSubscription === false && (
                 <Link 
                   href="/assinar" 
@@ -132,44 +132,46 @@ export function Header({ settings }: HeaderProps) {
                   <Crown size={20} />
                 </Link>
               )}
-              <button className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-50 transition-all">
-                <div className="w-9 h-9 rounded-xl bg-[var(--color-s-100)] border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
-                  {session.user?.image ? (
-                    <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={18} className="text-slate-400" />
-                  )}
-                </div>
-                <FiChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform" />
-              </button>
-
-              {/* DROPDOWN MENU */}
-              <div className="absolute right-0 mt-2 w-56 bg-white shadow-2xl rounded-[1.5rem] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-slate-100 z-50">
-                <div className="px-4 py-3 border-b border-slate-50 mb-2">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta</p>
-                  <p className="text-xs font-bold text-slate-700 truncate">{session.user?.email}</p>
-                </div>
-
-                <Link href="/perfil" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
-                  <User size={16} /> <span className="text-sm">Editar Perfil</span>
-                </Link>
-                
-                <Link href="/configuracoes" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
-                  <HiOutlineCog size={16} /> <span className="text-sm">Conta e Segurança</span>
-                </Link>
-                
-                {isAdmin && (
-                  <Link href="/admin" className="flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-50 rounded-xl transition-all">
-                    <RiSecurePaymentFill size={16} /> Painel Admin
-                  </Link>
-                )}
-
-                <button 
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="w-full flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all mt-1"
-                >
-                  <FiLogOut size={16} /> Sair da conta
+              <div className="relative group">
+                <button className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-50 transition-all">
+                  <div className="w-9 h-9 rounded-xl bg-[var(--color-s-100)] border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
+                    {session.user?.image ? (
+                      <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={18} className="text-slate-400" />
+                    )}
+                  </div>
+                  <FiChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform" />
                 </button>
+
+                {/* DROPDOWN MENU */}
+                <div className="absolute right-0 mt-2 w-56 bg-white shadow-2xl rounded-[1.5rem] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-slate-100 z-50">
+                  <div className="px-4 py-3 border-b border-slate-50 mb-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta</p>
+                    <p className="text-xs font-bold text-slate-700 truncate">{session.user?.email}</p>
+                  </div>
+
+                  <Link href="/perfil" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                    <User size={16} /> <span className="text-sm">Editar Perfil</span>
+                  </Link>
+                  
+                  <Link href="/configuracoes" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                    <HiOutlineCog size={16} /> <span className="text-sm">Conta e Segurança</span>
+                  </Link>
+                  
+                  {isAdmin && (
+                    <Link href="/admin" className="flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-50 rounded-xl transition-all">
+                      <RiSecurePaymentFill size={16} /> Painel Admin
+                    </Link>
+                  )}
+
+                  <button 
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="w-full flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all mt-1"
+                  >
+                    <FiLogOut size={16} /> Sair da conta
+                  </button>
+                </div>
               </div>
             </div>
           )}

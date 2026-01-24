@@ -10,11 +10,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   const siteName = settings?.siteName || "Francês com Clara";
-  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
     title: siteName,
-    description: description,
+    description: "Aprenda francês de forma prática e cultural com a Clara.",
     icons: {
       icon: settings?.favicon || '/static/favicon.svg', 
       shortcut: settings?.favicon || '/static/favicon.svg',
