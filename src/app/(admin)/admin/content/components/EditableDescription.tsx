@@ -22,7 +22,7 @@ export const EditableDescription = ({ track, onValueChange }: { track: any, onVa
         onBlur={() => setIsEditing(false)}
         placeholder='Escreva a descrição da trilha aqui.'
         className={`w-full bg-white/20 border rounded-2xl p-4 text-s-700 text-sm font-medium leading-relaxed focus:ring-0 transition-all min-h-[100px] pr-14 resize-none shadow-inner ${
-          isEditing ? 'border-interface-accent' : 'border-s-50'
+          isEditing ? 'border-interface-accent' : 'border-(--color-s-50)'
         }`}
       />
       

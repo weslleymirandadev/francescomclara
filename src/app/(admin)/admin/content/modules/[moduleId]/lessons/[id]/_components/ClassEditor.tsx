@@ -32,7 +32,7 @@ export function ClassEditor({ content, onChange }: ClassEditorProps) {
               value={data.videoUrl}
               onChange={(e) => updateData({ videoUrl: e.target.value })}
               placeholder="https://www.youtube.com/watch?v=..."
-              className="w-full pl-12 pr-4 py-4 bg-s-50 border-2 border-transparent focus:border-s-100 focus:bg-white rounded-2xl font-bold text-s-700 outline-none transition-all"
+              className="w-full pl-12 pr-4 py-4 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-2xl font-bold text-s-700 outline-none transition-all"
             />
           </div>
         </div>
@@ -46,7 +46,7 @@ export function ClassEditor({ content, onChange }: ClassEditorProps) {
             value={data.description}
             onChange={(e) => updateData({ description: e.target.value })}
             placeholder="Explique a teoria desta aula..."
-            className="w-full p-6 bg-s-50 border-2 border-transparent focus:border-s-100 focus:bg-white rounded-[32px] font-medium text-s-600 outline-none transition-all min-h-[250px] resize-none"
+            className="w-full p-6 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-[32px] font-medium text-s-600 outline-none transition-all min-h-[250px] resize-none"
           />
         </div>
       </div>
