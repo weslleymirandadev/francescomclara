@@ -134,7 +134,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
               Paramètres 
               <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
@@ -148,7 +148,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-pink-50 rounded-2xl text-[var(--clara-rose)]">
+                <div className="p-3 bg-pink-50 rounded-2xl text-clara-rose">
                   <Palette size={24} />
                 </div>
                 <div>
@@ -300,7 +300,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     </div>
                     <div className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative flex-shrink-0"
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative shrink-0"
                         style={{ backgroundColor: formData.highlightColor?.startsWith('--') ? `var(${formData.highlightColor})` : (formData.highlightColor || '#D44D8C') }}
                       >
                         <input 
@@ -399,12 +399,12 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
             <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-50 text-[var(--interface-accent)] rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-rose-50 text-interface-accent rounded-2xl flex items-center justify-center">
                   <Bell size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-black uppercase tracking-tighter">Fluxos de Engajamento</h3>
-                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest text-balance">
+                  <p className="text-[10px] text-s-400 font-medium uppercase tracking-widest text-balance">
                     Configure como e quando o sistema deve falar com seus alunos
                   </p>
                 </div>
@@ -412,13 +412,13 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
               <div className="space-y-6">
                 {/* Automação 01: Expiração de Plano */}
-                <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
-                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
+                <div className="group border border-(--color-s-100) rounded-[2rem] overflow-hidden transition-all hover:border-(--color-s-200)">
+                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-s-50/50">
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                          <span className="text-xs font-black uppercase tracking-widest text-slate-900">Aviso de Vencimento</span>
+                          <span className="text-xs font-black uppercase tracking-widest text-s-900">Aviso de Vencimento</span>
                         </div>
                         <Switch 
                           checked={formData.notifyPlanExpiring} 
@@ -427,7 +427,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">Avisar o aluno</span>
+                        <span className="text-[10px] font-bold text-s-400 uppercase">Avisar o aluno</span>
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
                           <input 
                             type="number"
@@ -442,7 +442,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                             className="w-16 h-8 text-center font-bold text-xs border-none focus:ring-0"
                           />
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">dias antes do plano acabar</span>
+                        <span className="text-[10px] font-bold text-s-400 uppercase">dias antes do plano acabar</span>
                       </div>
 
                       <textarea 
@@ -506,7 +506,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
                     Configurar Stripe →
                   </Button>
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform text-slate-400">
+                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
                     Servidor de E-mail (SMTP) →
                   </Button>
                 </div>

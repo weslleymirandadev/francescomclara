@@ -78,13 +78,13 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
     <div className="w-full bg-white min-h-screen">
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         
-        <header className="space-y-4 border-b border-slate-50 pb-6">
+        <header className="space-y-4 border-b border-(--color-s-50) pb-6">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter">
               Étudiants 
               <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
-            <p className="text-slate-400 text-[11px] md:text-sm font-medium italic mt-1">
+            <p className="text-s-400 text-[11px] md:text-sm font-medium italic mt-1">
               Gestão da base oficial de alunos
             </p>
           </div>
@@ -96,7 +96,7 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                 placeholder="Procurar aluno..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-slate-50 border-none focus:ring-1 focus:ring-[var(--interface-accent)] rounded-xl h-12 text-sm"
+                className="bg-s-50 border-none focus:ring-1 focus:ring-interface-accent rounded-xl h-12 text-sm"
               />
             </div>
             
