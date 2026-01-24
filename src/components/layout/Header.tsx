@@ -43,7 +43,7 @@ export function Header({ settings }: HeaderProps) {
         try {
           const response = await fetch("/api/user/me");
           if (response.ok) {
-            const data = (await response.ok) ? await response.json() : null;
+            const data = response.ok ? await response.json() : null;
             setHasActiveSubscription(!!data?.subscription);
           }
 
@@ -89,6 +89,7 @@ export function Header({ settings }: HeaderProps) {
           }}
         >
           <Image
+            referrerPolicy="no-referrer"
             src="/static/franca.png"
             alt="Bandeira França"
             width={28}
@@ -106,9 +107,16 @@ export function Header({ settings }: HeaderProps) {
               Clara
               <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
                 <img
-                  src={settings?.siteIcon}
+                  src={settings?.siteIcon || "/static/flower.svg"}
                   alt="Icon"
                   className="w-4 h-4 object-contain"
+                  onError={(e) => {
+                    console.error(
+                      "Falha ao carregar ícone da flor:",
+                      settings?.siteIcon,
+                    );
+                    (e.target as HTMLImageElement).src = "/static/flower.svg";
+                  }}
                 />
               </span>
             </span>

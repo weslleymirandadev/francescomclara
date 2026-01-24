@@ -1,29 +1,39 @@
-'use client';
+"use client";
 
 import { useEffect } from "react";
 import { triggerConfetti } from "@/lib/utils";
 import Script from "next/script";
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { SentenceBlock, ActiveTooltipProvider } from "@/components/course/SentenceBlock";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import {
+  SentenceBlock,
+  ActiveTooltipProvider,
+} from "@/components/course/SentenceBlock";
 import { CompletionLesson } from "@/components/lesson/CompletionLesson";
 import { SpeakingLesson } from "@/components/lesson/SpeakingLesson";
 
-export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: any) {
+export function CourseContent({
+  activeLesson,
+  moduleTitle,
+  onLessonComplete,
+}: any) {
   if (!activeLesson) return null;
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
     let videoId = "";
-    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
+    if (url.includes("youtu.be/"))
+      videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    else if (url.includes("youtube.com/watch?v="))
+      videoId = url.split("v=")[1]?.split("&")[0];
     else return url;
     return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
   };
 
-  const content = typeof activeLesson.content === "string"
-    ? JSON.parse(activeLesson.content)
-    : activeLesson.content;
+  const content =
+    typeof activeLesson.content === "string"
+      ? JSON.parse(activeLesson.content)
+      : activeLesson.content;
 
   const handleComplete = async () => {
     triggerConfetti();
@@ -36,31 +46,36 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
       if (onLessonComplete) {
         onLessonComplete(activeLesson.id);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
-    if (activeLesson.type !== 'CLASS') return;
+    if (activeLesson.type !== "CLASS") return;
 
     // @ts-ignore
     window.onYouTubeIframeAPIReady = () => {
       // @ts-ignore
-      new window.YT.Player('youtube-player', {
+      new window.YT.Player("youtube-player", {
         events: {
-          'onStateChange': (event: any) => {
+          onStateChange: (event: any) => {
             // @ts-ignore
             if (event.data === window.YT.PlayerState.ENDED) {
               handleComplete();
             }
-          }
-        }
+          },
+        },
       });
     };
   }, [activeLesson.id]);
 
   return (
     <div className="pt-12 md:p-12 max-w-4xl mx-auto w-full animate-in fade-in duration-500">
-      <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />
+      <Script
+        src="https://www.youtube.com/iframe_api"
+        strategy="afterInteractive"
+      />
 
       <header className="mb-10">
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
@@ -72,21 +87,29 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
       </header>
 
       <div className="space-y-8">
-        {(activeLesson.type === 'CLASS' || activeLesson.type === 'STORY' || activeLesson.type === 'COMPLETION' || activeLesson.type === 'SPEAKING') && content?.videoUrl && (
-          <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg">
-            <iframe
-              id="youtube-player"
-              src={getEmbedUrl(content.videoUrl)}
-              className="w-full h-full border-0"
-              allowFullScreen
-            />
-          </div>
-        )}
+        {(activeLesson.type === "CLASS" ||
+          activeLesson.type === "STORY" ||
+          activeLesson.type === "COMPLETION" ||
+          activeLesson.type === "SPEAKING") &&
+          content?.videoUrl && (
+            <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg">
+              <iframe
+                id="youtube-player"
+                src={getEmbedUrl(content.videoUrl)}
+                className="w-full h-full border-0"
+                allowFullScreen
+              />
+            </div>
+          )}
 
-        {activeLesson.type === 'STORY' && content?.script && (
+        {activeLesson.type === "STORY" && content?.script && (
           <div className="bg-blue-50 p-8 rounded-[32px] border border-blue-100 mt-6 wrap-break-word">
-            <h4 className="text-[10px] font-black uppercase text-blue-400 mb-2 italic">Contexto da Cena</h4>
-            <p className="text-blue-900 font-medium italic">"{content.script}"</p>
+            <h4 className="text-[10px] font-black uppercase text-blue-400 mb-2 italic">
+              Contexto da Cena
+            </h4>
+            <p className="text-blue-900 font-medium italic">
+              "{content.script}"
+            </p>
           </div>
         )}
 
@@ -115,8 +138,8 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
           </div>
         ) : activeLesson.type === "COMPLETION" ? (
           <div className="w-full">
-            <CompletionLesson 
-              content={content} 
+            <CompletionLesson
+              content={content}
               lessonId={activeLesson.id}
               onComplete={() => {
                 triggerConfetti();
@@ -128,8 +151,9 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
           </div>
         ) : activeLesson.type === "SPEAKING" ? (
           <div className="w-full">
-            <SpeakingLesson 
-              content={content} 
+            <SpeakingLesson
+              key={activeLesson.id}
+              content={content}
               lessonId={activeLesson.id}
               onComplete={() => {
                 triggerConfetti();
@@ -145,11 +169,27 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  h2: ({ node, ...props }) => <h2 className="text-2xl font-black text-slate-900 mt-8 mb-4 uppercase italic" {...props} />,
-                  p: ({ node, ...props }) => <p className="mb-6 whitespace-pre-wrap" {...props} />,
-                  ul: ({ node, ...props }) => <ul className="list-disc ml-6 mb-6 space-y-2" {...props} />,
-                  strong: ({ node, ...props }) => <strong className="font-black text-slate-900" {...props} />,
-                  a: ({ node, ...props }) => <a className="text-blue-600 underline hover:text-blue-800" {...props} />,
+                  h2: ({ node, ...props }) => (
+                    <h2
+                      className="text-2xl font-black text-slate-900 mt-8 mb-4 uppercase italic"
+                      {...props}
+                    />
+                  ),
+                  p: ({ node, ...props }) => (
+                    <p className="mb-6 whitespace-pre-wrap" {...props} />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <ul className="list-disc ml-6 mb-6 space-y-2" {...props} />
+                  ),
+                  strong: ({ node, ...props }) => (
+                    <strong className="font-black text-slate-900" {...props} />
+                  ),
+                  a: ({ node, ...props }) => (
+                    <a
+                      className="text-blue-600 underline hover:text-blue-800"
+                      {...props}
+                    />
+                  ),
                 }}
               >
                 {content?.description || content?.text || ""}
