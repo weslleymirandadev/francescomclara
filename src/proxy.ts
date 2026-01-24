@@ -15,7 +15,8 @@ export async function proxy(req: NextRequest) {
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/auth/register",
-    "/api/user/change-password"
+    "/api/user/update",
+    "/api/user/upload",
   ];
 
   if (sensitiveRoutes.some(route => pathname.startsWith(route))) {

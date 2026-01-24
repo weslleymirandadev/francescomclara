@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiCamera, FiUser, FiEdit3, FiAtSign, FiCalendar, FiInfo } from "react-icons/fi";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { toast } from "react-hot-toast";
@@ -51,13 +50,22 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/user/update-profile", {
+      const res = await fetch("/api/user/update", {
         method: "POST",
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_PROFILE",
+          data: {
+            name: formData.name,
+            username: formData.username,
+            bio: formData.bio
+          }
+        }),
       });
+      
       const result = await res.json();
 
-      if (!res.ok) throw new Error(result.error);
+      if (!res.ok) throw new Error(result.error || "Erro ao atualizar perfil");
 
       await update({
         ...session?.user,
@@ -81,21 +89,24 @@ export default function ProfilePage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("type", "profile");
 
     setIsUploading(true);
     try {
-      const res = await fetch("/api/user/upload-image", { 
+      const res = await fetch("/api/user/upload", {
         method: "POST", 
         body: formData 
       });
       const data = await res.json();
       
       if (data.success) {
-        await update({ ...session?.user, image: data.imageUrl });
+        await update({ ...session?.user, image: data.url });
         toast.success("Foto atualizada!");
+      } else {
+        throw new Error(data.error);
       }
-    } catch (err) {
-      toast.error("Erro no upload");
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload");
     } finally {
       setIsUploading(false);
     }
@@ -107,18 +118,24 @@ export default function ProfilePage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("type", "banner");
 
     setIsUploading(true);
     try {
-      const res = await fetch("/api/user/upload-banner", { method: "POST", body: formData });
+      const res = await fetch("/api/user/upload", {
+        method: "POST", 
+        body: formData 
+      });
       const data = await res.json();
       
       if (data.success) {
-        await update({ ...session?.user, banner: data.bannerUrl });
+        await update({ ...session?.user, banner: data.url });
         toast.success("Banner atualizado!");
+      } else {
+        throw new Error(data.error);
       }
-    } catch (err) {
-      toast.error("Erro no upload do banner");
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload do banner");
     } finally {
       setIsUploading(false);
     }

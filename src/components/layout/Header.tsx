@@ -20,7 +20,6 @@ interface HeaderProps {
   }
 }
 
-// Apenas o que é essencial para o estudo direto
 const mainNavigation = [
   { href: "/dashboard", icon: FiLayout, text: "Dashboard" },
   { href: "/forum", icon: FiMessageSquare, text: "Fórum" },
