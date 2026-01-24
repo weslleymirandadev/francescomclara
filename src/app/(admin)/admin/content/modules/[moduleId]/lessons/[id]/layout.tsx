@@ -1,8 +1,17 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Aulas - Francês com Clara",
-  description: "Visualize, crie, edite e exclua os dados das aulas da plataforma Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" }
+  });
+
+  const siteName = settings?.siteName || "Francês com Clara";
+
+  return {
+    title: `Aulas - ${siteName}`,
+    description: "Gerencie e organize o conteúdo do seu site de forma eficiente e intuitiva.",
+  }
 };
 
 export default function AdminAnalyticsLayout({

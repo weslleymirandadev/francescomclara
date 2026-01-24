@@ -13,11 +13,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 
   const siteName = settings?.siteName || "Francês com Clara";
-  const description = settings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.";
 
   return {
     title: `Administração - ${siteName}`,
-    description: description,
+    description: "Painel administrativo para gerenciar o conteúdo e configurações do seu site de forma eficiente.",
   }
 };
 

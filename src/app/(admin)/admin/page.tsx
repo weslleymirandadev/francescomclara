@@ -17,6 +17,8 @@ import { PiUsersThree as Users } from "react-icons/pi";
 import { ChartLine, User, FileText, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import { Loading } from '@/components/ui/loading'
+import jsPDF from 'jspdf';
+import autoTable from "jspdf-autotable";
 
 interface AdminStats {
   users: { total: number; active: number; };
@@ -64,6 +66,46 @@ export default function AdminDashboard() {
     }
     fetchData();
   }, []);
+
+  const handleDownloadReport = () => {
+    if (!stats) return;
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(20);
+    doc.text("Relatório Geral de Vendas - Francês com Clara", 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Total de Usuários', stats.users.total.toString()],
+        ['Usuários Ativos', stats.users.active.toString()],
+        ['Receita Mensal', formatPrice(stats.revenue.monthly)],
+        ['Receita Total', formatPrice(stats.revenue.total)],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [244, 63, 94] }
+    });
+
+    doc.text("Últimos Alunos Matriculados", 14, (doc as any).lastAutoTable.finalY + 15);
+    
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 20,
+      head: [['Nome', 'Plano', 'Data']],
+      body: recentStudents.map(student => [
+        student.name,
+        student.planType,
+        new Date(student.createdAt).toLocaleDateString()
+      ]),
+    });
+
+    doc.save("relatorio-vendas.pdf");
+  };
 
   if (loading) return <Loading />;
 
@@ -177,8 +219,12 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <Button className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95 cursor-pointer">
-                <FiDownload size={16} className="mr-2" />
+              <Button 
+                type='button'
+                className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95 cursor-pointer"
+                onClick={handleDownloadReport}>
+                <FiDownload size={16} className="mr-2" 
+              />
                 BAIXAR PDF
               </Button>
             </div>
