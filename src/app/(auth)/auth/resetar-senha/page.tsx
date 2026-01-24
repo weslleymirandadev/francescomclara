@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { FaCheck, FaTimes } from "react-icons/fa";
 
+export const dynamic = 'force-dynamic';
+
 function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
