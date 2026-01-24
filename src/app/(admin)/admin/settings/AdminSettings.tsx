@@ -16,6 +16,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { Loading } from "@/components/ui/loading";
+import { ImageUpload } from "./components/imageUpload";
 
 interface SettingsFormData {
   siteName: string;
@@ -58,10 +59,14 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
     whatsappUrl: initialSettings?.whatsappUrl || "",
     tiktokActive: initialSettings?.tiktokActive ?? false,
     tiktokUrl: initialSettings?.tiktokUrl || "",
+    daysToNotifyExpiring: initialSettings?.daysToNotifyExpiring ?? 7,
   });
 
-  const handleChange = (key: string, value: any) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({ 
+      ...prev,
+      [field]: value 
+    }));
     setHasChanges(true);
   };
 
@@ -95,15 +100,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       setLoading(false);
     }
   }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const objectUrl = URL.createObjectURL(file);
-      handleChange("interfaceIcon", objectUrl);
-      toast.success("Novo ícone carregado localmente! 🚩");
-    }
-  };
 
   const resetColor = () => {
     handleChange("highlightColor", "--clara-rose");
@@ -151,11 +147,32 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-[var(--clara-rose)]">
-                  <Palette size={20} />
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 bg-pink-50 rounded-2xl text-[var(--clara-rose)]">
+                  <Palette size={24} />
                 </div>
-                <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Identidade Visual</h2>
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tighter">Identidade Visual</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logo, Favicon e Cores</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <ImageUpload 
+                  label="Ícone do Site (A Flor)"
+                  field="siteIcon"
+                  value={formData.siteIcon}
+                  onChange={handleChange}
+                  maxDimension={512}
+                />
+
+                <ImageUpload 
+                  label="Favicon (Aba)"
+                  field="favicon"
+                  value={formData.favicon || "/static/favicon.svg"}
+                  onChange={handleChange}
+                  maxDimension={64}
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-8">
@@ -180,70 +197,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       style={{ color: `var(${formData.highlightColor || '--clara-rose'})` }}
                       className="h-12 rounded-xl bg-white border-none font-bold shadow-sm" 
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        Ícone do Site
-                      </label>
-                      <button 
-                        type="button"
-                        onClick={() => handleChange("siteIcon", "/static/flower.svg")}
-                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline cursor-pointer"
-                      >
-                        Original
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Favicon (Aba do Navegador)</label>
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 flex items-center justify-center bg-white rounded-lg shadow-sm border border-slate-100">
-                          <img src={formData.favicon} className="w-6 h-6 object-contain" alt="favicon" />
-                        </div>
-                        <Input 
-                          value={formData.favicon || ""} 
-                          onChange={e => handleChange("favicon", e.target.value)}
-                          className="h-10 flex-1" 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                        {formData.siteIcon?.includes('/') || formData.siteIcon?.startsWith('blob:') ? (
-                          <img src={formData.siteIcon} className="w-8 h-8 object-contain" alt="Preview" />
-                        ) : (
-                          <span className="text-2xl">{formData.siteIcon || "🌸"}</span>
-                        )}
-                      </div>
-
-                      <div className="relative flex-1">
-                        <Input 
-                          value={formData.siteIcon || ""} 
-                          onChange={e => handleChange("siteIcon", e.target.value)}
-                          placeholder="Emoji ou caminho..."
-                          className="h-12 w-full rounded-xl bg-white border-none font-bold text-sm shadow-sm pr-10" 
-                        />
-                        
-                        <label className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer hover:text-rose-500 text-slate-400 transition-colors">
-                          <Plus size={18} />
-                          <input 
-                            type="file" 
-                            accept=".svg" 
-                            className="hidden" 
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const url = URL.createObjectURL(file);
-                                handleChange("siteIcon", url);
-                              }
-                            }} 
-                          />
-                        </label>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -478,9 +431,15 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
                           <input 
                             type="number"
-                            value={formData.daysToNotifyExpiring}
-                            onChange={(e) => { setFormData({...formData, daysToNotifyExpiring: parseInt(e.target.value)}); setHasChanges(true); }}
-                            className="w-10 h-8 text-center text-xs font-bold bg-transparent outline-none"
+                            value={formData.daysToNotifyExpiring || 0} 
+                            onChange={(e) => { 
+                              setFormData({
+                                ...formData, 
+                                daysToNotifyExpiring: parseInt(e.target.value) || 0 
+                              }); 
+                              setHasChanges(true); 
+                            }}
+                            className="w-16 h-8 text-center font-bold text-xs border-none focus:ring-0"
                           />
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">dias antes do plano acabar</span>
