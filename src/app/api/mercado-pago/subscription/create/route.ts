@@ -98,14 +98,14 @@ export async function POST(req: Request) {
     console.log('Items recebidos:', JSON.stringify(items, null, 2));
 
     // Validar que todas as trilhas existem
-    const trackIds = items.map((item: any) => item.id);
+    const trackIds = items.map(item => item.id);
     const existingTracks = await prisma.track.findMany({
       where: { id: { in: trackIds } },
       select: { id: true, name: true }
     });
     
     const existingTrackIds = new Set(existingTracks.map((t: any) => t.id));
-    const missingTracks = trackIds.filter((id: string) => !existingTrackIds.has(id));
+    const missingTracks = trackIds.filter(id => !existingTrackIds.has(id));
     
     if (missingTracks.length > 0) {
       return NextResponse.json(
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     // Enriquecer items com dados das trilhas
-    const enrichedItems = items.map((item: any) => {
+    const enrichedItems = items.map(item => {
       const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
@@ -289,7 +289,7 @@ export async function POST(req: Request) {
           ...(subscriptionResponse.sandbox_init_point && { sandbox_init_point: subscriptionResponse.sandbox_init_point }),
         },
         items: {
-          create: enrichedItems.map((item: any) => ({
+          create: enrichedItems.map(item => ({
             trackId: item.id,
             price: item.price,
             quantity: item.quantity,
@@ -351,7 +351,7 @@ export async function POST(req: Request) {
     // Conceder acesso
     if (isAuthorized) {
       await Promise.all(
-        enrichedItems.map((item: any) =>
+        enrichedItems.map(item =>
           prisma.enrollment.upsert({
             where: {
               userId_trackId: { userId, trackId: item.id }
