@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: `Autenticação - ${settings?.siteName || "Francês com Clara"}`,
-    description: settings?.seoDescription,
+    description: "Área de autenticação para usuários acessarem suas contas com segurança.",
   }
 };
 
