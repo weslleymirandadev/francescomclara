@@ -186,16 +186,16 @@ model LessonProgress {
 }
 
 model ExerciseAnswer {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String
-  exerciseIndex Int    // Índice do exercício (0-based)
-  userAnswer  String   // Resposta do usuário
+  id            String   @id @default(cuid())
+  userId        String
+  lessonId      String
+  exerciseIndex Int // Índice do exercício (0-based)
+  userAnswer    String // Resposta do usuário
   correctAnswer String // Resposta correta
-  isCorrect   Boolean  // Se a resposta está correta
-  exerciseType String  // Tipo de exercício: "COMPLETION" ou "SPEAKING"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isCorrect     Boolean // Se a resposta está correta
+  exerciseType  String // Tipo de exercício: "COMPLETION" ou "SPEAKING"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([userId, lessonId, exerciseIndex, exerciseType])
   @@index([userId, lessonId])
