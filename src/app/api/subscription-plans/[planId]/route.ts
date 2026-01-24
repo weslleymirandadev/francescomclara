@@ -13,6 +13,18 @@ export async function GET(
   try {
     const { planId } = await params;
 
+    if (planId === "default") {
+      const defaultPlan = await prisma.subscriptionPlan.findFirst({
+        where: { active: true },
+        orderBy: { monthlyPrice: 'asc' }
+      });
+
+      if (!defaultPlan) {
+        return NextResponse.json({ error: "Nenhum plano disponível" }, { status: 404 });
+      }
+      return NextResponse.json(defaultPlan); 
+    }
+
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId },
       include: {

@@ -32,29 +32,27 @@ export function Header({ settings }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const isAdmin = session?.user?.role === "ADMIN";
 
   useEffect(() => {
-    async function checkSubscription() {
-      if (!session?.user?.id) {
-        setHasActiveSubscription(false);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/user/has-active-subscription");
-        const data = await response.json();
-        setHasActiveSubscription(data.hasActiveSubscription || false);
-      } catch (error) {
-        console.error("Erro ao verificar assinatura:", error);
-        setHasActiveSubscription(false);
+    async function checkStatus() {
+      if (status === "authenticated") {
+        try {
+          const response = await fetch("/api/user/me");
+          if (response.ok) {
+            const userData = await response.json();
+            const active = userData.payments?.some((p: any) => p.status === "APPROVED");
+            setHasActiveSubscription(!!active);
+          }
+        } catch (error) {
+          setHasActiveSubscription(false);
+        }
       }
     }
-
-    checkSubscription();
-  }, [session]);
+    checkStatus();
+  }, [status]);
 
   return (
     <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-[100]">
@@ -123,10 +121,10 @@ export function Header({ settings }: HeaderProps) {
           {/* USER DROPDOWN */}
           {session && (
             <div className="flex items-center gap-4 ml-4">
-              {hasActiveSubscription === false && (
+              {session && !hasActiveSubscription && (
                 <Link 
                   href="/assinar" 
-                  className="ml-4 flex items-center gap-2 bg-linear-to-r from-clara-rose to-pink-500 text-white px-4 min-[950px]:px-6 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
+                  className="ml-4 flex items-center justify-center bg-linear-to-r from-clara-rose to-pink-500 text-white w-12 h-12 rounded-xl font-bold hover:shadow-lg transition-all"
                   title="Assinar Agora"
                 >
                   <Crown size={20} />
@@ -159,9 +157,17 @@ export function Header({ settings }: HeaderProps) {
                     <HiOutlineCog size={16} /> <span className="text-sm">Conta e Segurança</span>
                   </Link>
                   
-                  {isAdmin && (
-                    <Link href="/admin" className="flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-50 rounded-xl transition-all">
-                      <RiSecurePaymentFill size={16} /> Painel Admin
+                  {session?.user?.role === 'ADMIN' && (
+                    <Link href="/admin" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
+                      <RiSecurePaymentFill className="text-slate-700" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Painel Admin</span>
+                    </Link>
+                  )}
+
+                  {session?.user?.role === 'MODERATOR' && (
+                    <Link href="/moderacao" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
+                      <FiMessageSquare className="text-slate-400" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Moderação</span>
                     </Link>
                   )}
 

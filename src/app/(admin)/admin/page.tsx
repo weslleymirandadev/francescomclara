@@ -111,12 +111,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-10 max-w-[1600px] mx-auto p-6 lg:p-10 bg-white min-h-screen">
-      <header className="flex justify-between items-end border-b border-[var(--slate-100)] pb-8">
+      <header className="flex justify-between items-end border-b border-slate-100 pb-8">
         <div>
-          <h1 className="text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter flex items-center gap-3">
+          <h1 className="text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter flex items-center gap-3">
             Tableau de Bord <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
           </h1>
-          <p className="text-[var(--slate-500)] font-medium mt-1">Francês com Clara • Gestão de Dados Reais</p>
+          <p className="text-slate-500 font-medium mt-1">Francês com Clara • Gestão de Dados Reais</p>
         </div>
       </header>
 
@@ -149,9 +149,9 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2 overflow-hidden border-[var(--slate-200)] bg-white shadow-sm">
+        <Card className="lg:col-span-2 overflow-hidden border-slate-200 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b border-[var(--slate-100)] p-6">
-            <h3 className="text-sm font-black text-[var(--slate-800)] uppercase tracking-widest">Últimos Alunos</h3>
+            <h3 className="text-sm font-black text-slate-800)] uppercase tracking-widest">Últimos Alunos</h3>
           </CardHeader>
           <Table>
             <TableHeader className="bg-[var(--slate-50)]">

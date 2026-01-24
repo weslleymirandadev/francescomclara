@@ -487,29 +487,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 </div>
               </div>
             </section>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <Globe size={24} className="mb-4 text-emerald-400" />
-                <h3 className="text-xl font-black uppercase tracking-tighter">Status das Conexões</h3>
-                
-                <div className="space-y-3 mt-6">
-                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10">
-                    <span className="text-[10px] font-bold uppercase">Mercado Pago</span>
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-black">CONECTADO</span>
-                  </div>
-
-                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/10">
-                    <span className="text-[10px] font-bold uppercase">E-mail (Resend)</span>
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full font-black">ATIVO</span>
-                  </div>
-                </div>
-                
-                <p className="text-[9px] text-slate-500 mt-6 italic">
-                  As chaves de API são gerenciadas via Environment Variables para sua segurança.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -11,7 +11,6 @@ export async function proxy(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  // 1. TRAVA DE RATE LIMIT (Executa antes de tudo para rotas sensíveis)
   const sensitiveRoutes = [
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
@@ -32,24 +31,24 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // 2. TRAVA DE ADMIN (Protege todas as rotas de API e Painel Admin)
-  if (pathname.startsWith("/api/admin") || pathname.startsWith("/admin")) {
-    if (!token || token.role !== "ADMIN") {
-      if (pathname.startsWith("/api")) {
-        return new NextResponse(JSON.stringify({ error: "Acesso negado" }), { status: 403 });
-      }
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  // 3. EXCEPÇÕES (Rotas que não precisam de sessão)
+  if (pathname.startsWith("/moderacao") || pathname.startsWith("/api/moderacao")) {
+    if (token?.role !== "ADMIN" && token?.role !== "MODERATOR") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+  }
+
   if (IGNORED_ROUTES.some(route => pathname.startsWith(route)) || 
       pathname.startsWith("/_next") || 
       pathname.includes(".")) {
     return NextResponse.next();
   }
 
-  // 4. LÓGICA DE MANUTENÇÃO (Usando o token já carregado)
   const settings = await prisma.siteSettings.findFirst({ where: { id: "settings" } });
   const isAdmin = token?.role === "ADMIN";
 
@@ -59,12 +58,13 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // 5. PROTEÇÃO DE ROTAS DE UTILIZADOR (Auth obrigatória)
   const isPublicRoute = 
     pathname.startsWith("/auth") || 
+    pathname.startsWith("/api/auth") ||
     pathname === "/" || 
     pathname === "/manutencao" ||
-    pathname.startsWith("/api/public");
+    pathname.startsWith("/api/public") ||
+    pathname.startsWith("/api/webhooks");
 
   if (!isPublicRoute && !token) {
     const url = new URL("/auth/login", req.url);
@@ -72,7 +72,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 6. VALIDAÇÕES DE ACESSO (Trilhas e Assinaturas)
   if (token) {
     if (pathname.startsWith('/dashboard/trilhas/')) {
       const trackId = pathname.split('/')[3];

@@ -7,6 +7,9 @@ import { useSearchParams } from "next/navigation";
 import { SubscriptionForm } from "@/components/SubscriptionForm";
 import { formatPrice } from "@/lib/price";
 import { Crown, Check } from "lucide-react";
+import { Loading } from "@/components/ui/loading"
+import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard";
+import { useRouter } from "next/navigation";
 
 interface SubscriptionPlan {
   id: string;
@@ -33,63 +36,55 @@ function AssinarPageContent() {
   const { status } = useSession();
   const searchParams = useSearchParams();
   const [authRedirecting, setAuthRedirecting] = useState(false);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
   const planId = searchParams.get('planId') || 'default';
-  const periodParam = searchParams.get('period') as 'MONTHLY' | 'YEARLY' | null;
+  const router = useRouter();
 
-  // Buscar plano de assinatura
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchContent = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/subscription-plans/${planId}`);
         
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Plano de assinatura não encontrado');
-          } else {
-            setError('Erro ao carregar plano de assinatura');
+        if (!planId || planId === 'default') {
+          const response = await fetch('/api/subscription-plans?active=true');
+          const data = await response.json();
+          setPlans(data);
+          setPlan(null);
+        } 
+        else {
+          const response = await fetch(`/api/subscription-plans/${planId}`);
+          if (!response.ok) {
+            window.history.replaceState(null, '', '/assinar');
+            const resAll = await fetch('/api/subscription-plans?active=true');
+            const dataAll = await resAll.json();
+            setPlans(dataAll);
+            return;
           }
-          setLoading(false);
-          return;
-        }
-
-        const data = await response.json();
-        setPlan(data);
-        setError(null);
-        
-        // Definir período inicial baseado no parâmetro da URL ou padrão
-        if (periodParam && (periodParam === 'MONTHLY' || periodParam === 'YEARLY')) {
-          setSelectedPeriod(periodParam);
-        } else {
-          // Se não tiver parâmetro, usar mensal como padrão
-          setSelectedPeriod('MONTHLY');
+          const data = await response.json();
+          setPlan(data);
         }
       } catch (err) {
-        console.error('Erro ao buscar plano:', err);
-        setError('Erro ao carregar plano de assinatura');
+        setError('Erro ao carregar planos');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPlan();
-  }, [planId, periodParam]);
+    fetchContent();
+  }, [planId]);
 
-  // Se o usuário não estiver autenticado, redirecionar para login
   useEffect(() => {
     if (status === "unauthenticated" && !authRedirecting) {
       setAuthRedirecting(true);
-      // Redirecionar para login com callbackUrl preservando o planId
       void signIn(undefined, { callbackUrl: `/assinar?planId=${planId}` });
     }
   }, [status, planId, authRedirecting]);
 
-  // Se não autenticado, mostrar loading enquanto redireciona
   if (status === "unauthenticated" || authRedirecting) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
@@ -105,22 +100,9 @@ function AssinarPageContent() {
     );
   }
 
-  if (status === "loading" || loading) {
-    return (
-      <main className="min-h-screen bg-gray-50 px-4 py-10">
-        <div className="mx-auto max-w-lg space-y-4 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Carregando plano...
-          </h1>
-          <p className="text-sm text-gray-500">
-            Aguarde, estamos preparando sua assinatura.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (loading) return <Loading />;
 
-  if (error || !plan) {
+  if (error) {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-10">
         <div className="mx-auto max-w-lg space-y-4 text-center">
@@ -139,13 +121,48 @@ function AssinarPageContent() {
     );
   }
 
-  // Calcular preço baseado no período selecionado
+  if (!plan) {
+    return (
+      <main className="min-h-screen bg-gray-50 px-4">
+        <section id="planos" className="py-12 max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <h2 className="text-4xl font-black mb-4 tracking-tight bg-gradient-to-r from-[var(--interface-accent)] to-[var(--clara-rose)] text-transparent bg-clip-text py-2">
+              Escolha o plano ideal para você
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {plans && plans.length > 0 ? (
+              plans.map((p: any) => (
+                <SubscriptionPlanCard
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  monthlyPrice={p.monthlyPrice || 0}
+                  yearlyPrice={p.yearlyPrice || 0}
+                  features={p.features}
+                  isBestValue={p.type === 'FAMILY' || p.id.includes('anual')}
+                  onSubscribe={(id) => router.push(`/assinar?planId=${id}`)}
+                />
+              ))
+            ) : (
+              <div className="col-span-3 text-center py-10 border-2 border-dashed rounded-[40px] border-slate-200">
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
+                  Nenhum plano disponível no momento.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const basePrice = selectedPeriod === 'YEARLY' 
     ? (plan.yearlyPrice || 0)
     : (plan.monthlyPrice || 0);
   const total = plan.discountEnabled && plan.discountPrice ? plan.discountPrice : basePrice;
   
-  // Usar tracks se disponível, caso contrário usar courses (compatibilidade)
   const tracks = (plan.tracks as any) || [];
   const items = tracks.map((item: any) => ({
     id: item.id,

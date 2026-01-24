@@ -8,6 +8,9 @@ datasource db {
 
 model User {
   id                String           @id @default(cuid())
+  parentId          String?          // ID do dono do plano
+  parent            User?            @relation("FamilyMembers", fields: [parentId], references: [id])
+  children          User[]           @relation("FamilyMembers")
   name              String?
   username          String?          @unique
   bio               String?          @db.Text
@@ -327,10 +330,10 @@ model SubscriptionPlan {
   id              String                  @id @default(cuid())
   name            String
   description     String?
-  discountPrice   Int?                    // Preço com desconto em centavos (opcional)
   monthlyPrice    Int?                    @default(0)
   yearlyPrice     Int?                    @default(0)
   isBestValue     Boolean                 @default(false)
+  discountPrice   Int?                    // Preço com desconto em centavos (opcional)
   discountEnabled Boolean                 @default(false)
   type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
   features        Json?                   // Lista de features do plano

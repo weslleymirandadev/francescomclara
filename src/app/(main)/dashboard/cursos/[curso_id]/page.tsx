@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import * as Dialog from '@radix-ui/react-dialog';
+import { Loading } from '@/components/ui/loading';
 
 interface LessonProgress {
   id: string;
@@ -86,7 +87,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
   const [isCheckingRefund, setIsCheckingRefund] = useState(false);
   const [cursoId, setCursoId] = useState<string | null>(null);
 
-  // Resolver params uma vez
   useEffect(() => {
     params.then(p => setCursoId(p.curso_id));
   }, [params]);
@@ -106,7 +106,7 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
     try {
       const [courseRes, enrollmentRes] = await Promise.all([
         fetch(`/api/courses/${(await params).curso_id}`),
-        fetch('/api/user/enrollments'),
+        fetch('/api/user/me'),
       ]);
 
       if (!courseRes.ok) throw new Error('Failed to fetch course');
@@ -118,7 +118,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
         const courseEnrollment = courses.find(async (c: any) => c.id === (await params).curso_id);
 
         if (courseEnrollment) {
-          // Buscar pagamentos para esta matrícula
           const paymentsRes = await fetch(`/api/payments?courseId=${courseEnrollment.id}`);
           if (paymentsRes.ok) {
             const payments = await paymentsRes.json();
@@ -148,7 +147,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
       return;
     }
 
-    // Verifica se o texto de confirmação está correto
     if (refundConfirmationText.toLowerCase() !== 'quero reembolsar') {
       setRefundError('Por favor, digite exatamente "quero reembolsar" para confirmar');
       return;
@@ -175,7 +173,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
       const result = await response.json();
       const refundIdFromResponse = result.data?.refundId;
 
-      // Atualiza o status do pagamento para refletir o reembolso
       const updatedEnrollment = { ...enrollment };
       if (updatedEnrollment.payments[0]) {
         updatedEnrollment.payments[0].refunds = [{
@@ -185,7 +182,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
         setEnrollment(updatedEnrollment);
       }
 
-      // Iniciar verificação do reembolso
       if (refundIdFromResponse) {
         setRefundId(refundIdFromResponse);
         setIsCheckingRefund(true);
@@ -203,16 +199,13 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
     }
   };
 
-  // Add this effect after the existing useEffect
   useEffect(() => {
-    // If we're done loading and there's no enrollment data, redirect to dashboard
     if (!isLoading && status === 'authenticated' && !enrollment) {
       toast.error('Você não tem acesso a este curso');
       router.push('/dashboard');
     }
   }, [isLoading, status, enrollment, router]);
 
-  // Verificar status do reembolso periodicamente
   useEffect(() => {
     if (!isCheckingRefund || !refundId || !enrollment?.payments?.[0]) return;
 
@@ -222,8 +215,7 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
       if (!isMounted || !cursoId) return;
 
       try {
-        // Primeiro, verificar se o enrollment ainda existe (acesso foi revogado)
-        const enrollmentResponse = await fetch('/api/user/enrollments');
+        const enrollmentResponse = await fetch('/api/user/me');
         if (enrollmentResponse.ok) {
           const { courses } = await enrollmentResponse.json();
           const hasAccess = courses.some((c: any) => c.id === cursoId);
@@ -239,7 +231,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
           }
         }
 
-        // Buscar os pagamentos atualizados para verificar o status do reembolso
         const paymentsResponse = await fetch(`/api/payments?courseId=${cursoId}`);
         if (paymentsResponse.ok && isMounted) {
           const payments = await paymentsResponse.json();
@@ -256,7 +247,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
                 setRefundId(null);
                 toast.success('Reembolso confirmado! Você será redirecionado.');
                 
-                // Pequeno delay para o usuário ver a mensagem
                 setTimeout(() => {
                   if (isMounted) {
                     router.push('/dashboard');
@@ -272,7 +262,6 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
       }
     };
 
-    // Verificar imediatamente e depois a cada 3 segundos
     checkRefundStatus();
     const intervalId = setInterval(checkRefundStatus, 3000);
 
@@ -288,9 +277,7 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
     setRefundError('');
   };
 
-  if (isLoading) {
-    return <LoadingSkeleton />;
-  }
+  if (isLoading) return <Loading />;
 
   if (!course) {
     return (
@@ -624,17 +611,5 @@ export default function DashboardCoursePage({ params }: { params: Promise<{ curs
         </Dialog.Portal>
       </Dialog.Root>
     </>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-        <div className="h-64 bg-gray-200 rounded"></div>
-      </div>
-    </div>
   );
 }

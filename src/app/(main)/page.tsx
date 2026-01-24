@@ -109,30 +109,42 @@ export default function Home() {
   );
 
   useEffect(() => {
-    async function checkAccess() {
-      if (session?.user?.id && tracks.length > 0) {
-        const newAccessMap: Record<string, { hasAccess: boolean }> = {};
+    async function loadData() {
+      setLoading(true);
+      try {
+        const resPublic = await fetch('/api/public/content');
+        const publicData = await resPublic.json();
+        setPlans(publicData.plans || []);
+        
+        if (status === "authenticated") {
+          const resUser = await fetch('/api/user/me');
+          if (resUser.ok) {
+            const userData = await resUser.json();
+            
+            setStudyContent({
+              tracks: userData.enrollments?.map((e: any) => e.track) || [],
+              hasActiveSubscription: !!userData.payments?.length,
+              completedLessonIds: []
+            });
 
-        await Promise.all(tracks.map(async (track) => {
-          const itemKey = `track-${track.id}`;
-          try {
-            const response = await fetch(`/api/user/has-access?id=${track.id}`);
-            const { hasAccess } = await response.json();
-            newAccessMap[itemKey] = { hasAccess };
-          } catch (error) {
-            console.error("Error checking access for track:", track.id, error);
-            newAccessMap[itemKey] = { hasAccess: false };
+            const allTracks = publicData.tracks.map((track: Track) => ({
+              ...track,
+              hasAccess: userData.enrollments?.some((e: any) => e.trackId === track.id)
+            }));
+            setTracks(allTracks);
           }
-        }));
-
-        setAccessMap(prev => ({ ...prev, ...newAccessMap }));
+        } else {
+          setTracks(publicData.tracks);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
       }
     }
 
-    if (tracks.length > 0) {
-      checkAccess();
-    }
-  }, [session, tracks]);
+    loadData();
+  }, [status]);
 
   useEffect(() => {
     async function load() {

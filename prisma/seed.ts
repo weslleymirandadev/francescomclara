@@ -10,7 +10,6 @@ const prisma = new PrismaClient({ adapter } as any);
 async function main() {
   console.log("🚀 Iniciando seed...");
 
-  // 1. Configurações do Site
   await prisma.siteSettings.upsert({
     where: { id: "settings" },
     update: {},
@@ -25,7 +24,6 @@ async function main() {
     },
   });
 
-  // 2. PLANOS (Lógica: Dois registros para o "Pro", um mensal e um anual com desconto)
   const plansData: Prisma.SubscriptionPlanCreateInput[] = [
     {
       id: 'plano-pro',
@@ -57,7 +55,6 @@ async function main() {
     createdPlans.push(plan);
   }
 
-  // 3. OBJETIVOS (Com suas imagens originais do Discord)
   const travelObj = await prisma.objective.upsert({
     where: { name: 'Viagem' },
     update: {},
@@ -67,7 +64,6 @@ async function main() {
     }
   });
 
-  // 4. TRILHAS
   const tracksData = [
     {
       id: 'trilha-viagem',

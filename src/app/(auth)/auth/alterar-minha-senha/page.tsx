@@ -25,6 +25,12 @@ export default function ChangePasswordPage() {
     const newPassword = formData.get("newPassword") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
+    if (newPassword.length < 8) {
+      setStatus({ type: 'error', message: 'A nova senha deve ter pelo menos 8 caracteres.' });
+      setLoading(false);
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setStatus({ type: 'error', message: 'As novas senhas não coincidem.' });
       setLoading(false);
@@ -32,20 +38,30 @@ export default function ChangePasswordPage() {
     }
 
     try {
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        body: JSON.stringify({ currentPassword, newPassword }),
+      const res = await fetch("/api/user/update", {
+        method: "PUT",
+        body: JSON.stringify({ 
+          action: "CHANGE_PASSWORD",
+          currentPassword, 
+          newPassword 
+        }),
         headers: { "Content-Type": "application/json" },
       });
 
-      const data = await res.json();
+      // Verifica se a resposta está vazia antes de dar o parse
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
 
-      if (!res.ok) throw new Error(data.error || "Erro ao alterar senha");
+      if (!res.ok) throw new Error(data.error || "Erro ao atualizar senha");
 
-      setStatus({ type: 'success', message: 'Senha alterada com sucesso!' });
-      setTimeout(() => router.push("/profile"), 2000);
+      setStatus({ type: 'success', message: 'Senha atualizada com sucesso!' });
+      setTimeout(() => router.push("/perfil"), 1500);
     } catch (err: any) {
-      setStatus({ type: 'error', message: err.message });
+      // Se o erro for o parse do JSON, ele cairá aqui
+      setStatus({ type: 'error', message: err.message === "Unexpected end of JSON input" 
+        ? "O servidor não enviou uma resposta válida." 
+        : err.message 
+      });
     } finally {
       setLoading(false);
     }
@@ -55,10 +71,10 @@ export default function ChangePasswordPage() {
     <main className="min-h-screen pt-6 pb-6 bg-[var(--color-s-50)] flex items-center justify-center px-6">
       <div className="max-w-md w-full">
         <Link 
-          href="/perfil" 
+          href="/configuracoes" 
           className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-s-400)] hover:text-[var(--color-s-900)] transition-colors mb-6"
         >
-          <FiChevronLeft size={16} /> Voltar ao Perfil
+          <FiChevronLeft size={16} /> Voltar as Configurações
         </Link>
 
         <Card className="border-none shadow-2xl">
