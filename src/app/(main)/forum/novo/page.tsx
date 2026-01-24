@@ -52,19 +52,19 @@ export default function NewTopicPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen pt-12 pb-20 bg-[var(--color-s-50)]">
+    <main className="min-h-screen pt-12 pb-20 bg-(--slate-50)">
       <div className="max-w-3xl mx-auto px-6">
         
         <button 
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-[var(--clara-rose)] transition-colors mb-8"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-(--clara-rose) transition-colors mb-8"
         >
           <FiArrowLeft size={16} /> Voltar ao Fórum
         </button>
 
         <div className="mb-10">
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-            Criar Nova <span className="text-[var(--clara-rose)]">Discussão</span>
+            Criar Nova <span className="text-(--clara-rose)">Discussão</span>
           </h1>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
             Compartilhe sua dúvida ou conhecimento com a comunidade
@@ -91,7 +91,7 @@ export default function NewTopicPage() {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Esta dúvida é sobre uma aula? (Opcional)</label>
               <div className="relative">
                 <select 
-                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold appearance-none text-slate-600 focus:ring-2 focus:ring-[var(--clara-rose)] outline-none"
+                  className="w-full h-14 bg-slate-50 border-none rounded-2xl px-6 text-sm font-bold appearance-none text-slate-600 focus:ring-2 focus:ring-(--clara-rose) outline-none"
                   value={formData.lessonId}
                   onChange={(e) => setFormData({...formData, lessonId: e.target.value})}
                 >
@@ -111,7 +111,7 @@ export default function NewTopicPage() {
                 placeholder="Explique detalhadamente sua dúvida..."
                 value={formData.content}
                 onChange={(e) => setFormData({...formData, content: e.target.value})}
-                className="w-full min-h-[200px] bg-slate-50 border-none rounded-[2rem] p-6 text-base font-medium outline-none focus:ring-2 focus:ring-[var(--clara-rose)] transition-all"
+                className="w-full min-h-[200px] bg-slate-50 border-none rounded-[2rem] p-6 text-base font-medium outline-none focus:ring-2 focus:ring-(--clara-rose) transition-all"
                 required
               />
             </div>

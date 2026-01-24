@@ -126,7 +126,7 @@ function AssinarPageContent() {
       <main className="min-h-screen bg-gray-50 px-4">
         <section id="planos" className="py-12 max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-4xl font-black mb-4 tracking-tight bg-gradient-to-r from-[var(--interface-accent)] to-[var(--clara-rose)] text-transparent bg-clip-text py-2">
+            <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-(--interface-accent) to-(--clara-rose) text-transparent bg-clip-text py-2">
               Escolha o plano ideal para você
             </h2>
           </div>

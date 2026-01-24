@@ -60,10 +60,10 @@ function SignInForm() {
       {/* --- BACKGROUND TRICOLOR INTEGRADO --- */}
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
-          className="w-full h-full bg-cover bg-center opacity-30 grayscale-[20%]"
+          className="w-full h-full bg-cover bg-center opacity-30 grayscale-20"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/50 to-white" />
       </div>
 
       <div className="absolute inset-0 flex pointer-events-none z-10">
@@ -91,11 +91,11 @@ function SignInForm() {
             Área do <span className="text-[#002395]">Alu</span><span className="text-[#ED2939]">no</span>
           </h1>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="h-[1px] w-8 bg-slate-300"></span>
+            <span className="h-px w-8 bg-slate-300"></span>
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-800">
-              Francês com <span className="text-[var(--clara-rose)] italic">Clara</span>
+              Francês com <span className="text-(--clara-rose) italic">Clara</span>
             </p>
-            <span className="h-[1px] w-8 bg-slate-300"></span>
+            <span className="h-px w-8 bg-slate-300"></span>
           </div>
         </div>
       </div>
@@ -120,7 +120,7 @@ function SignInForm() {
               {...register("email")}
               error={errors.email?.message}
               placeholder="exemplo@email.com"
-              className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-[var(--clara-rose)]/20 transition-all placeholder:text-slate-300"
+              className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all placeholder:text-slate-300"
             />
 
             <div className="space-y-1">
@@ -130,10 +130,10 @@ function SignInForm() {
                 {...register("password")}
                 error={errors.password?.message}
                 placeholder="••••••••"
-                className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-[var(--clara-rose)]/20 transition-all placeholder:text-slate-300"
+                className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all placeholder:text-slate-300"
               />
               <div className="flex justify-end pr-1">
-                <Link href="/auth/esqueci-a-senha" className="text-[10px] font-black uppercase text-slate-500 hover:text-[var(--clara-rose)] transition-colors">
+                <Link href="/auth/esqueci-a-senha" className="text-[10px] font-black uppercase text-slate-500 hover:text-(--clara-rose) transition-colors">
                   Esqueceu a senha?
                 </Link>
               </div>
@@ -142,7 +142,7 @@ function SignInForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-[var(--clara-rose)] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl shadow-slate-300 active:scale-[0.98]"
+              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl shadow-slate-300 active:scale-[0.98]"
             >
               {isSubmitting ? "Carregando..." : "Entrar na Trilha"}
             </button>
@@ -157,16 +157,16 @@ function SignInForm() {
           <button
             type="button"
             onClick={() => signIn("google", { callbackUrl })}
-            className="w-full h-14 cursor-pointer border-2 border-slate-100 bg-white hover:border-[var(--clara-rose)] hover:bg-rose-50/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
+            className="w-full h-14 cursor-pointer border-2 border-slate-100 bg-white hover:border-(--clara-rose) hover:bg-rose-50/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
           >
-            <FaGoogle className="text-slate-400 group-hover:text-[var(--clara-rose)] transition-colors" size={18} />
-            <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 group-hover:text-[var(--clara-rose)] transition-colors">Google Account</span>
+            <FaGoogle className="text-slate-400 group-hover:text-(--clara-rose) transition-colors" size={18} />
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 group-hover:text-(--clara-rose) transition-colors">Google Account</span>
           </button>
         </div>
 
         <div className="mt-10 mb-16 text-center">
           <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">
-            Ainda não é aluno? <Link href="/auth/registrar" className="text-[var(--clara-rose)] hover:underline ml-1 font-black">Matricule-se agora</Link>
+            Ainda não é aluno? <Link href="/auth/registrar" className="text-(--clara-rose) hover:underline ml-1 font-black">Matricule-se agora</Link>
           </p>
         </div>
       </div>

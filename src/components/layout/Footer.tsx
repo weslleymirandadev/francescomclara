@@ -24,7 +24,7 @@ interface FooterProps {
 
 export function Footer({ settings }: FooterProps) {
   return (
-    <footer className="w-full bg-[var(--color-s-50)] border-t border-[var(--color-s-200)] pt-16 pb-8">
+    <footer className="w-full bg-(--slate-50) border-t border-(--slate-200) pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           
@@ -59,27 +59,27 @@ export function Footer({ settings }: FooterProps) {
               </span>
             </span>
             </Link>
-            <p className="text-[var(--color-s-500)] text-sm leading-relaxed font-medium">
+            <p className="text-(--slate-500) text-sm leading-relaxed font-medium">
               {settings?.siteDescription || "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia."}
             </p>
           </div>
 
           {/* Coluna 2: Navegação */}
           <div>
-            <h4 className="font-bold text-[var(--color-s-900)] mb-6 uppercase text-xs tracking-widest">Plataforma</h4>
-            <ul className="space-y-4 text-sm font-semibold text-[var(--color-s-600)]">
-              <li><Link href="/minha-trilha" className="hover:text-[var(--interface-accent)] transition-colors">Minha Trilha</Link></li>
-              <li><Link href="/flashcards" className="hover:text-[var(--interface-accent)] transition-colors">Flashcards</Link></li>
-              <li><Link href="/forum" className="hover:text-[var(--interface-accent)] transition-colors">Comunidade</Link></li>
+            <h4 className="font-bold text-(--slate-900) mb-6 uppercase text-xs tracking-widest">Plataforma</h4>
+            <ul className="space-y-4 text-sm font-semibold text-(--slate-600)">
+              <li><Link href="/minha-trilha" className="hover:text-(--interface-accent) transition-colors">Minha Trilha</Link></li>
+              <li><Link href="/flashcards" className="hover:text-(--interface-accent) transition-colors">Flashcards</Link></li>
+              <li><Link href="/forum" className="hover:text-(--interface-accent) transition-colors">Comunidade</Link></li>
             </ul>
           </div>
 
           {/* Coluna 3: Atendimento */}
           <div>
-            <h4 className="font-bold text-[var(--color-s-900)] mb-6 uppercase text-xs tracking-widest">Atendimento</h4>
-            <ul className="space-y-4 text-sm font-semibold text-[var(--color-s-600)]">
+            <h4 className="font-bold text-(--slate-900) mb-6 uppercase text-xs tracking-widest">Atendimento</h4>
+            <ul className="space-y-4 text-sm font-semibold text-(--slate-600)">
               <li>
-                <a href={`mailto:${settings?.supportEmail}`} className="hover:text-[var(--interface-accent)] transition-colors flex flex-col">
+                <a href={`mailto:${settings?.supportEmail}`} className="hover:text-(--interface-accent) transition-colors flex flex-col">
                   <span className="text-[10px] text-s-400 uppercase tracking-tighter">E-mail de Suporte</span>
                   {settings?.supportEmail || "suporte@exemplo.com"}
                 </a>
@@ -87,14 +87,14 @@ export function Footer({ settings }: FooterProps) {
               
               <div className="h-[1px] bg-s-100 w-8 my-2" />
 
-              <li><Link href="/privacidade" className="hover:text-[var(--interface-accent)] transition-colors">Privacidade & Termos</Link></li>
-              <li><Link href="/configuracoes" className="hover:text-[var(--interface-accent)] transition-colors">Preferências</Link></li>
+              <li><Link href="/privacidade" className="hover:text-(--interface-accent) transition-colors">Privacidade & Termos</Link></li>
+              <li><Link href="/configuracoes" className="hover:text-(--interface-accent) transition-colors">Preferências</Link></li>
             </ul>
           </div>
 
           {/* Coluna 4: Social com efeito Hover Tricolor */}
           <div>
-            <h4 className="font-bold text-[var(--color-s-900)] mb-6 uppercase text-xs tracking-widest">
+            <h4 className="font-bold text-(--slate-900) mb-6 uppercase text-xs tracking-widest">
               Redes Sociais
             </h4>
             <div className="flex gap-4">
@@ -127,11 +127,11 @@ export function Footer({ settings }: FooterProps) {
                     href={social.href as string || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group relative p-3 bg-white border border-[var(--color-s-200)] rounded-xl transition-all duration-300 hover:border-[var(--interface-accent)] hover:drop-shadow-[-4px_4px_0_var(--interface-accent)]"
+                    className="group relative p-3 bg-white border border-(--slate-200) rounded-xl transition-all duration-300 hover:border-(--interface-accent) hover:drop-shadow-[-4px_4px_0_var(--interface-accent)]"
                   >
                     <social.icon 
                       size={20} 
-                      className="text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)] transition-colors" 
+                      className="text-(--slate-400) group-hover:text-(--interface-accent) transition-colors" 
                     />
                   </a>
                 ))}
@@ -140,15 +140,15 @@ export function Footer({ settings }: FooterProps) {
         </div>
 
         {/* Linha Inferior: Copyright e Bandeira Decorativa */}
-        <div className="pt-8 border-t border-[var(--color-s-200)] flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[var(--color-s-400)] text-xs font-bold uppercase tracking-tighter">
+        <div className="pt-8 border-t border-(--slate-200) flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-(--slate-400) text-xs font-bold uppercase tracking-tighter">
             © 2026 Francês com Clara. Todos os direitos reservados.
           </p>
           
           {/* Detalhe minimalista tricolor */}
           <div className="flex h-1 w-24">
-            <div className="flex-1 bg-[var(--interface-accent)]"></div>
-            <div className="flex-1 bg-white border-y border-[var(--color-s-100)]"></div>
+            <div className="flex-1 bg-(--interface-accent)"></div>
+            <div className="flex-1 bg-white border-y border-(--slate-100)"></div>
             <div className="flex-1 bg-[#EF4135]"></div>
           </div>
         </div>

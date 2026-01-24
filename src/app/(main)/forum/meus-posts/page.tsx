@@ -37,10 +37,10 @@ export default function MyPostsPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen pt-24 pb-20 bg-[var(--color-s-50)]">
+    <main className="min-h-screen pt-24 pb-20 bg-(--slate-50)">
       <div className="max-w-6xl mx-auto px-6">
         
-        <Link href="/forum" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 hover:text-[var(--clara-rose)] transition-colors">
+        <Link href="/forum" className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 hover:text-(--clara-rose) transition-colors">
           <FiArrowLeft /> VOLTAR AO FÓRUM
         </Link>
 
@@ -54,7 +54,7 @@ export default function MyPostsPage() {
             </div>
           </Card>
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2rem] flex items-center gap-6">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--clara-rose)] text-white flex items-center justify-center shadow-lg"><FiMessageSquare size={24}/></div>
+            <div className="w-14 h-14 rounded-2xl bg-(--clara-rose) text-white flex items-center justify-center shadow-lg"><FiMessageSquare size={24}/></div>
             <div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total de Respostas</p>
               <h4 className="text-2xl font-black text-slate-900">{totalComments}</h4>
@@ -72,7 +72,7 @@ export default function MyPostsPage() {
         <div className="mb-10 flex justify-between items-end">
           <div>
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-              A Minha <span className="text-[var(--clara-rose)]">Atividade</span>
+              A Minha <span className="text-(--clara-rose)">Atividade</span>
             </h1>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">Gere as tuas contribuições para a comunidade</p>
           </div>
@@ -87,14 +87,14 @@ export default function MyPostsPage() {
             </Card>
           ) : (
             posts.map((post: any) => (
-              <Card key={post.id} className="p-8 border-none shadow-lg bg-white rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center gap-6 group hover:shadow-2xl transition-all border-l-4 border-l-transparent hover:border-l-[var(--clara-rose)]">
+              <Card key={post.id} className="p-8 border-none shadow-lg bg-white rounded-[2.5rem] flex flex-col md:flex-row justify-between items-center gap-6 group hover:shadow-2xl transition-all border-l-4 border-l-transparent hover:border-l-(--clara-rose)">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded uppercase tracking-tighter">
                       {new Date(post.createdAt).toLocaleDateString()}
                     </span>
                     {post.lesson && (
-                      <span className="text-[9px] font-black px-2 py-0.5 bg-rose-50 text-[var(--clara-rose)] rounded uppercase tracking-tighter">
+                      <span className="text-[9px] font-black px-2 py-0.5 bg-rose-50 text-(--clara-rose) rounded uppercase tracking-tighter">
                         {post.lesson.title}
                       </span>
                     )}
@@ -110,7 +110,7 @@ export default function MyPostsPage() {
                   </Link>
                   <Button 
                     variant="outline" 
-                    className="h-12 w-12 rounded-2xl border-slate-100 text-slate-400 hover:text-[var(--clara-rose)]"
+                    className="h-12 w-12 rounded-2xl border-slate-100 text-slate-400 hover:text-(--clara-rose)"
                     onClick={() => alert('Edição em breve!')}
                   >
                     <FiEdit3 size={18} />

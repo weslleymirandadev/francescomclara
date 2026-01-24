@@ -135,7 +135,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
               Paramètres 
               <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
@@ -149,7 +149,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-pink-50 rounded-2xl text-[var(--clara-rose)]">
+                <div className="p-3 bg-pink-50 rounded-2xl text-(--clara-rose)">
                   <Palette size={24} />
                 </div>
                 <div>
@@ -248,7 +248,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     <textarea 
                       value={formData.siteDescription}
                       onChange={e => handleChange("siteDescription", e.target.value)}
-                      className="w-full min-h-[80px] p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
+                      className="w-full min-h-20 p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
                       placeholder="Texto que aparece abaixo da logo no rodapé..."
                     />
                   </div>
@@ -298,7 +298,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     </div>
                     <div className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative flex-shrink-0"
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative shrink-0"
                         style={{ backgroundColor: formData.highlightColor?.startsWith('--') ? `var(${formData.highlightColor})` : (formData.highlightColor || '#D44D8C') }}
                       >
                         <input 
@@ -397,7 +397,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
             <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-50 text-[var(--interface-accent)] rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-rose-50 text-(--interface-accent) rounded-2xl flex items-center justify-center">
                   <Bell size={24} />
                 </div>
                 <div>
@@ -441,7 +441,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       <textarea 
                         value={formData.expiringMessage}
                         onChange={(e) => { setFormData({...formData, expiringMessage: e.target.value}); setHasChanges(true); }}
-                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        className="w-full min-h-20 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
                         placeholder="Sua mensagem de renovação..."
                       />
                     </div>
@@ -479,7 +479,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       <textarea 
                         value={formData.inactivityMessage}
                         onChange={(e) => { setFormData({...formData, inactivityMessage: e.target.value}); setHasChanges(true); }}
-                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        className="w-full min-h-20 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
                         placeholder="Mensagem de saudade..."
                       />
                     </div>

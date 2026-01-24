@@ -67,8 +67,8 @@ export function ImageUpload({ value, field, onChange, label, maxDimension }: Ima
         className={`
           relative h-44 rounded-[2.5rem] border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center cursor-pointer overflow-hidden
           ${isDragging 
-            ? "border-[var(--clara-rose)] bg-pink-50 scale-[0.98]" 
-            : "border-slate-200 bg-slate-50 hover:bg-white hover:border-[var(--clara-rose)]"}
+            ? "border-(--clara-rose) bg-pink-50 scale-[0.98]" 
+            : "border-slate-200 bg-slate-50 hover:bg-white hover:border-(--clara-rose)"}
         `}
       >
         {value ? (

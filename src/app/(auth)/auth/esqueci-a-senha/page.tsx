@@ -52,10 +52,10 @@ function ForgotPasswordForm() {
       {/* --- BACKGROUND TRICOLOR INTEGRADO --- */}
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
-          className="w-full h-full bg-cover bg-center opacity-30 grayscale-[20%]"
+          className="w-full h-full bg-cover bg-center opacity-30 grayscale-20"
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-white/50 to-white" />
       </div>
 
       <div className="absolute inset-0 flex pointer-events-none z-10">
@@ -83,11 +83,11 @@ function ForgotPasswordForm() {
             Recuperar <span className="text-[#002395]">Ace</span><span className="text-[#ED2939]">sso</span>
           </h1>
           <div className="mt-4 flex items-center justify-center gap-2">
-            <span className="h-[1px] w-8 bg-slate-300"></span>
+            <span className="h-px w-8 bg-slate-300"></span>
             <p className="text-[11px] font-black uppercase tracking-[0.5em] text-slate-800">
-              Francês com <span className="text-[var(--clara-rose)] italic">Clara</span>
+              Francês com <span className="text-(--clara-rose) italic">Clara</span>
             </p>
-            <span className="h-[1px] w-8 bg-slate-300"></span>
+            <span className="h-px w-8 bg-slate-300"></span>
           </div>
         </div>
       </div>
@@ -114,7 +114,7 @@ function ForgotPasswordForm() {
               <div className="space-y-4">
                 <Link
                   href="/auth/login"
-                  className="inline-block w-full h-16 leading-[64px] bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[var(--clara-rose)] transition-all shadow-xl"
+                  className="inline-block w-full h-16 leading-16 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-(--clara-rose) transition-all shadow-xl"
                 >
                   Ir para o Login
                 </Link>
@@ -145,7 +145,7 @@ function ForgotPasswordForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@email.com"
-                  className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-[var(--clara-rose)]/20 transition-all placeholder:text-slate-300"
+                  className="h-16 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all placeholder:text-slate-300"
                 />
 
                 {error && (
@@ -157,7 +157,7 @@ function ForgotPasswordForm() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-[var(--clara-rose)] text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl active:scale-[0.98]"
+                  className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl active:scale-[0.98]"
                 >
                   {isSubmitting ? 'Enviando Link...' : 'Enviar Instruções'}
                 </button>
@@ -169,7 +169,7 @@ function ForgotPasswordForm() {
             <div className="mt-10 text-center">
               <Link 
                 href="/auth/login" 
-                className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-[var(--clara-rose)] transition-colors group"
+                className="inline-flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-(--clara-rose) transition-colors group"
               >
                 <FaArrowLeft className="text-[9px] transition-transform group-hover:-translate-x-1" />
                 Voltar ao Login

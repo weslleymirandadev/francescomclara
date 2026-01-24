@@ -144,10 +144,10 @@ export default function ProfilePage() {
   if (!session || loading) return <Loading />;
 
   return (
-    <main className="min-h-screen bg-[var(--color-s-50)] pb-20">
+    <main className="min-h-screen bg-(--slate-50) pb-20">
       {/* BANNER DINÂMICO (ESTILO DISCORD) */}
       <div className="relative h-60 md:h-72 w-full bg-slate-900">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-[var(--color-s-50)]" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/20 to-(--slate-50)" />
         <img 
           src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=2073&auto=format&fit=crop" 
           className="w-full h-full object-cover opacity-50"
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         <div className="relative -mt-24 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex flex-col md:flex-row md:items-end gap-6">
             <div className="relative">
-              <div className="w-44 h-44 rounded-[3.5rem] bg-[var(--color-s-50)] p-2">
+              <div className="w-44 h-44 rounded-[3.5rem] bg-(--slate-50) p-2">
                 <div className="w-full h-full rounded-[3rem] bg-white shadow-2xl overflow-hidden flex items-center justify-center border-4 border-white">
                   {user?.image ? (
                     <img src={user.image} className="w-full h-full object-cover" />
@@ -184,7 +184,7 @@ export default function ProfilePage() {
               <button
                 type="button" 
                 onClick={() => avatarInputRef.current?.click()}
-                className="absolute bottom-4 right-4 w-11 h-11 bg-[var(--interface-accent)] text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-[var(--color-s-50)] hover:scale-110 transition-all cursor-pointer"
+                className="absolute bottom-4 right-4 w-11 h-11 bg-(--interface-accent) text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-(--slate-50) hover:scale-110 transition-all cursor-pointer"
               >
                 <FiCamera size={20} />
               </button>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                 {formData.name}
               </h1>
               <div className="flex items-center gap-3 mt-3">
-                <span className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-[var(--interface-accent)] uppercase tracking-widest shadow-sm">
+                <span className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-(--interface-accent) uppercase tracking-widest shadow-sm">
                   @{formData.username}
                 </span>
                 <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
@@ -217,7 +217,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="lg:col-span-2 p-10 border-none shadow-2xl shadow-slate-200/50 bg-white rounded-[3rem]">
             <h2 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-              <FiInfo className="text-[var(--interface-accent)]" /> Informações do Perfil
+              <FiInfo className="text-(--interface-accent)" /> Informações do Perfil
             </h2>
             
             <div className="space-y-8">
@@ -266,7 +266,7 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
-                  <p className="text-3xl font-black text-[var(--interface-accent)] italic">{levelNames[user?.level || "A1"]}</p>
+                  <p className="text-3xl font-black text-(--interface-accent) italic">{levelNames[user?.level || "A1"]}</p>
                 </div>
                 <div className="h-[1px] bg-white/10 w-full" />
                 <div className="flex justify-between items-center">

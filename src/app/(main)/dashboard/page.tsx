@@ -109,14 +109,14 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--color-s-50)] pt-24 pb-20">
+    <div className="min-h-screen bg-(--slate-50) pt-24 pb-20">
       <main className="max-w-7xl mx-auto px-6">
         
         {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
           <div>
             <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-              Bonjour, <span className="text-[var(--interface-accent)]">{data.profile.name?.split(' ')[0]}!</span>
+              Bonjour, <span className="text-(--interface-accent)">{data.profile.name?.split(' ')[0]}!</span>
             </h1>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
               Pronto para continuar sua jornada no Francês?
@@ -128,7 +128,7 @@ export default function Dashboard() {
             <input
               type="text"
               placeholder="BUSCAR CURSOS..."
-              className="w-full pl-12 pr-4 h-14 bg-white border-none shadow-xl rounded-2xl font-bold text-xs uppercase tracking-widest placeholder:text-slate-300 focus:ring-2 focus:ring-[var(--interface-accent)] transition-all"
+              className="w-full pl-12 pr-4 h-14 bg-white border-none shadow-xl rounded-2xl font-bold text-xs uppercase tracking-widest placeholder:text-slate-300 focus:ring-2 focus:ring-(--interface-accent) transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -138,11 +138,11 @@ export default function Dashboard() {
         {/* CARD DE NÍVEL - Só aparece se o usuário NÃO tiver nível definido */}
         {!data.profile.level && (
           <Card className="mb-12 border-none shadow-2xl bg-slate-900 rounded-[2.5rem] overflow-hidden relative group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--interface-accent)] opacity-10 blur-[100px] -mr-20 -mt-20 group-hover:opacity-20 transition-opacity duration-700" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-(--interface-accent) opacity-10 blur-[100px] -mr-20 -mt-20 group-hover:opacity-20 transition-opacity duration-700" />
             
             <div className="relative z-10 p-10 flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-[var(--interface-accent)] border border-white/10 shadow-inner">
+                <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-(--interface-accent) border border-white/10 shadow-inner">
                   <FaGraduationCap size={32} />
                 </div>
                 <div>
@@ -157,7 +157,7 @@ export default function Dashboard() {
 
               <div className="flex items-center gap-4 w-full md:w-auto">
                 <Button 
-                  className="flex-1 md:flex-none h-14 px-8 bg-[var(--interface-accent)] text-white font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all"
+                  className="flex-1 md:flex-none h-14 px-8 bg-(--interface-accent) text-white font-black uppercase text-[10px] tracking-widest rounded-2xl transition-all"
                   onClick={() => router.push('/nivelamento')}
                 >
                   Fazer Teste Grátis
@@ -177,7 +177,7 @@ export default function Dashboard() {
 
         {/* STATS */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <Card className="p-6 border-none shadow-xl bg-white rounded-[2rem] flex flex-col justify-center items-center text-center group hover:bg-[var(--interface-accent)] transition-all">
+          <Card className="p-6 border-none shadow-xl bg-white rounded-[2rem] flex flex-col justify-center items-center text-center group hover:bg-(--interface-accent) transition-all">
             <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 mb-3 flex items-center justify-center group-hover:bg-white/20 group-hover:text-white">
               <FaBookOpen size={20} />
             </div>
@@ -199,7 +199,7 @@ export default function Dashboard() {
                 <h4 className="text-white text-xl font-black uppercase tracking-tighter">Alguma dúvida?</h4>
                 <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Pergunte agora no fórum da Clara</p>
               </div>
-              <div className="w-14 h-14 rounded-2xl bg-[var(--interface-accent)] text-white flex items-center justify-center shadow-lg relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-(--interface-accent) text-white flex items-center justify-center shadow-lg relative z-10">
                 <FiMessageSquare size={24} />
               </div>
             </Card>
@@ -210,7 +210,7 @@ export default function Dashboard() {
         <div className="mb-12">
           <div className="flex justify-between items-end mb-6 px-2">
             <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Minha Atividade</h2>
-            <Link href="/forum/meus-posts" className="text-xs font-black text-[var(--interface-accent)] uppercase tracking-widest hover:underline">
+            <Link href="/forum/meus-posts" className="text-xs font-black text-(--interface-accent) uppercase tracking-widest hover:underline">
               Gerenciar Posts
             </Link>
           </div>
@@ -261,13 +261,13 @@ export default function Dashboard() {
                     
                     <div className="flex items-center justify-between pt-6 border-t border-slate-50">
                       <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase">
-                          <FaBookOpen className="text-[var(--interface-accent)]" /> {track.modules?.length || 0} Módulos
+                          <FaBookOpen className="text-(--interface-accent)" /> {track.modules?.length || 0} Módulos
                       </div>
                       
                       <button className={`px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all ${
                         isLocked 
                         ? 'bg-slate-200 text-slate-400' 
-                        : 'bg-[var(--interface-accent)] text-white hover:shadow-lg'
+                        : 'bg-(--interface-accent) text-white hover:shadow-lg'
                       }`}>
                         {isLocked ? "Bloqueado" : "Continuar"}
                       </button>

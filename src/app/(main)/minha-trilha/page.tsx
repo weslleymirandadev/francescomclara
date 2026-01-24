@@ -72,27 +72,27 @@ export function MyTrackPage() {
         
         <header className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <span className="bg-blue-100 text-[var(--interface-accent)] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            <span className="bg-blue-100 text-(--interface-accent) text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
               Trilha Ativa
             </span>
           </div>
-          <h1 className="text-4xl font-extrabold text-[var(--color-s-900)] mb-6">
+          <h1 className="text-4xl font-extrabold text-(--slate-900) mb-6">
             {track?.name} 
-            <span className="text-[var(--clara-rose)]">
+            <span className="text-(--clara-rose)">
               <img src="/static/flower.svg" alt="Flor" className="w-10 h-10 object-contain pointer-events-none" />
             </span>
           </h1>
           
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-[var(--color-s-200)]">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-(--slate-200)">
             <div className="flex justify-between items-end mb-3">
-              <span className="text-sm font-bold text-[var(--color-s-600)]">O seu progresso total</span>
-              <span className="text-lg font-black text-[var(--interface-accent)]">{track?.progress}%</span>
+              <span className="text-sm font-bold text-(--slate-600)">O seu progresso total</span>
+              <span className="text-lg font-black text-(--interface-accent)">{track?.progress}%</span>
             </div>
-            <div className="h-3 w-full bg-[var(--color-s-100)] rounded-full overflow-hidden">
+            <div className="h-3 w-full bg-(--slate-100) rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${track?.progress}%` }}
-                className="h-full bg-gradient-to-r from-[var(--interface-accent)] to-[#4D8CD4] rounded-full"
+                className="h-full bg-linear-to-r from-(--interface-accent) to-[#4D8CD4] rounded-full"
               />
             </div>
           </div>
@@ -102,10 +102,10 @@ export function MyTrackPage() {
           {track?.modules.map((module, mIdx) => (
             <div key={module.id} className="relative">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-white border-2 border-[var(--color-s-200)] rounded-2xl flex items-center justify-center shadow-sm">
-                  <span className="font-bold text-[var(--color-s-700)]">{mIdx + 1}</span>
+                <div className="w-12 h-12 bg-white border-2 border-(--slate-200) rounded-2xl flex items-center justify-center shadow-sm">
+                  <span className="font-bold text-(--slate-700)">{mIdx + 1}</span>
                 </div>
-                <h2 className="text-xl font-bold text-[var(--color-s-800)]">{module.title}</h2>
+                <h2 className="text-xl font-bold text-(--slate-800)">{module.title}</h2>
               </div>
 
               <div className="grid gap-4">
@@ -115,24 +115,24 @@ export function MyTrackPage() {
                     whileHover={!lesson.locked ? { x: 5 } : {}}
                     className={`group flex items-center justify-between p-5 rounded-2xl border transition-all ${
                       lesson.locked 
-                        ? 'bg-[var(--color-s-100)] border-[var(--color-s-200)] opacity-60' 
-                        : 'bg-white border-[var(--color-s-200)] shadow-sm hover:border-blue-300'
+                        ? 'bg-(--slate-100) border-(--slate-200) opacity-60' 
+                        : 'bg-white border-(--slate-200) shadow-sm hover:border-blue-300'
                     }`}
                   >
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         lesson.completed ? 'bg-green-100 text-green-600' : 
-                        lesson.locked ? 'bg-[var(--color-s-200)] text-[var(--color-s-400)]' : 'bg-blue-50 text-blue-600'
+                        lesson.locked ? 'bg-(--slate-200) text-(--slate-400)' : 'bg-blue-50 text-blue-600'
                       }`}>
                         {lesson.completed ? <FiCheckCircle size={20} /> : 
                          lesson.locked ? <FiLock size={18} /> : <FiPlay size={18} className="ml-1" />}
                       </div>
                       <div>
-                        <h3 className={`font-bold ${lesson.locked ? 'text-[var(--color-s-50)]0' : 'text-[var(--color-s-800)]'}`}>
+                        <h3 className={`font-bold ${lesson.locked ? 'text-(--slate-50)0' : 'text-(--slate-800)'}`}>
                           {lesson.title}
                         </h3>
                         {!lesson.locked && (
-                          <span className="text-xs text-[var(--color-s-400)] font-medium">10-15 min • +50 XP</span>
+                          <span className="text-xs text-(--slate-400) font-medium">10-15 min • +50 XP</span>
                         )}
                       </div>
                     </div>
@@ -144,7 +144,7 @@ export function MyTrackPage() {
                             {[1,2,3].map(s => <FiStar key={s} size={12} className="fill-yellow-400 text-yellow-400" />)}
                           </div>
                         )}
-                        <FiChevronRight className="text-[var(--color-s-300)] group-hover:text-blue-500 transition-colors" size={20} />
+                        <FiChevronRight className="text-(--slate-300) group-hover:text-blue-500 transition-colors" size={20} />
                       </div>
                     )}
                   </motion.div>
@@ -152,7 +152,7 @@ export function MyTrackPage() {
               </div>
 
               {mIdx < track.modules.length - 1 && (
-                <div className="absolute left-6 top-16 bottom-0 w-0.5 bg-[var(--color-s-200)] -z-10" />
+                <div className="absolute left-6 top-16 bottom-0 w-0.5 bg-(--slate-200) -z-10" />
               )}
             </div>
           ))}

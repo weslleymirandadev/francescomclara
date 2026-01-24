@@ -34,14 +34,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const getColorClasses = (colorValue: string) => {
       const colorMap: Record<string, any> = {
         default: {
-          border: "border-[var(--color-s-200)]",
-          ring: "focus:ring-[var(--color-s-100)] focus:border-[var(--color-s-400)]",
-          label: "peer-focus:text-[var(--color-s-600)]"
+          border: "border-(--slate-200)",
+          ring: "focus:ring-(--slate-100) focus:border-(--slate-400)",
+          label: "peer-focus:text-(--slate-600)"
         },
         primary: {
-          border: "border-[var(--color-s-200)]",
-          ring: "focus:ring-[var(--clara-rose)]/10 focus:border-[var(--clara-rose)]",
-          label: "peer-focus:text-[var(--clara-rose)]"
+          border: "border-(--slate-200)",
+          ring: "focus:ring-(--clara-rose)/10 focus:border-(--clara-rose)",
+          label: "peer-focus:text-(--clara-rose)"
         }
       }
       return colorMap[colorValue] || colorMap.default

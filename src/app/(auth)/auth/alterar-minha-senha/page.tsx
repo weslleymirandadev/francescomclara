@@ -48,7 +48,6 @@ export default function ChangePasswordPage() {
         headers: { "Content-Type": "application/json" },
       });
 
-      // Verifica se a resposta está vazia antes de dar o parse
       const text = await res.text();
       const data = text ? JSON.parse(text) : {};
 
@@ -57,7 +56,6 @@ export default function ChangePasswordPage() {
       setStatus({ type: 'success', message: 'Senha atualizada com sucesso!' });
       setTimeout(() => router.push("/perfil"), 1500);
     } catch (err: any) {
-      // Se o erro for o parse do JSON, ele cairá aqui
       setStatus({ type: 'error', message: err.message === "Unexpected end of JSON input" 
         ? "O servidor não enviou uma resposta válida." 
         : err.message 
@@ -68,25 +66,25 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="min-h-screen pt-6 pb-6 bg-[var(--color-s-50)] flex items-center justify-center px-6">
+    <main className="min-h-screen pt-6 pb-6 bg-(--slate-50) flex items-center justify-center px-6">
       <div className="max-w-md w-full">
         <Link 
           href="/configuracoes" 
-          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-s-400)] hover:text-[var(--color-s-900)] transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-(--slate-400) hover:text-(--slate-900) transition-colors mb-6"
         >
           <FiChevronLeft size={16} /> Voltar as Configurações
         </Link>
 
         <Card className="border-none shadow-2xl">
           <CardHeader className="space-y-4 pb-2">
-            <div className="w-14 h-14 bg-[var(--color-s-900)] rounded-2xl flex items-center justify-center text-white shadow-lg">
+            <div className="w-14 h-14 bg-(--slate-900) rounded-2xl flex items-center justify-center text-white shadow-lg">
               <FiLock size={24} />
             </div>
             <CardTitle className="text-3xl">
               Alterar <br /> 
-              <span className="text-[var(--clara-rose)]">Sua Senha</span>
+              <span className="text-(--clara-rose)">Sua Senha</span>
             </CardTitle>
-            <p className="text-[10px] font-bold text-[var(--color-s-400)] uppercase tracking-widest">
+            <p className="text-[10px] font-bold text-(--slate-400) uppercase tracking-widest">
               Segurança da Conta
             </p>
           </CardHeader>
@@ -101,7 +99,7 @@ export default function ChangePasswordPage() {
                 placeholder="Sua senha de acesso"
               />
 
-              <div className="space-y-4 pt-4 border-t border-[var(--color-s-100)]">
+              <div className="space-y-4 pt-4 border-t border-(--slate-100)">
                 <Input
                   label="Nova Senha"
                   name="newPassword"

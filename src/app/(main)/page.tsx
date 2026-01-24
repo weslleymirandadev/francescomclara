@@ -342,8 +342,8 @@ export default function Home() {
   if (!session?.user) {
     if (loading) <Loading />;
     return (
-      <main className="min-h-screen bg-[var(--color-s-50)] overflow-x-hidden">
-        <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-[var(--color-s-900)]">
+      <main className="min-h-screen bg-(--slate-50) overflow-x-hidden">
+        <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-(--slate-900)">
           <div className="absolute inset-0 z-0"
             style={{  transform: `translateY(${scrollY * 0.3}px)` }}
           >
@@ -362,7 +362,7 @@ export default function Home() {
               <source src="/hero-video.mp4" type="video/mp4" />
             </video>
             
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 via-[var(--color-s-900)]/60 to-[var(--color-s-900)] z-10"></div>
+            <div className="absolute inset-0 bg-linear-to-b from-blue-900/40 via-(--slate-900)/60 to-(--slate-900) z-10"></div>
           </div>
 
           <div className="container mx-auto px-4 relative z-20">
@@ -444,7 +444,7 @@ export default function Home() {
 
           <section id="planos" className="py-24">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-4xl font-black mb-4 tracking-tight bg-gradient-to-r from-[var(--interface-accent)] to-[var(--clara-rose)] text-transparent bg-clip-text py-2">
+              <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-(--interface-accent) to-(--clara-rose) text-transparent bg-clip-text py-2">
                 Assinaturas
               </h2>
               <p className="text-s-500 font-medium">
@@ -486,7 +486,7 @@ export default function Home() {
   const studyTracks = studyContent?.tracks || [];
 
   return (
-    <main className="mt-4 relative min-h-screen bg-[var(--color-s-50)] overflow-x-hidden">
+    <main className="mt-4 relative min-h-screen bg-(--slate-50) overflow-x-hidden">
       {/* Banner de Incentivo para não assinantes */}
       {!hasSubscription && (
         <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 fixed min-w-full left-0 z-50 shadow-lg">
@@ -538,7 +538,7 @@ export default function Home() {
                         className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-[2000ms] group-hover/sep:scale-110"
                         style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
                       
                       {/* LÓGICA DE AVISO PREMIUM DO PAGE2 */}
                       {hasLockedInGroup && (
@@ -654,7 +654,7 @@ export default function Home() {
                                         </li>
                                       ))}
                                       {module.lessons.length > 3 && (
-                                        <li className="text-[9px] text-[var(--interface-accent)] font-bold uppercase tracking-widest pl-6">
+                                        <li className="text-[9px] text-(--interface-accent) font-bold uppercase tracking-widest pl-6">
                                           + {module.lessons.length - 3} atividades
                                         </li>
                                       )}
@@ -684,11 +684,11 @@ export default function Home() {
               <Icon icon="ph:chats-teardrop-fill" width={200} />
             </div>
             <div className="relative z-10 max-w-2xl">
-              <span className="text-[var(--interface-accent)] font-black uppercase text-[10px] tracking-[0.3em] mb-4 block">Communauté d'apprentissage</span>
+              <span className="text-(--interface-accent) font-black uppercase text-[10px] tracking-[0.3em] mb-4 block">Communauté d'apprentissage</span>
               <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-6">Ficou com alguma dúvida nas lições?</h2>
               <p className="text-slate-400 mb-10 leading-relaxed">Participe do nosso fórum exclusivo para tirar dúvidas diretamente com a Clara.</p>
               <Link href="/forum">
-                <Button className="bg-[var(--interface-accent)] hover:bg-white hover:text-slate-900 text-white px-10 h-16 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">
+                <Button className="bg-(--interface-accent) hover:bg-white hover:text-slate-900 text-white px-10 h-16 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">
                   Explorar o Fórum
                 </Button>
               </Link>

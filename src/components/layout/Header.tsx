@@ -54,7 +54,7 @@ export function Header({ settings }: HeaderProps) {
   }, [status]);
 
   return (
-    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-[100]">
+    <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-[100]">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -65,7 +65,7 @@ export function Header({ settings }: HeaderProps) {
             height={20}
             className="rounded-sm shadow-sm"
           />
-          <span className="font-bold text-lg tracking-tight text-[var(--color-s-800)] uppercase flex items-center">
+          <span className="font-bold text-lg tracking-tight text-(--slate-800) uppercase flex items-center">
               Francês com 
               <span 
                 className="relative ml-1"
@@ -97,22 +97,22 @@ export function Header({ settings }: HeaderProps) {
               >
                 <Icon 
                   size={18} 
-                  className={isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)]"} 
+                  className={isActive ? "text-(--interface-accent)" : "text-(--slate-400) group-hover:text-(--interface-accent)"} 
                 />
                 <span className={`text-[11px] font-black uppercase tracking-widest transition-colors
-                  ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-600)] group-hover:text-[var(--interface-accent)]"}`}>
+                  ${isActive ? "text-(--interface-accent)" : "text-(--slate-600) group-hover:text-(--interface-accent)"}`}>
                   {item.text}
                 </span>
                 
                 {isActive && (
-                  <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-[var(--interface-accent)] rounded-t-full" />
+                  <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-(--interface-accent) rounded-t-full" />
                 )}
               </Link>
             );
           })}
 
           {!session && (
-            <Link href="/auth/login" className="font-black text-[11px] uppercase tracking-widest text-[var(--color-s-700)] hover:text-[var(--interface-accent)]">
+            <Link href="/auth/login" className="font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:text-(--interface-accent)">
               Entrar
             </Link>
           )}
@@ -131,7 +131,7 @@ export function Header({ settings }: HeaderProps) {
               )}
               <div className="relative group">
                 <button className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-50 transition-all">
-                  <div className="w-9 h-9 rounded-xl bg-[var(--color-s-100)] border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-(--slate-100) border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
                     {session.user?.image ? (
                       <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
                     ) : (
@@ -183,7 +183,7 @@ export function Header({ settings }: HeaderProps) {
         </nav>
 
         {/* MOBILE TOGGLE */}
-        <button className="md:hidden text-[var(--color-s-800)]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <button className="md:hidden text-(--slate-800)" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
         </button>
       </div>
@@ -195,10 +195,10 @@ export function Header({ settings }: HeaderProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-[var(--color-s-700)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)] rounded-2xl transition-all"
+              className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:bg-(--slate-50) hover:text-(--interface-accent) rounded-2xl transition-all"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <item.icon size={20} className="text-[var(--interface-accent)]" />
+              <item.icon size={20} className="text-(--interface-accent)" />
               {item.text}
             </Link>
           ))}
@@ -213,7 +213,7 @@ export function Header({ settings }: HeaderProps) {
               <FiLogOut size={20} /> Sair da conta
             </button>
           ) : (
-            <Link href="/auth/login" className="flex items-center justify-center p-4 font-black text-[11px] uppercase tracking-widest text-white bg-[var(--interface-accent)] rounded-2xl">
+            <Link href="/auth/login" className="flex items-center justify-center p-4 font-black text-[11px] uppercase tracking-widest text-white bg-(--interface-accent) rounded-2xl">
               Entrar
             </Link>
           )}

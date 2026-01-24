@@ -150,34 +150,34 @@ export default function AdminDashboard() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <Card className="lg:col-span-2 overflow-hidden border-slate-200 bg-white shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-[var(--slate-100)] p-6">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-(--slate-100) p-6">
             <h3 className="text-sm font-black text-slate-800)] uppercase tracking-widest">Últimos Alunos</h3>
           </CardHeader>
           <Table>
-            <TableHeader className="bg-[var(--slate-50)]">
+            <TableHeader className="bg-(--slate-50)">
               <TableRow>
-                <TableHead className="text-[var(--slate-500)] uppercase text-[10px] font-black">Estudante</TableHead>
-                <TableHead className="text-center text-[var(--slate-500)] uppercase text-[10px] font-black">Plano</TableHead>
-                <TableHead className="text-right text-[var(--slate-500)] uppercase text-[10px] font-black">Data</TableHead>
+                <TableHead className="text-(--slate-500) uppercase text-[10px] font-black">Estudante</TableHead>
+                <TableHead className="text-center text-(--slate-500) uppercase text-[10px] font-black">Plano</TableHead>
+                <TableHead className="text-right text-(--slate-500) uppercase text-[10px] font-black">Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentStudents.map((student) => (
-                <TableRow key={student.id} className="border-b border-[var(--slate-50)]">
+                <TableRow key={student.id} className="border-b border-(--slate-50)">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--slate-100)] flex items-center justify-center text-[var(--interface-accent)] font-bold">
+                      <div className="w-8 h-8 rounded-full bg-(--slate-100) flex items-center justify-center text-(--interface-accent) font-bold">
                         {student.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-bold text-[var(--slate-700)]">{student.name}</span>
+                      <span className="font-bold text-(--slate-700)">{student.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    <span className="text-[9px] font-black px-2 py-1 bg-[var(--slate-100)] text-[var(--slate-600)] rounded uppercase">
+                    <span className="text-[9px] font-black px-2 py-1 bg-(--slate-100) text-(--slate-600) rounded uppercase">
                       {student.planType}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-[var(--slate-400)] text-xs font-medium">
+                  <TableCell className="text-right text-(--slate-400) text-xs font-medium">
                     {new Date(student.createdAt).toLocaleDateString('pt-BR')}
                   </TableCell>
                 </TableRow>
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="p-8 border-none bg-gradient-to-br from-[var(--clara-rose)] to-[var(--slate-800)] text-white shadow-xl relative overflow-hidden">
+          <Card className="p-8 border-none bg-linear-to-br from-(--clara-rose) to-(--slate-800) text-white shadow-xl relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
 
               <Button 
                 type='button'
-                className="w-full bg-white text-[var(--clara-rose)] hover:bg-[var(--slate-50)] border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95 cursor-pointer"
+                className="w-full bg-white text-(--clara-rose) hover:bg-(--slate-50) border-none font-black text-xs tracking-widest py-6 shadow-md transition-all active:scale-95 cursor-pointer"
                 onClick={handleDownloadReport}>
                 <FiDownload size={16} className="mr-2" 
               />
@@ -230,13 +230,13 @@ export default function AdminDashboard() {
             </div>
           </Card>
 
-          <Card className="p-8 border-[var(--slate-200)] bg-white shadow-sm">
-            <h3 className="text-[10px] font-black text-[var(--slate-400)] uppercase tracking-[0.2em] mb-8">Distribuição de Planos</h3>
+          <Card className="p-8 border-(--slate-200) bg-white shadow-sm">
+            <h3 className="text-[10px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-8">Distribuição de Planos</h3>
             <div className="space-y-6">
-              <PlanRow label="Individual" value={stats?.plans.individual} color="bg-[var(--interface-accent)]" total={stats?.users.total} />
-              <PlanRow label="Família" value={stats?.plans.family} color="bg-[var(--clara-rose)]" total={stats?.users.total} />
-              <PlanRow label="Mensal" value={stats?.plans.monthly} color="bg-[var(--slate-400)]" total={stats?.users.total} />
-              <PlanRow label="Anual" value={stats?.plans.yearly} color="bg-[var(--slate-800)]" total={stats?.users.total} />
+              <PlanRow label="Individual" value={stats?.plans.individual} color="bg-(--interface-accent)" total={stats?.users.total} />
+              <PlanRow label="Família" value={stats?.plans.family} color="bg-(--clara-rose)" total={stats?.users.total} />
+              <PlanRow label="Mensal" value={stats?.plans.monthly} color="bg-(--slate-400)" total={stats?.users.total} />
+              <PlanRow label="Anual" value={stats?.plans.yearly} color="bg-(--slate-800)" total={stats?.users.total} />
             </div>
           </Card>
         </div>

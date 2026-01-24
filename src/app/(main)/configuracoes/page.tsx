@@ -41,12 +41,12 @@ export default function SettingsPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen bg-[var(--color-s-50)] pt-24 pb-20">
+    <main className="min-h-screen bg-(--slate-50) pt-24 pb-20">
       <div className="max-w-4xl mx-auto px-6">
         
         <div className="mb-12">
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-            Configurações <span className="text-[var(--interface-accent)]">da Conta</span>
+            Configurações <span className="text-(--interface-accent)">da Conta</span>
           </h1>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
             Gere a tua segurança e preferências de sistema
@@ -57,7 +57,7 @@ export default function SettingsPage() {
           
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem]">
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
-              <FiLock className="text-[var(--interface-accent)]" /> Segurança e Acesso
+              <FiLock className="text-(--interface-accent)" /> Segurança e Acesso
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -85,7 +85,7 @@ export default function SettingsPage() {
 
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem]">
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
-              <FiBell className="text-[var(--clara-rose)]" /> Notificações de Estudo
+              <FiBell className="text-(--clara-rose)" /> Notificações de Estudo
             </h2>
             
             <div className="space-y-4">
@@ -98,7 +98,7 @@ export default function SettingsPage() {
                   <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">{item.label}</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-[var(--interface-accent)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-(--interface-accent) after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
               ))}
@@ -125,7 +125,7 @@ export default function SettingsPage() {
                 ))}
                 
                 {members.length < 3 && (
-                  <button className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-[var(--interface-accent)] hover:text-[var(--interface-accent)] transition-all">
+                  <button className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-(--interface-accent) hover:text-(--interface-accent) transition-all">
                     + Convidar Membro
                   </button>
                 )}
@@ -133,11 +133,11 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] border-l-8 border-l-[var(--interface-accent)]">
+          <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] border-l-8 border-l-(--interface-accent)">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-2">
-                  <FiCreditCard className="text-[var(--interface-accent)]" /> O Teu Plano
+                  <FiCreditCard className="text-(--interface-accent)" /> O Teu Plano
                 </h2>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                   Status: <span className="text-emerald-500">Ativo</span> • Premium Individual
@@ -150,7 +150,7 @@ export default function SettingsPage() {
           </Card>
 
           <div className="flex justify-end pt-4">
-            <Button className="bg-[var(--interface-accent)] hover:scale-105 transition-all text-white px-12 h-16 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-blue-200">
+            <Button className="bg-(--interface-accent) hover:scale-105 transition-all text-white px-12 h-16 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-blue-200">
               <FiCheck className="mr-2" /> Guardar Configurações
             </Button>
           </div>

@@ -24,7 +24,7 @@ export default function FlashcardsLayout({
     children: React.ReactNode;
 }>) {
     return (
-      <div className="min-h-screen bg-[var(--color-s-50)] px-6">
+      <div className="min-h-screen bg-(--slate-50) px-6">
         {children}
       </div>
     );
