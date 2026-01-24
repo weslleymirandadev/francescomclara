@@ -1,9 +1,7 @@
 import { 
   PrismaClient, 
-  Objective, 
   LessonType, 
   SubscriptionPlanType, 
-  SubscriptionPlanPeriod 
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
@@ -11,7 +9,6 @@ import pg from "pg";
 const connectionString = "postgresql://admin:admin_password@localhost:5432/frances_com_clara?schema=public";
 const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
-
 const prisma = new PrismaClient({ adapter } as any);
 
 async function main() {
@@ -25,49 +22,42 @@ async function main() {
       siteName: "Francês com Clara",
       siteNameFirstPart: "Francês com",
       siteNameHighlight: "Clara",
-      siteIcon: "/static/flower.svg",
-      interfaceIcon: "/static/franca.png",
-      favicon: "/static/favicon.svg",
       highlightColor: "--clara-rose",
-      supportEmail: "contato@clara.fr",
-      siteDescription: "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
-      seoDescription: "Aprenda francês de forma prática e cultural com a Clara.",
-      stripeMode: true,
-      maintenanceMode: false,
       instagramActive: true,
-      youtubeActive: true,
-      whatsappActive: true,
-      tiktokActive: false,
+      instagramUrl: 'https://www.instagram.com/francescomclara/',
     },
   });
 
-  // 1. PLANOS DE ASSINATURA (Individuais e Família / Mensal e Anual)
+  // 2. PLANOS (Lógica: Dois registros para o "Pro", um mensal e um anual com desconto)
   const plansData = [
     {
       id: 'plano-pro-mensal',
-      name: 'Plano Pro Mensal',
+      name: 'Plano Pro',
       description: 'Acesso total flexível mês a mês.',
-      price: 9700,
+      price: 9700, // R$ 97,00
       type: SubscriptionPlanType.INDIVIDUAL,
-      period: SubscriptionPlanPeriod.MONTHLY,
+      period: "MONTHLY",
+      active: true,
       features: ["Acesso a todas as trilhas", "Suporte da Clara", "Flashcards"],
     },
     {
       id: 'plano-pro-anual',
-      name: 'Plano Pro Anual',
+      name: 'Plano Pro',
       description: 'O melhor custo-benefício para sua fluência.',
-      price: 89700,
+      price: 89700, // R$ 897,00 (sai R$ 74,75/mês)
       type: SubscriptionPlanType.INDIVIDUAL,
-      period: SubscriptionPlanPeriod.YEARLY,
+      period: "YEARLY",
+      active: true,
       features: ["Tudo do Mensal", "Desconto de 2 meses", "Certificado de conclusão"],
     },
     {
-      id: 'plano-familia',
-      name: 'Plano Família Anual',
+      id: 'plano-familia-anual',
+      name: 'Plano Família',
       description: 'Aprenda junto com quem você ama.',
-      price: 149700,
+      price: 149700, // R$ 1.497,00
       type: SubscriptionPlanType.FAMILY,
-      period: SubscriptionPlanPeriod.YEARLY,
+      period: "YEARLY",
+      active: true,
       features: ["Até 4 contas separadas", "Suporte prioritário", "Relatórios de progresso"],
     }
   ];
@@ -76,137 +66,52 @@ async function main() {
   for (const p of plansData) {
     const plan = await prisma.subscriptionPlan.upsert({
       where: { id: p.id },
-      update: {},
-      create: { ...p, active: true },
+      update: { 
+        name: p.name, 
+        price: p.price, 
+        active: true,
+      },
+      create: p as any,
     });
     plans.push(plan);
   }
 
+  // 3. OBJETIVOS (Com suas imagens originais do Discord)
   const travelObj = await prisma.objective.upsert({
-    where: { name: 'TRAVEL' },
+    where: { name: 'Viagem' },
     update: {},
     create: { 
-      name: 'TRAVEL',
-      imageUrl: "https://exemplo.com/viagem.jpg" }
+      name: 'Viagem',
+      imageUrl: "https://cdn.discordapp.com/attachments/1430318700837339281/1461787586359201924/henrique-ferreira-nuKDw3ywCSw-unsplash.jpg?ex=6971c207&is=69707087&hm=fcaf44a427e1633c7a18d97382be4b745e87ed3e288618598419b005d554f25e&" 
+    }
   });
 
-  const workObj = await prisma.objective.upsert({
-    where: { name: 'WORK' },
-    update: {},
-    create: { 
-      name: 'WORK',
-      imageUrl: "https://exemplo.com/work.jpg" }
-  });
-
-  const familyOBJ = await prisma.objective.upsert({
-    where: { name: 'FAMILY' },
-    update: {},
-    create: { 
-      name: 'FAMILY',
-      imageUrl: "https://exemplo.com/family.jpg" }
-  })
-
-  const knowledgeOBJ = await prisma.objective.upsert({
-    where: { name: 'KNOWLEDGE'},
-    update: {},
-    create: { 
-      name: 'KNOWLEDGE',
-      imageUrl: "https://exemplo.com/knowledge.jpg" }
-  })
-
+  // 4. TRILHAS
   const tracksData = [
     {
       id: 'trilha-viagem',
       name: 'Sobrevivência em Paris',
-      description: 'Focado em situações reais de viagem: hotel, restaurante e passeios.',
-      objective: travelObj.id,
-      modules: [
-        {
-          title: 'No Aeroporto e Alfândega',
-          order: 1,
-          lessons: [
-            { title: 'Vocabulário de Viagem', type: LessonType.CLASS, order: 1, content: { video: "url" } },
-            { title: 'Prática de Diálogo', type: LessonType.STORY, order: 2, content: { text: "Simulação" } }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'trilha-trabalho',
-      name: 'Francês para Negócios',
-      description: 'Aprenda a redigir e-mails e participar de reuniões em multinacionais.',
-      objective: workObj.id,
-      modules: [
-        {
-          title: 'E-mails e Comunicação',
-          order: 1,
-          lessons: [
-            { title: 'Fórmulas de Cortesia', type: LessonType.READING, order: 1, content: { text: "Leia aqui" } },
-            { title: 'Flashcards de Escritório', type: LessonType.FLASHCARD, order: 2, content: { cards: [] } }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'trilha-familia',
-      name: 'Conversação em Família',
-      description: 'Ideal para quem tem parentes francófonos ou quer morar fora.',
-      objective: familyOBJ.id,
-      modules: [
-        {
-          title: 'Vida Cotidiana',
-          order: 1,
-          lessons: [
-            { title: 'Cozinhando em Francês', type: LessonType.STORY, order: 1, content: { story: "Recette" } }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'trilha-conhecimento',
-      name: 'Cultura e Literatura',
-      description: 'Para amantes da língua que desejam ler clássicos no original.',
-      objective: knowledgeOBJ.id,
-      modules: [
-        {
-          title: 'Grandes Autores',
-          order: 1,
-          lessons: [
-            { title: 'Victor Hugo - Poemas', type: LessonType.READING, order: 1, content: { text: "Poésie" } }
-          ]
-        }
-      ]
+      description: 'Focado em situações reais de viagem.',
+      objectiveId: travelObj.id,
+      imageUrl: "https://media.discordapp.net/attachments/1430318700837339281/1461787583825575946/france-jobs-1.webp?ex=6971c206&is=69707086&hm=ea2dd0f4dc0495268c1720d9009b4fbbea0bd7d4055579366ec868f82d465905&=&format=webp&width=1110&height=724",
     }
   ];
 
   for (const t of tracksData) {
-    const { modules, objective, ...trackInfo } = t;
     const track = await prisma.track.upsert({
-    where: { id: t.id },
-    update: {},
-    create: {
-      ...trackInfo,
-      active: true,
-      objective: {
-        connect: { id: objective }
-      },
-      modules: {
-        create: modules.map(m => ({
-          title: m.title,
-          order: m.order,
-          lessons: {
-            create: m.lessons.map(l => ({
-              title: l.title,
-              type: l.type,
-              order: l.order,
-              content: l.content as any
-            }))
-          }
-        }))
+      where: { id: t.id },
+      update: { active: true },
+      create: {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        imageUrl: t.imageUrl,
+        active: true,
+        objective: { connect: { id: t.objectiveId } }
       }
-    }
-  });
+    });
 
+    // Vincula a trilha a todos os planos
     for (const plan of plans) {
       await prisma.subscriptionPlanTrack.upsert({
         where: {
@@ -224,7 +129,7 @@ async function main() {
     }
   }
 
-  console.log('✅ Banco de dados populado com todos os labels e objetivos!');
+  console.log('✅ Seed finalizado: Planos Pro (Mensal/Anual) e Família configurados!');
 }
 
 main()
