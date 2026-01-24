@@ -57,7 +57,7 @@ export function Header({ settings }: HeaderProps) {
   }, [session]);
 
   return (
-    <header className="fixed w-full border-b-2 border-[var(--color-s-200)] bg-white z-[100]">
+    <header className="fixed w-full border-b-2 border-(--color-s-200) bg-white z-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -68,14 +68,14 @@ export function Header({ settings }: HeaderProps) {
             height={20}
             className="rounded-sm shadow-sm"
           />
-          <span className="font-bold text-lg tracking-tight text-[var(--color-s-800)] uppercase flex items-center">
+          <span className="font-bold text-lg tracking-tight text-s-800 uppercase flex items-center">
               Francês com 
               <span 
                 className="relative ml-1"
                 style={{ color: `var(${settings?.highlightColor || '--clara-rose'})` }}
               >
               Clara
-              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
                 {settings?.siteIcon?.startsWith("/") ? (
                   <img src={settings?.siteIcon} alt="Icon" className="w-4 h-4 object-contain" />
                 ) : (
@@ -100,22 +100,22 @@ export function Header({ settings }: HeaderProps) {
               >
                 <Icon 
                   size={18} 
-                  className={isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-400)] group-hover:text-[var(--interface-accent)]"} 
+                  className={isActive ? "text-interface-accent" : "text-s-400 group-hover:text-interface-accent"} 
                 />
                 <span className={`text-[11px] font-black uppercase tracking-widest transition-colors
-                  ${isActive ? "text-[var(--interface-accent)]" : "text-[var(--color-s-600)] group-hover:text-[var(--interface-accent)]"}`}>
+                  ${isActive ? "text-interface-accent" : "text-s-600 group-hover:text-interface-accent"}`}>
                   {item.text}
                 </span>
                 
                 {isActive && (
-                  <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-[var(--interface-accent)] rounded-t-full" />
+                  <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-(--interface-accent) rounded-t-full" />
                 )}
               </Link>
             );
           })}
 
           {!session && (
-            <Link href="/auth/login" className="font-black text-[11px] uppercase tracking-widest text-[var(--color-s-700)] hover:text-[var(--interface-accent)]">
+            <Link href="/auth/login" className="font-black text-[11px] uppercase tracking-widest text-s-700 hover:text-(--interface-accent)">
               Entrar
             </Link>
           )}
@@ -134,40 +134,40 @@ export function Header({ settings }: HeaderProps) {
               )}
               <div className="relative group">
                 <button className="flex items-center gap-2 p-1 rounded-2xl hover:bg-slate-50 transition-all">
-                  <div className="w-9 h-9 rounded-xl bg-[var(--color-s-100)] border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-s-100 border-2 border-white shadow-sm overflow-hidden flex items-center justify-center">
                     {session.user?.image ? (
                       <img src={session.user.image} alt="User" className="w-full h-full object-cover" />
                     ) : (
-                      <User size={18} className="text-slate-400" />
+                      <User size={18} className="text-s-400" />
                     )}
                   </div>
-                  <FiChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform" />
+                  <FiChevronDown size={14} className="text-s-400 group-hover:rotate-180 transition-transform" />
                 </button>
 
                 {/* DROPDOWN MENU */}
-                <div className="absolute right-0 mt-2 w-56 bg-white shadow-2xl rounded-[1.5rem] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-slate-100 z-50">
-                  <div className="px-4 py-3 border-b border-slate-50 mb-2">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta</p>
-                    <p className="text-xs font-bold text-slate-700 truncate">{session.user?.email}</p>
+                <div className="absolute right-0 mt-2 w-56 bg-white shadow-2xl rounded-[1.5rem] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-(--color-s-100) z-50">
+                    <div className="px-4 py-3 border-b border-s-50 mb-2">
+                    <p className="text-[10px] font-black text-s-400 uppercase tracking-widest">Conta</p>
+                    <p className="text-xs font-bold text-s-700 truncate">{session.user?.email}</p>
                   </div>
 
-                  <Link href="/perfil" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                  <Link href="/perfil" className="flex items-center gap-3 p-3 hover:bg-s-50 rounded-xl">
                     <User size={16} /> <span className="text-sm">Editar Perfil</span>
                   </Link>
                   
-                  <Link href="/configuracoes" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                  <Link href="/configuracoes" className="flex items-center gap-3 p-3 hover:bg-s-50 rounded-xl">
                     <HiOutlineCog size={16} /> <span className="text-sm">Conta e Segurança</span>
                   </Link>
                   
                   {isAdmin && (
-                    <Link href="/admin" className="flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:bg-amber-50 rounded-xl transition-all">
+                    <Link href="/admin" className="flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-clara-rose hover:bg-clara-rose/10 rounded-xl transition-all">
                       <RiSecurePaymentFill size={16} /> Painel Admin
                     </Link>
                   )}
 
                   <button 
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="w-full flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 rounded-xl transition-all mt-1"
+                    className="w-full flex items-center gap-3 p-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50/50 rounded-xl transition-all mt-1"
                   >
                     <FiLogOut size={16} /> Sair da conta
                   </button>
@@ -178,7 +178,7 @@ export function Header({ settings }: HeaderProps) {
         </nav>
 
         {/* MOBILE TOGGLE */}
-        <button className="md:hidden text-[var(--color-s-800)]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+        <button className="md:hidden text-s-800" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
         </button>
       </div>
@@ -190,15 +190,15 @@ export function Header({ settings }: HeaderProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-[var(--color-s-700)] hover:bg-[var(--color-s-50)] hover:text-[var(--interface-accent)] rounded-2xl transition-all"
+              className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-s-700 hover:bg-s-50 hover:text-interface-accent rounded-2xl transition-all"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <item.icon size={20} className="text-[var(--interface-accent)]" />
+              <item.icon size={20} className="text-interface-accent" />
               {item.text}
             </Link>
           ))}
           
-          <div className="h-[1px] bg-slate-100 my-4" />
+          <div className="h-px bg-s-100 my-4" />
           
           {session ? (
             <button
@@ -208,7 +208,7 @@ export function Header({ settings }: HeaderProps) {
               <FiLogOut size={20} /> Sair da conta
             </button>
           ) : (
-            <Link href="/auth/login" className="flex items-center justify-center p-4 font-black text-[11px] uppercase tracking-widest text-white bg-[var(--interface-accent)] rounded-2xl">
+            <Link href="/auth/login" className="flex items-center justify-center p-4 font-black text-[11px] uppercase tracking-widest text-white bg-interface-accent rounded-2xl">
               Entrar
             </Link>
           )}
