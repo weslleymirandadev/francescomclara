@@ -49,8 +49,7 @@ export async function GET(request: Request) {
       },
       orderBy: [
         { type: 'asc' },
-        { period: 'asc' },
-        { price: 'asc' },
+        { monthlyPrice: 'asc' },
       ],
     });
 
@@ -96,19 +95,20 @@ export async function POST(request: Request) {
     const {
       name,
       description,
-      price,
+      monthlyPrice,
+      yearlyPrice,
       discountPrice,
       discountEnabled = false,
+      isBestValue = false,
       type,
-      period,
       features,
       trackIds = [],
     } = body;
 
     // Validações
-    if (!name || !price || !type || !period) {
+    if (!name || monthlyPrice === undefined || yearlyPrice === undefined || !type) {
       return NextResponse.json(
-        { error: "Campos obrigatórios: name, price, type, period" },
+        { error: "Campos obrigatórios: name, monthlyPrice, yearlyPrice, type" },
         { status: 400 }
       );
     }
@@ -120,9 +120,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!['MONTHLY', 'YEARLY'].includes(period)) {
+    // Validar que o preço anual dividido por 12 seja menor que o mensal
+    const yearlyMonthlyPrice = Math.round(yearlyPrice / 12);
+    if (yearlyMonthlyPrice >= monthlyPrice) {
       return NextResponse.json(
-        { error: "Periodo deve ser MONTHLY ou YEARLY" },
+        { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
         { status: 400 }
       );
     }
@@ -132,11 +134,12 @@ export async function POST(request: Request) {
       data: {
         name,
         description,
-        price: Math.round(price), // Garantir que está em centavos
+        monthlyPrice: Math.round(monthlyPrice), // Garantir que está em centavos
+        yearlyPrice: Math.round(yearlyPrice), // Garantir que está em centavos
         discountPrice: discountPrice ? Math.round(discountPrice) : null,
         discountEnabled,
+        isBestValue,
         type,
-        period,
         features: features || [],
         tracks: {
           create: trackIds.map((trackId: string) => ({
