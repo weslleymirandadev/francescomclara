@@ -49,8 +49,7 @@ function SignInForm() {
       if (result?.error) {
         setFormError("E-mail ou senha incorretos.");
       } else {
-        router.refresh();
-        router.push(callbackUrl);
+        window.location.href = callbackUrl;
       }
     } catch {
       setFormError("Erro ao autenticar.");
