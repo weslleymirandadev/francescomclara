@@ -45,7 +45,7 @@ export function Footer({ settings }: FooterProps) {
                   style={{ color: `var(${settings?.highlightColor || '--clara-rose'})` }}
                 >
                   {settings?.siteNameHighlight || "Clara"}
-                <span className="absolute -top-0.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+                <span className="absolute -top-0.5 -right-2.5 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
                   {settings?.siteIcon?.startsWith("/") ? (
                     <img 
                       src={settings.siteIcon} 
@@ -68,7 +68,7 @@ export function Footer({ settings }: FooterProps) {
           <div>
             <h4 className="font-bold text-(--slate-900) mb-6 uppercase text-xs tracking-widest">Plataforma</h4>
             <ul className="space-y-4 text-sm font-semibold text-(--slate-600)">
-              <li><Link href="/minha-trilha" className="hover:text-(--interface-accent) transition-colors">Minha Trilha</Link></li>
+              <li><Link href="/dashboard" className="hover:text-(--interface-accent) transition-colors">Dashboard</Link></li>
               <li><Link href="/flashcards" className="hover:text-(--interface-accent) transition-colors">Flashcards</Link></li>
               <li><Link href="/forum" className="hover:text-(--interface-accent) transition-colors">Comunidade</Link></li>
             </ul>
@@ -85,7 +85,7 @@ export function Footer({ settings }: FooterProps) {
                 </a>
               </li>
               
-              <div className="h-[1px] bg-s-100 w-8 my-2" />
+              <div className="h-px bg-s-100 w-8 my-2" />
 
               <li><Link href="/privacidade" className="hover:text-(--interface-accent) transition-colors">Privacidade & Termos</Link></li>
               <li><Link href="/configuracoes" className="hover:text-(--interface-accent) transition-colors">Preferências</Link></li>

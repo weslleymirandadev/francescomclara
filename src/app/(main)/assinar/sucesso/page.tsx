@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
+import { Loading } from '@/components/ui/loading';
 
 interface Payment {
   id: string;
@@ -87,17 +88,7 @@ function SuccessPageContent() {
     toast.success('Código copiado para a área de transferência!');
   };
 
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <FaSpinner className="animate-spin h-12 w-12 text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando informações da assinatura...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   if (error || !payment) {
     return (
@@ -131,7 +122,7 @@ function SuccessPageContent() {
   const isApproved = payment.status === 'APPROVED' || payment.status === 'authorized';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-700">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="px-4 py-5 sm:px-6">

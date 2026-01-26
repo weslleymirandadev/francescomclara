@@ -103,7 +103,7 @@ export default function PostDetailPage() {
             {post.comments?.map((comment: any) => (
               <div key={comment.id} className="flex gap-4 items-start pl-6">
                 {/* Avatar do Autor */}
-                <div className="w-10 h-10 rounded-xl bg-slate-200 flex-shrink-0 overflow-hidden border border-white shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0 overflow-hidden border border-white shadow-sm">
                   {comment.author?.image ? (
                     <img 
                       src={comment.author.image} 

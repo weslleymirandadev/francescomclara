@@ -104,9 +104,8 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white animate-in fade-in duration-700">
       
-      {/* --- BACKGROUND TRICOLOR INTEGRADO --- */}
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
           className="w-full h-full bg-cover bg-center opacity-30 grayscale-20"
@@ -121,7 +120,6 @@ function ResetPasswordForm() {
         <div className="h-full w-1/3 bg-[#ED2939] opacity-[0.12]" />
       </div>
 
-      {/* JARDIM DE FLORES NO RODAPÉ */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
         <div className="absolute -bottom-10 -left-10 flex items-end">
           <img src="/static/flower.svg" className="w-56 h-56 opacity-100 -rotate-12 translate-y-10" alt="" />
@@ -133,7 +131,6 @@ function ResetPasswordForm() {
         </div>
       </div>
 
-      {/* TÍTULO DA PÁGINA */}
       <div className="w-full h-[32vh] relative flex flex-col items-center justify-center z-30">
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-slate-900 drop-shadow-sm">
@@ -149,7 +146,6 @@ function ResetPasswordForm() {
         </div>
       </div>
 
-      {/* CARD DE CONTEÚDO */}
       <div className="w-full max-w-[480px] px-6 -mt-6 relative z-50">
         <div className="bg-white p-10 md:p-14 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-100 relative">
           
@@ -244,7 +240,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase text-slate-400">Carregando...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-black uppercase text-slate-400 animate-in fade-in duration-700">Carregando...</div>}>
       <ResetPasswordForm />
     </Suspense>
   );

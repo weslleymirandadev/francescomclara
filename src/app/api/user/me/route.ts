@@ -21,7 +21,9 @@ export async function GET() {
         include: { track: { select: { id: true, name: true, imageUrl: true } } }
       },
       payments: {
-        where: { status: "APPROVED" },
+        where: { 
+          status: { equals: "approved", mode: 'insensitive' }
+        },
         include: { subscriptionPlan: true },
         orderBy: { createdAt: "desc" },
         take: 1

@@ -110,7 +110,7 @@ export default function AdminDashboard() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-10 max-w-[1600px] mx-auto p-6 lg:p-10 bg-white min-h-screen">
+    <div className="space-y-10 max-w-[1600px] mx-auto p-6 lg:p-10 bg-white min-h-screen animate-in fade-in duration-700">
       <header className="flex justify-between items-end border-b border-slate-100 pb-8">
         <div>
           <h1 className="text-5xl font-bold font-frenchpress text-interface-accent uppercase tracking-tighter flex items-center gap-3">

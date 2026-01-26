@@ -75,7 +75,7 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
   if (loading) return <Loading />;
 
   return (
-    <div className="w-full bg-white min-h-screen">
+    <div className="w-full bg-white min-h-screen animate-in fade-in duration-700">
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         
         <header className="space-y-4 border-b border-slate-50 pb-6">
@@ -110,7 +110,6 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
           </div>
         </header>
 
-        {/* Grid: 1 coluna no mobile, 2 no PC (deitados) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="p-6 md:p-8 rounded-[2rem] border border-slate-100 bg-white shadow-sm flex items-center gap-6">
             <div className="w-14 h-14 md:w-16 md:h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center shrink-0">

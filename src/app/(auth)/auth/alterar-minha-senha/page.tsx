@@ -66,7 +66,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="min-h-screen pt-6 pb-6 bg-(--slate-50) flex items-center justify-center px-6">
+    <main className="min-h-screen pt-6 pb-6 bg-(--slate-50) flex items-center justify-center px-6 animate-in fade-in duration-700">
       <div className="max-w-md w-full">
         <Link 
           href="/configuracoes" 

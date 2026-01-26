@@ -46,6 +46,17 @@ function AssinarPageContent() {
   const router = useRouter();
 
   useEffect(() => {
+    async function checkExistingSubscription() {
+      const res = await fetch("/api/user/me");
+      const data = await res.json();
+      if (data.subscription) {
+        router.push("/dashboard");
+      }
+    }
+    if (status === "authenticated") checkExistingSubscription();
+  }, [status]);
+
+  useEffect(() => {
     const fetchContent = async () => {
       try {
         setLoading(true);
@@ -104,7 +115,7 @@ function AssinarPageContent() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-10">
+      <main className="min-h-screen bg-gray-50 px-4 py-10 animate-in fade-in duration-700">
         <div className="mx-auto max-w-lg space-y-4 text-center">
           <h1 className="text-2xl font-semibold text-gray-900">Erro ao carregar plano</h1>
           <p className="text-sm text-gray-500">
@@ -123,7 +134,7 @@ function AssinarPageContent() {
 
   if (!plan) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4">
+      <main className="min-h-screen bg-gray-50 px-4 animate-in fade-in duration-700">
         <section id="planos" className="py-12 max-w-7xl mx-auto">
           <div className="text-center max-w-2xl mx-auto mb-8">
             <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-(--interface-accent) to-(--clara-rose) text-transparent bg-clip-text py-2">

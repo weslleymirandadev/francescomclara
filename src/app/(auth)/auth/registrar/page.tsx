@@ -83,7 +83,7 @@ function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white animate-in fade-in duration-700">
       
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
@@ -99,7 +99,6 @@ function RegisterForm() {
         <div className="h-full w-1/3 bg-[#ED2939] opacity-[0.12]" />
       </div>
 
-      {/* JARDIM DE FLORES NO RODAPÉ */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
         <div className="absolute -bottom-10 -left-10 flex items-end">
           <img src="/static/flower.svg" className="w-56 h-56 opacity-100 -rotate-12 translate-y-10" alt="" />
@@ -111,7 +110,6 @@ function RegisterForm() {
         </div>
       </div>
 
-      {/* TÍTULO DA PÁGINA */}
       <div className="w-full h-[28vh] relative flex flex-col items-center justify-center z-30">
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-slate-900">
@@ -127,11 +125,9 @@ function RegisterForm() {
         </div>
       </div>
 
-      {/* CARD DE REGISTRO ROBUSTO */}
       <div className="w-full max-w-[520px] px-6 -mt-4 relative z-50">
         <div className="bg-white p-10 md:p-14 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-100 relative">
           
-          {/* Flor Ícone no Topo */}
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white p-3 rounded-full shadow-lg border border-slate-50">
             <img src="/static/flower.svg" className="w-10 h-10 animate-[spin_20s_linear_infinite]" alt="Logo" />
           </div>
@@ -146,7 +142,7 @@ function RegisterForm() {
               value={formData.name}
               onChange={handleChange}
               placeholder="Como deseja ser chamado?"
-              className="h-14 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
+              className="h-14 rounded-2xl bg-white border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
             />
             
             <Input
@@ -158,7 +154,7 @@ function RegisterForm() {
               value={formData.email}
               onChange={handleChange}
               placeholder="seu@email.com"
-              className="h-14 rounded-2xl bg-slate-50 border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
+              className="h-14 rounded-2xl bg-white border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
             />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -173,7 +169,7 @@ function RegisterForm() {
                 placeholder="••••••••"
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword(!showPassword)}
-                className="h-14 rounded-2xl bg-slate-50 border-slate-200"
+                className="h-14 rounded-2xl bg-white border-slate-200"
               />
               <Input
                 id="confirmPassword"
@@ -186,7 +182,7 @@ function RegisterForm() {
                 placeholder="••••••••"
                 showPassword={showPassword}
                 onTogglePassword={() => setShowPassword(!showPassword)}
-                className="h-14 rounded-2xl bg-slate-50 border-slate-200"
+                className="h-14 rounded-2xl bg-white border-slate-200"
               />
             </div>
             

@@ -28,7 +28,7 @@ export default function SignIn() {
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/minha-trilha";
+  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,7 +49,7 @@ function SignInForm() {
       if (result?.error) {
         setFormError("E-mail ou senha incorretos.");
       } else {
-        window.location.href = callbackUrl;
+        router.push(callbackUrl);
       }
     } catch {
       setFormError("Erro ao autenticar.");
@@ -59,9 +59,8 @@ function SignInForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white">
+    <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white animate-in fade-in duration-700">
       
-      {/* --- BACKGROUND TRICOLOR INTEGRADO --- */}
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
           className="w-full h-full bg-cover bg-center opacity-30 grayscale-20"
@@ -76,7 +75,6 @@ function SignInForm() {
         <div className="h-full w-1/3 bg-[#ED2939] opacity-[0.12]" />
       </div>
 
-      {/* JARDIM DE FLORES NO RODAPÉ */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
         <div className="absolute -bottom-10 -left-10 flex items-end">
           <img src="/static/flower.svg" className="w-56 h-56 opacity-100 -rotate-12 translate-y-10" alt="" />
@@ -88,7 +86,6 @@ function SignInForm() {
         </div>
       </div>
 
-      {/* BANNER CONTENT */}
       <div className="w-full h-[32vh] relative flex flex-col items-center justify-center z-30">
         <div className="text-center">
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-[0.2em] text-slate-900 drop-shadow-sm">
@@ -104,11 +101,9 @@ function SignInForm() {
         </div>
       </div>
 
-      {/* CARD DE LOGIN */}
       <div className="w-full max-w-[480px] px-6 -mt-6 relative z-50">
         <div className="bg-white p-10 md:p-14 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-slate-100 relative">
           
-          {/* Flor Ícone no Topo do Card */}
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white p-3 rounded-full shadow-lg border border-slate-50">
             <img src="/static/flower.svg" className="w-10 h-10 animate-[spin_20s_linear_infinite]" alt="Logo Clara" />
           </div>
@@ -157,10 +152,9 @@ function SignInForm() {
             <div className="relative flex justify-center text-[10px] uppercase font-black text-slate-400 bg-white px-4 tracking-[0.3em]">Ou continuar com</div>
           </div>
 
-          {/* BOTÃO DO GOOGLE COM HOVER ROSA SOLICITADO */}
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl: "/minha-trilha" })}
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             className="w-full h-14 cursor-pointer border-2 border-slate-100 bg-white hover:border-(--clara-rose) hover:bg-rose-50/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
           >
             <FaGoogle className="text-slate-400 group-hover:text-(--clara-rose) transition-colors" size={18} />

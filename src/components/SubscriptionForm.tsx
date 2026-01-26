@@ -483,7 +483,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
             >
               Número do cartão
             </label>
@@ -509,7 +509,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
               >
                 Validade (MM/AA)
               </label>
@@ -534,7 +534,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
               >
                 CVV
               </label>
@@ -557,7 +557,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
             >
               Nome do titular (como no cartão)
             </label>
@@ -575,7 +575,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.email ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.email ? "text-red-400" : "text-gray-300"}`}
             >
               E-mail
             </label>
@@ -606,7 +606,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                 {documentType}
               </div>
               <label
-                className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all peer-focus:text-pink-500 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
+                className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-focus:text-pink-500 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
               >
                 Documento
               </label>
@@ -705,7 +705,7 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
                 placeholder=" "
               />
               <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-[2px] text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.document ? "text-red-400" : "text-gray-300"}`}
+                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.document ? "text-red-400" : "text-gray-300"}`}
               >
                 {documentType === "CPF" ? "CPF" : "CNPJ"}
               </label>

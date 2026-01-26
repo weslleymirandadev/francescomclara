@@ -25,7 +25,7 @@ export function AdminSidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-(--color-s-200)">
+      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-(--color-s-200) animate-in fade-in duration-700">
         <div className="flex items-center gap-2 px-6 py-8">
           <h1 className="text-lg font-bold text-interface-accent tracking-wider uppercase">
             Admin Panel

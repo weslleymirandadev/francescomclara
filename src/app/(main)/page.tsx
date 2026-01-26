@@ -12,6 +12,7 @@ import { getGlobalData } from "./actions/settings";
 import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard"
+import { SectionDivider } from "@/components/ui/sectiondivider";
 
 type Lesson = {
   id: string;
@@ -87,15 +88,14 @@ export default function Home() {
   const { data: session, status } = useSession();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [accessMap, setAccessMap] = useState<Record<string, { hasAccess: boolean }>>({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [accessMap, setAccessMap] = useState<Record<string, { hasAccess: boolean }>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const [greeting, setGreeting] = useState("");
   const [scrollY, setScrollY] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-
   const [studyContent, setStudyContent] = useState<StudyContent | null>(null);
 
   const FR = (
@@ -110,108 +110,54 @@ export default function Home() {
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
-      try {
-        const resPublic = await fetch('/api/public/content');
-        const publicData = await resPublic.json();
-        setPlans(publicData.plans || []);
-        
-        if (status === "authenticated") {
-          const resUser = await fetch('/api/user/me');
-          if (resUser.ok) {
-            const userData = await resUser.json();
-            
-            setStudyContent({
-              tracks: userData.enrollments?.map((e: any) => e.track) || [],
-              hasActiveSubscription: !!userData.payments?.length,
-              completedLessonIds: []
-            });
+      if (status === "loading") return;
 
-            const allTracks = publicData.tracks.map((track: Track) => ({
-              ...track,
-              hasAccess: userData.enrollments?.some((e: any) => e.trackId === track.id)
-            }));
-            setTracks(allTracks);
+      try {
+        setLoading(true);
+        const res = await fetch('/api/public/content');
+        const data = await res.json();
+
+        console.log("DADOS DA API:", data);
+
+        if (data) {
+          const planosVindosDaApi = data.plans || [];
+          setPlans(planosVindosDaApi);
+          setSubscriptionPlans(planosVindosDaApi);
+          
+          let currentTracks = data.tracks || [];
+
+          if (status === "authenticated") {
+            const resUser = await fetch('/api/user/me');
+            if (resUser.ok) {
+              const userData = await resUser.json();
+              setStudyContent({
+                tracks: userData.enrollments || [], 
+                hasActiveSubscription: !!userData.subscription,
+                completedLessonIds: userData.completedLessonIds || []
+              });
+              currentTracks = currentTracks.map((t: any) => ({
+                ...t,
+                hasAccess: userData.enrollments?.some((e: any) => e.trackId === t.id)
+              }));
+            }
           }
-        } else {
-          setTracks(publicData.tracks);
+          setTracks(currentTracks.sort((a: Track, b: Track) => (a.objective?.order ?? 0) - (b.objective?.order ?? 0)));
         }
-      } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+      } catch (e) { 
+        console.error("ERRO NO FETCH:", e);
+        toast.error("Erro ao conectar com o servidor");
       } finally {
         setLoading(false);
       }
     }
-
     loadData();
   }, [status]);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getGlobalData();
-        console.log("Planos vindos do banco:", data.plans);
-        
-        if (data && data.plans) {
-          setPlans(data.plans);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar planos:", error);
-        setPlans([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch('/api/public/content');
-        const data = await response.json();
-        
-        const sortedTracks = data.tracks.sort((a: Track, b: Track) => {
-          const orderA = a.objective?.order ?? 0;
-          const orderB = b.objective?.order ?? 0;
-          return orderA - orderB;
-        });
-
-        setTracks(sortedTracks);
-        setPlans(data.plans);
-      } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        toast.error("Erro ao carregar conteúdo");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
-
-  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
     video.muted = true;
-
-    const attemptPlay = () => {
-      video.play().catch((error) => {
-        console.log("Aguardando interação do usuário para rodar o vídeo...");
-        
-        const playOnInteraction = () => {
-          video.play();
-          window.removeEventListener("mousemove", playOnInteraction);
-          window.removeEventListener("touchstart", playOnInteraction);
-        };
-
-        window.addEventListener("mousemove", playOnInteraction);
-        window.addEventListener("touchstart", playOnInteraction);
-      });
-    };
-
-    attemptPlay();
+    video.play().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -236,10 +182,11 @@ export default function Home() {
         }
       });
     }, { threshold: 0.1 });
-
     document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
     return () => observer.disconnect();
   }, [tracks]);
+
+  if (loading || status === "loading") return <Loading />;
 
   const getLessonIcon = (type: string) => {
     const props = { size: 14, strokeWidth: 2.5 };
@@ -251,6 +198,13 @@ export default function Home() {
       default: return <GraduationCap {...props} />;
     }
   };
+
+  const groupedTracks = tracks.reduce((acc: any, track: Track) => {
+    const objId = track.objective?.id || 'default';
+    if (!acc[objId]) acc[objId] = { info: track.objective, tracks: [] };
+    acc[objId].tracks.push(track);
+    return acc;
+  }, {});
 
   const isLessonCompleted = (lessonId: string) => {
     return studyContent?.completedLessonIds.includes(lessonId) || false;
@@ -281,57 +235,6 @@ export default function Home() {
     );
   };
 
-  const groupedTracks = tracks.reduce((acc: any, track: Track) => {
-    const objId = track.objective?.id || 'default';
-    if (!acc[objId]) {
-      acc[objId] = {
-        info: track.objective,
-        tracks: []
-      };
-    }
-    acc[objId].tracks.push(track);
-    return acc;
-  }, {});
-
-  const SectionDivider = () => (
-    <div className="relative w-screen left-1/2 -translate-x-1/2 h-12 md:h-32 z-[45] pointer-events-none overflow-visible mb-10 mt-18">
-      <div className="absolute left-1/2 -translate-x-1/2 w-[115vw] -translate-y-1/2 -rotate-[2deg]">
-        <svg 
-          className="w-full h-60 md:h-100 overflow-visible" 
-          preserveAspectRatio="none" 
-          viewBox="0 0 1440 100"
-        >
-          <defs>
-            <filter id="torn-paper-rotate">
-              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="8" />
-            </filter>
-          </defs>
-
-          <path 
-            d="M-100 100 L1540 100 L1540 30 L-100 35 Z" 
-            fill="black" 
-            className="opacity-[0.04]"
-            filter="url(#torn-paper-rotate)"
-            style={{ transform: 'translateY(-6px)' }}
-          />
-
-          <path 
-            d="M-100 100 L1540 100 L1540 30 L-100 35 Z" 
-            fill="#f8fafc" 
-            filter="url(#torn-paper-rotate)"
-          />
-        </svg>
-
-        <div className="absolute top-[60%] left-1/2 -translate-x-1/2 flex items-center gap-6 opacity-60">
-          <span className="text-[10px] font-bold uppercase tracking-[1.5em] text-s-900 font-frenchpress italic">
-            Suivant
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-
   const handleRedirect = (url: string) => {
     setIsExiting(true);
     setTimeout(() => {
@@ -342,7 +245,7 @@ export default function Home() {
   if (!session?.user) {
     if (loading) <Loading />;
     return (
-      <main className="min-h-screen bg-(--slate-50) overflow-x-hidden">
+      <main className="min-h-screen bg-(--slate-50) overflow-x-hidden animate-in fade-in duration-700">
         <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-(--slate-900)">
           <div className="absolute inset-0 z-0"
             style={{  transform: `translateY(${scrollY * 0.3}px)` }}
@@ -405,8 +308,8 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <div className="relative w-full h-0 z-[46] pointer-events-none overflow-visible">
-          <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 rotate-[-2deg]">
+        <div className="relative w-full h-0 z-46 pointer-events-none overflow-visible">
+          <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 rotate-2">
             <svg 
               className="w-full h-32 overflow-visible" 
               preserveAspectRatio="none" 
@@ -429,7 +332,7 @@ export default function Home() {
             <div className="absolute top-[25%] right-[8%] rotate-12" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
               <Icon icon="ph:briefcase-fill" className="w-[100px] md:w-[200px]" />
             </div>
-            <div className="absolute top-[44%] left-[10%] rotate-[25deg]" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
+            <div className="absolute top-[44%] left-[10%] rotate-25" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
               <Icon icon="ph:graduation-cap-fill" className="w-[110px] md:w-[220px]" />
             </div>
             <div className="absolute top-[65%] right-[5%] -rotate-6" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
@@ -480,14 +383,10 @@ export default function Home() {
     );
   }
 
-  if (loading) <Loading />;
-
   const hasSubscription = studyContent?.hasActiveSubscription || false;
-  const studyTracks = studyContent?.tracks || [];
 
   return (
-    <main className="mt-4 relative min-h-screen bg-(--slate-50) overflow-x-hidden">
-      {/* Banner de Incentivo para não assinantes */}
+    <main className="mt-4 relative min-h-screen bg-(--slate-50) overflow-x-hidden animate-in fade-in duration-700">
       {!hasSubscription && (
         <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 fixed min-w-full left-0 z-50 shadow-lg">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
@@ -519,8 +418,6 @@ export default function Home() {
           Object.values(groupedTracks).map((group: any) => {
             const objective = group.info;
             if (!objective) return null;
-
-            // Cálculo de ângulos idêntico ao original
             const mainAngle = objective.iconRotate || 0;
             const badgeAngle = mainAngle * 0.1;
             
@@ -532,15 +429,13 @@ export default function Home() {
                 
                 <section className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out scroll-reveal pt-2">
                   <div className="relative w-full">
-                    {/* BANNER COM DECORAÇÕES ORIGINAIS */}
                     <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-s-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
                       <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-[2000ms] group-hover/sep:scale-110"
+                        className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
                         style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
                       />
                       <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
                       
-                      {/* LÓGICA DE AVISO PREMIUM DO PAGE2 */}
                       {hasLockedInGroup && (
                         <div className="absolute top-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white py-3 px-8 z-30 flex items-center justify-center gap-3 animate-pulse">
                           <Crown size={18} />
@@ -553,13 +448,11 @@ export default function Home() {
                         <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter font-frenchpress leading-none">{objective.name}</h2>
                       </div>
 
-                      {/* ÍCONES INTERNOS DO BANNER */}
                       <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
-                        <Icon icon={objective.icon} width={80} height={80} className="rotate-[25deg]" />
+                        <Icon icon={objective.icon} width={80} height={80} className="rotate-25" />
                       </div>
                     </div>
 
-                    {/* DECORAÇÕES EXTERNAS (ÍCONES GRANDES E ROTACIONADOS) */}
                     <div className="absolute -bottom-35 -right-16 z-10 text-s-50 pointer-events-none hidden md:block" style={{ transform: `rotate(${mainAngle}deg)` }}>
                       <Icon icon={objective.icon} width={250} height={250} />
                     </div>
@@ -580,7 +473,6 @@ export default function Home() {
                         <div key={track.id} className="group bg-white rounded-[40px] border shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500">
                           <div className="flex flex-col lg:flex-row">
                             
-                            {/* LADO ESQUERDO: ESTILO ORIGINAL COM LÓGICA DE BLOQUEIO */}
                             <div 
                               className="lg:w-2/5 p-12 text-white flex flex-col justify-between relative min-h-[450px]"
                               style={{ backgroundColor: track.objective?.color || '#0f172a' }}
@@ -620,7 +512,6 @@ export default function Home() {
                               </div>
                             </div>
 
-                            {/* LADO DIREITO: MÓDULOS COM OVERLAY DE BLOQUEIO */}
                             <div className="lg:w-2/3 p-12 bg-white relative overflow-hidden">
                               <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
                                 <Icon icon="ph:book-open-thin" width={300} />
@@ -636,7 +527,7 @@ export default function Home() {
                               )}
                               
                               <h4 className="text-[10px] font-black text-s-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
-                                <span className="w-8 h-[1px] bg-s-200"></span> Programme de formation
+                                <span className="w-8 h-px bg-s-200"></span> Programme de formation
                               </h4>
                               
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
@@ -676,7 +567,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Seção do Fórum */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="bg-slate-900 rounded-[3rem] p-12 relative overflow-hidden group">

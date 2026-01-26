@@ -20,7 +20,7 @@ export async function GET() {
         active: true
       },
       include: {
-        objective: { select: { name: true, description: true } },
+        objective: { select: { id: true, name: true, icon: true, color: true } },
         modules: {
           include: {
             lessons: {

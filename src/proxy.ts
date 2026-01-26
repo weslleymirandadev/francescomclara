@@ -82,7 +82,17 @@ export async function proxy(req: NextRequest) {
     }
 
     if (pathname.startsWith('/flashcards')) {
-      if (!await hasActiveSubscription(token.sub!)) {
+      const userHasAnyEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          userId: token.sub,
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date() } }
+          ]
+        }
+      });
+
+      if (!userHasAnyEnrollment) {
         return NextResponse.redirect(new URL('/assinar', req.url));
       }
     }

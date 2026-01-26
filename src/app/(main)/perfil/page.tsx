@@ -144,8 +144,7 @@ export default function ProfilePage() {
   if (!session || loading) return <Loading />;
 
   return (
-    <main className="min-h-screen bg-(--slate-50) pb-20">
-      {/* BANNER DINÂMICO (ESTILO DISCORD) */}
+    <main className="min-h-screen bg-(--slate-50) pb-20 animate-in fade-in duration-700">
       <div className="relative h-60 md:h-72 w-full bg-slate-900">
         <div className="absolute inset-0 bg-linear-to-b from-black/20 to-(--slate-50)" />
         <img 
@@ -213,7 +212,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* CONTEÚDO */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <Card className="lg:col-span-2 p-10 border-none shadow-2xl shadow-slate-200/50 bg-white rounded-[3rem]">
             <h2 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
@@ -259,7 +257,6 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          {/* CARD LATERAL DE XP */}
           <Card className="p-10 border-none shadow-2xl bg-slate-900 rounded-[3rem] text-white flex flex-col justify-between overflow-hidden relative">
             <div className="relative z-10">
               <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Conquistas</h2>
@@ -268,7 +265,7 @@ export default function ProfilePage() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
                   <p className="text-3xl font-black text-(--interface-accent) italic">{levelNames[user?.level || "A1"]}</p>
                 </div>
-                <div className="h-[1px] bg-white/10 w-full" />
+                <div className="h-px bg-white/10 w-full" />
                 <div className="flex justify-between items-center">
                    <span className="text-[10px] font-black uppercase text-slate-400">Total de Lições</span>
                    <span className="text-xl font-black">124</span>
@@ -279,7 +276,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            {/* Decoração */}
             <div className="absolute -right-10 -bottom-10 text-white/5 rotate-12">
               <FiUser size={250} />
             </div>

@@ -262,15 +262,6 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
             Adicionar Nova Aula
           </button>
         </DndContext>
-
-        {hasUnsavedChanges && (
-          <div className="fixed top-8 right-8 z-100 animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="bg-white border border-(--color-s-100) shadow-2xl rounded-3xl p-2 flex items-center gap-4 pl-6">
-              <span className="text-[10px] font-black text-s-500 uppercase tracking-widest">{isSaving ? "Salvando..." : "Alterações Pendentes"}</span>
-              <button onClick={handleSaveAll} disabled={isSaving} className="bg-interface-accent text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:brightness-110 shadow-lg">Salvar Agora</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

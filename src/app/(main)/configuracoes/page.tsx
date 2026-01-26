@@ -41,7 +41,7 @@ export default function SettingsPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen bg-(--slate-50) pt-24 pb-20">
+    <main className="min-h-screen bg-(--slate-50) pt-24 pb-20 animate-in fade-in duration-700">
       <div className="max-w-4xl mx-auto px-6">
         
         <div className="mb-12">
@@ -98,7 +98,7 @@ export default function SettingsPage() {
                   <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">{item.label}</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-(--interface-accent) after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-(--interface-accent) after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
                 </div>
               ))}

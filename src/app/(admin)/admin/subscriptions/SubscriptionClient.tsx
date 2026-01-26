@@ -118,7 +118,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
   if (loading) return <Loading />;
 
   return (
-    <div className="w-full bg-white min-h-screen">
+    <div className="w-full bg-white min-h-screen animate-in fade-in duration-700">
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-50 pb-8">
@@ -153,7 +153,6 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
             />
           ))}
 
-          {/* Card para Adicionar Novo */}
           <button 
             onClick={openCreateModal}
             className="border-2 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 hover:border-interface-accent hover:bg-slate-50 transition-all group min-h-[300px] cursor-pointer"
@@ -165,7 +164,6 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
           </button>
         </div>
 
-        {/* MODAL DE EDIÇÃO / CRIAÇÃO */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="max-w-md rounded-[2rem] p-8 mt-5">
             <DialogHeader className="shrink-0">
@@ -189,7 +187,6 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                   Tipo
                 </label>
                 <Select 
-                  // Se for null ou undefined, o value fica undefined, o que ativa o placeholder
                   value={editingPlan?.type || undefined} 
                   onValueChange={v => setEditingPlan(prev => ({ 
                     ...prev!, 
@@ -197,11 +194,9 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                   }))}
                 >
                   <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11 w-full">
-                    {/* O placeholder é o que impede de ficar "pequinininho" */}
                     <SelectValue placeholder="Selecione o tipo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Removido o Item com value="", deixamos apenas as opções reais */}
                     <SelectItem value="INDIVIDUAL">Individual</SelectItem>
                     <SelectItem value="FAMILY">Família</SelectItem>
                   </SelectContent>
@@ -226,17 +221,16 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Preço Mensal */}
                 <div className="grid gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-400">Preço Mensal</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
                     <Input 
-                      type="text" // Mudamos para text para ter controle total
-                      inputMode="numeric" // Abre o teclado numérico no celular
+                      type="text"
+                      inputMode="numeric"
                       value={formatToDisplay((editingPlan?.monthlyPrice || 0))}
                       onChange={e => {
-                        const rawValue = e.target.value.replace(/\D/g, ""); // Pega só os números
+                        const rawValue = e.target.value.replace(/\D/g, "");
                         const cents = Number(rawValue);
                         setEditingPlan(prev => ({ ...prev!, monthlyPrice: cents }));
                       }}
@@ -249,7 +243,6 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                   </p>
                 </div>
                 
-                {/* Preço Anual */}
                 <div className="grid gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-400">Preço Anual</label>
                   <div className="relative">

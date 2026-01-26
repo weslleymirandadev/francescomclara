@@ -104,27 +104,6 @@ export const authOptions: NextAuthOptions = {
 
           return user;
         }
-
-        // -------------------------------------
-        // 2) Usuário não existe → criar conta
-        // -------------------------------------
-        const hashed = await hash(password, 10);
-
-        const created = await prisma.user.create({
-          data: {
-            email,
-            name: email.split("@")[0],
-            role: await resolveUserRole(email) as UserRole,
-            passwords: {
-              create: {
-                hash: hashed,
-              },
-            },
-          },
-          include: { passwords: true },
-        });
-
-        return created;
       },
     }),
   ],

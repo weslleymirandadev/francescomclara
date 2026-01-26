@@ -123,7 +123,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   if (loading) return <Loading />;
 
   return (
-    <div className="w-full bg-white min-h-screen pb-32">
+    <div className="w-full bg-white min-h-screen pb-32 animate-in fade-in duration-700">
       <SaveChangesBar 
         hasChanges={hasChanges}
         loading={loading}

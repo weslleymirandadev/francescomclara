@@ -63,7 +63,6 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
       <div className="max-w-6xl mx-auto space-y-12">
         <header className="flex flex-col gap-8">
-          {/* TÍTULO EDITÁVEL */}
           <div className="flex items-center gap-4 group/title">
             <Link href={`/admin/content/modules/${moduleId}`} className="p-2 hover:bg-s-50 rounded-xl transition-all">
               <ChevronLeft size={24} />
@@ -75,9 +74,7 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
             />
           </div>
 
-          {/* CONTROLES DE TIPO E PRIVACIDADE */}
           <div className="flex flex-wrap items-center gap-4 bg-s-50 p-2 rounded-[28px] border border-(--color-s-100) w-fit">
-            {/* Seletor de Tipo */}
             <div className="flex gap-1">
               {(['CLASS', 'STORY', 'READING', 'FLASHCARD'] as LessonType[]).map((type) => (
                 <button
@@ -98,7 +95,6 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
             <div className="h-8 w-px bg-s-200 mx-1" />
 
-            {/* Toggle Premium */}
             <button 
               onClick={() => handleUpdate({ isPremium: !lesson.isPremium })}
               className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] transition-all border ${
@@ -113,7 +109,6 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
           </div>
         </header>
 
-        {/* ÁREA DINÂMICA DO CONSTRUTOR */}
         <main className="w-full">
            <div className="bg-white border-2 border-dashed min-h-[500px] rounded-[40px] p-8 flex flex-col items-center justify-center relative transition-all hover:bg-s-100">
               

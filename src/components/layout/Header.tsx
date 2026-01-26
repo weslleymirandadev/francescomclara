@@ -10,7 +10,6 @@ import { FaRegClone } from "react-icons/fa";
 import { FiUser as User, FiLogOut, FiMessageSquare, FiLayout, FiChevronDown } from "react-icons/fi";
 import { HiOutlineCog, HiMenu, HiX } from "react-icons/hi";
 import { RiSecurePaymentFill } from "react-icons/ri";
-import { BiDirections } from "react-icons/bi";
 import { Crown } from "lucide-react";
 
 interface HeaderProps {
@@ -23,7 +22,6 @@ interface HeaderProps {
 const mainNavigation = [
   { href: "/dashboard", icon: FiLayout, text: "Dashboard" },
   { href: "/forum", icon: FiMessageSquare, text: "Fórum" },
-  { href: "/minha-trilha", icon: BiDirections, text: "Trilha" },
   { href: "/flashcards", icon: FaRegClone, text: "Flashcards" },
 ];
 
@@ -33,8 +31,6 @@ export function Header({ settings }: HeaderProps) {
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const { data: session, status } = useSession();
 
-  const isAdmin = session?.user?.role === "ADMIN";
-
   useEffect(() => {
     async function checkStatus() {
       if (status === "authenticated") {
@@ -42,8 +38,7 @@ export function Header({ settings }: HeaderProps) {
           const response = await fetch("/api/user/me");
           if (response.ok) {
             const userData = await response.json();
-            const active = userData.payments?.some((p: any) => p.status === "APPROVED");
-            setHasActiveSubscription(!!active);
+            setHasActiveSubscription(!!userData.subscription); 
           }
         } catch (error) {
           setHasActiveSubscription(false);
@@ -54,7 +49,7 @@ export function Header({ settings }: HeaderProps) {
   }, [status]);
 
   return (
-    <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-[100]">
+    <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-2 group">
@@ -72,7 +67,7 @@ export function Header({ settings }: HeaderProps) {
                 style={{ color: `var(${settings?.highlightColor || '--clara-rose'})` }}
               >
               Clara
-              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-[15deg]">
+              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
                 {settings?.siteIcon?.startsWith("/") ? (
                   <img src={settings?.siteIcon} alt="Icon" className="w-4 h-4 object-contain" />
                 ) : (
@@ -120,7 +115,7 @@ export function Header({ settings }: HeaderProps) {
           {/* USER DROPDOWN */}
           {session && (
             <div className="flex items-center gap-4 ml-4">
-              {session && !hasActiveSubscription && (
+              {session && hasActiveSubscription === false && (
                 <Link 
                   href="/assinar" 
                   className="ml-4 flex items-center justify-center bg-linear-to-r from-clara-rose to-pink-500 text-white w-12 h-12 rounded-xl font-bold hover:shadow-lg transition-all"
@@ -203,7 +198,7 @@ export function Header({ settings }: HeaderProps) {
             </Link>
           ))}
           
-          <div className="h-[1px] bg-slate-100 my-4" />
+          <div className="h-px bg-slate-100 my-4" />
           
           {session ? (
             <button

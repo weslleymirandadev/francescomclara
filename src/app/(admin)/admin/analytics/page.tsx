@@ -80,10 +80,9 @@ export default function AdminAnalytics() {
     : "R$ 0,00";
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white animate-in fade-in duration-700">
       <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
         
-        {/* Header Limpo */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-(--slate-100) pb-6 md:pb-8 gap-4">
           <div className="w-full sm:w-auto">
             <h1 className="text-3xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter flex items-center gap-2">
@@ -101,10 +100,8 @@ export default function AdminAnalytics() {
           </button>
         </header>
 
-        {/* Grid de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           
-          {/* MRR - Destaque Rosa */}
           <div className="bg-linear-to-br from-(--clara-rose) to-[#b83d75] text-white rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-md relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-4 md:mb-6">
@@ -120,7 +117,6 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          {/* Churn Rate */}
           <div className="bg-white border border-(--slate-100) rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4 md:mb-6">
               <div className="p-2.5 bg-rose-50 text-rose-500 rounded-xl">
@@ -135,7 +131,6 @@ export default function AdminAnalytics() {
             </div>
           </div>
 
-          {/* LTV */}
           <div className="bg-white border border-(--slate-100) rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-sm sm:col-span-2 lg:col-span-1 relative overflow-hidden">
             <div className="flex justify-between items-start mb-4 md:mb-6">
               <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
@@ -144,7 +139,6 @@ export default function AdminAnalytics() {
             </div>
             <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">LTV Médio</p>
             <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">{ltvValue}</h2>
-            {/* Bandeira sutil no canto */}
             <div className="absolute top-0 right-0 w-1 h-full flex flex-col opacity-40">
               <div className="flex-1 bg-blue-600" />
               <div className="flex-1 bg-white" />
@@ -153,7 +147,6 @@ export default function AdminAnalytics() {
           </div>
         </div>
 
-        {/* Lista de Transações - Estilo Branco Limpo */}
         <div className="bg-white border border-(--slate-100) rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-sm">
           <div className="p-5 md:p-8 border-b border-(--slate-50) flex items-center gap-2">
             <FileText size={18} className="text-(--interface-accent)" />

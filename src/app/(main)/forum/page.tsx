@@ -56,10 +56,9 @@ export default function ForumPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen pt-24 pb-20 bg-(--slate-50)">
+    <main className="min-h-screen pt-24 pb-20 bg-(--slate-50) animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto px-6 space-y-10">
         
-        {/* Banner de Destaque - Novas Trilhas */}
         <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white shadow-2xl min-h-[350px] flex items-center">
           <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1500')] bg-cover bg-center" />
           <div className="relative z-10 p-10 md:p-16 flex flex-col md:flex-row justify-between items-center gap-10 w-full">
@@ -140,7 +139,7 @@ export default function ForumPage() {
               </button>
             </div>
 
-            <Link href="/forum/novo" className="flex-shrink-0">
+            <Link href="/forum/novo" className="shrink-0">
               <Button className="h-16 px-8 rounded-2xl shadow-xl shadow-(--clara-rose)/10 bg-slate-900 hover:bg-(--clara-rose) text-white uppercase text-[11px] font-black tracking-widest transition-all cursor-pointer group">
                 <FiPlus className="mr-2 group-hover:rotate-90 transition-transform" size={20} /> 
                 Criar Tópico

@@ -71,7 +71,7 @@ export default function FlashcardsPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen bg-(--slate-50) pt-24 pb-12 px-6">
+    <main className="min-h-screen bg-(--slate-50) pt-24 pb-12 px-6 animate-in fade-in duration-700">
       <div className="max-w-xl mx-auto">
         
         {mode === 'IDLE' && (
