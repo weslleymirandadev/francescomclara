@@ -18,6 +18,7 @@ model User {
   image             String?
   banner            String?
   level             CEFRLevel        @default(A1)
+  onboarded         Boolean          @default(false)
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   role              UserRole         @default(USER)
@@ -388,10 +389,32 @@ model SiteSettings {
   notifyNewModule      Boolean  @default(true)
   notifyPlanExpiring   Boolean  @default(true)
   notifyInactivity     Boolean  @default(false)
+  welcomeBackMessage   Boolean  @default(true)
   inactivityDays       Int      @default(7)
   daysToNotifyExpiring Int      @default(7)
   expiringMessage      String?  @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
   inactivityMessage    String?  @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
+  welcomeMessage       String?  @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.")
 
   updatedAt            DateTime @updatedAt
+}
+
+model PlacementTest {
+  id        String     @id @default(cuid())
+  title     String     @default("Teste de Nivelamento")
+  questions Question[]
+}
+
+model Question {
+  id              String        @id @default(cuid())
+  text            String
+  points          Int           @default(1) // Cada pergunta pode valer X pontos
+  options         String[]      // Ex: ["Option A", "Option B"]
+  correctOption   Int           // Índice da resposta certa
+  levelAssigned   String        // Qual nível essa pergunta testa (A1, A2, B1...)
+  testId          String
+  test            PlacementTest @relation(fields: [testId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

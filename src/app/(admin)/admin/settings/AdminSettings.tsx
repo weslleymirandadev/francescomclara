@@ -40,6 +40,12 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   const [hasChanges, setHasChanges] = useState(false);
   
   const [formData, setFormData] = useState<SettingsFormData>({
+    welcomeBackMessage: initialSettings?.welcomeBackMessage ?? true,
+    expiringReminder: initialSettings?.expiringReminder ?? true,
+    inactivityReminder: initialSettings?.inactivityReminder ?? true,
+    expiringMessage: initialSettings?.expiringMessage || "Seu plano está chegando ao fim! Não perca o acesso à sua jornada.",
+    inactivityMessage: initialSettings?.inactivityMessage || "Sentimos sua falta! Que tal retomar sua jornada de francês hoje?",
+    welcomeMessage: initialSettings?.welcomeMessage || "Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.",
     siteDescription: initialSettings?.siteDescription || "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
     seoDescription: initialSettings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.",
     siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
@@ -409,7 +415,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
               </div>
 
               <div className="space-y-6">
-                {/* Automação 01: Expiração de Plano */}
                 <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
                   <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
                     <div className="flex-1 space-y-4">
@@ -448,7 +453,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                   </div>
                 </div>
 
-                {/* Automação 02: Inatividade */}
                 <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
                   <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
                     <div className="flex-1 space-y-4">
@@ -484,6 +488,34 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                        Mensagem de Boas-vindas (Primeiro Acesso)
+                      </span>
+                    </div>
+                    <Switch 
+                      checked={formData.welcomeBackMessage} 
+                      onCheckedChange={(val) => { 
+                        setFormData({...formData, welcomeBackMessage: val}); 
+                        setHasChanges(true); 
+                      }}
+                    />
+                  </div>
+
+                  <textarea 
+                    value={formData.welcomeMessage}
+                    onChange={(e) => { 
+                      setFormData({...formData, welcomeMessage: e.target.value}); 
+                      setHasChanges(true); 
+                    }}
+                    className="w-full min-h-24 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                    placeholder="Escreve aqui a mensagem que o aluno verá no primeiro acesso..."
+                  />
                 </div>
               </div>
             </section>

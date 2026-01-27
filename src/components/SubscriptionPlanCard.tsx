@@ -11,6 +11,8 @@ interface SubscriptionPlanCardProps {
   isBestValue?: boolean;
   features: string[] | any;
   onSubscribe?: (planId: string) => void;
+  buttonText?: string; 
+  disabled?: boolean;
   className?: string;
 }
 
@@ -22,6 +24,7 @@ export function SubscriptionPlanCard({
   isBestValue = false,
   features,
   onSubscribe,
+  buttonText = "Assinar Agora",
   className = "",
 }: SubscriptionPlanCardProps) {
   const finalMonthlyPrice = monthlyPrice || 0;
@@ -47,7 +50,6 @@ export function SubscriptionPlanCard({
           <Crown size={25} /> <span>{name}</span>
         </h3>
 
-        {/* Preço Mensal */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Mensal</p>
@@ -63,7 +65,6 @@ export function SubscriptionPlanCard({
           <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
         </div>
 
-        {/* Preço Anual */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Anual</p>
@@ -101,7 +102,7 @@ export function SubscriptionPlanCard({
           onClick={handleClick}
           className="w-full py-3 rounded-xl font-bold bg-black text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto cursor-pointer"
         >
-          Assinar
+          {buttonText}
         </button>
       </div>
     </div>

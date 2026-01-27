@@ -8,11 +8,11 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText, Sparkles, Lock, Crown, Play } from "lucide-react";
 import Image from "next/image";
 import { Icon } from "@iconify/react";
-import { getGlobalData } from "./actions/settings";
 import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard"
 import { SectionDivider } from "@/components/ui/sectiondivider";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Lesson = {
   id: string;
@@ -98,6 +98,9 @@ export default function Home() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [studyContent, setStudyContent] = useState<StudyContent | null>(null);
 
+  const [activeObjectiveId, setActiveObjectiveId] = useState<string | null>(null);
+  const coursesSectionRef = useRef<HTMLDivElement>(null);
+
   const FR = (
     <Image
       src="/static/franca.png"
@@ -117,35 +120,43 @@ export default function Home() {
         const res = await fetch('/api/public/content');
         const data = await res.json();
 
-        console.log("DADOS DA API:", data);
-
         if (data) {
-          const planosVindosDaApi = data.plans || [];
-          setPlans(planosVindosDaApi);
-          setSubscriptionPlans(planosVindosDaApi);
+          const allTracks = data.tracks || [];
+          setPlans(data.plans || []);
           
-          let currentTracks = data.tracks || [];
-
           if (status === "authenticated") {
             const resUser = await fetch('/api/user/me');
             if (resUser.ok) {
               const userData = await resUser.json();
+              
+              const userFeatures = userData.subscription?.features || [];
+              const hasAllAccess = userFeatures.includes('all_tracks');
+
+              const tracksWithPermissions = allTracks.map((t: any) => {
+                const isEnrolled = userData.enrollments?.some((e: any) => e.trackId === t.id);
+                const hasPlanAccess = userFeatures.includes(`track:${t.id}`);
+                
+                return {
+                  ...t,
+                  hasAccess: hasAllAccess || hasPlanAccess || isEnrolled
+                };
+              });
+
+              setTracks(tracksWithPermissions.sort((a: any, b: any) => (a.objective?.order ?? 0) - (b.objective?.order ?? 0)));
+              
               setStudyContent({
                 tracks: userData.enrollments || [], 
                 hasActiveSubscription: !!userData.subscription,
                 completedLessonIds: userData.completedLessonIds || []
               });
-              currentTracks = currentTracks.map((t: any) => ({
-                ...t,
-                hasAccess: userData.enrollments?.some((e: any) => e.trackId === t.id)
-              }));
+              return;
             }
           }
-          setTracks(currentTracks.sort((a: Track, b: Track) => (a.objective?.order ?? 0) - (b.objective?.order ?? 0)));
+          
+          setTracks(allTracks.sort((a: any, b: any) => (a.objective?.order ?? 0) - (b.objective?.order ?? 0)));
         }
       } catch (e) { 
         console.error("ERRO NO FETCH:", e);
-        toast.error("Erro ao conectar com o servidor");
       } finally {
         setLoading(false);
       }
@@ -188,6 +199,25 @@ export default function Home() {
 
   if (loading || status === "loading") return <Loading />;
 
+  const objectives = Array.from(
+    new Map(
+      tracks
+        .filter(t => t.objective)
+        .map(t => [t.objective.id, t.objective])
+    ).values()
+  ).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+
+  const handleObjectiveClick = (id: string) => {
+    setActiveObjectiveId(id);
+    
+    requestAnimationFrame(() => {
+      const element = document.getElementById('cursos-section');
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  };
+
   const getLessonIcon = (type: string) => {
     const props = { size: 14, strokeWidth: 2.5 };
     switch (type) {
@@ -205,35 +235,6 @@ export default function Home() {
     acc[objId].tracks.push(track);
     return acc;
   }, {});
-
-  const isLessonCompleted = (lessonId: string) => {
-    return studyContent?.completedLessonIds.includes(lessonId) || false;
-  };
-
-  const renderAccessButton = (track: Track) => {
-    const itemId = `track-${track.id}`;
-    const hasAccess = accessMap[itemId]?.hasAccess || false;
-
-    if (session && hasAccess) {
-      return (
-        <Link
-          href={`/dashboard/trilhas/${track.id}`}
-          className="w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors text-sm"
-        >
-          Acessar Trilha
-        </Link>
-      );
-    }
-
-    return (
-      <Link
-        href={`/trilhas/${track.id}`}
-        className="w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors text-sm"
-      >
-        Ver Detalhes
-      </Link>
-    );
-  };
 
   const handleRedirect = (url: string) => {
     setIsExiting(true);
@@ -292,12 +293,6 @@ export default function Home() {
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 shadow-xl cursor-pointer"
-                >
-                  Explorar Trilhas
-                </button>
                 <button
                   onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
                   className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all cursor-pointer"
@@ -407,163 +402,229 @@ export default function Home() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-24" id="trilhas">
+      <section className="pt-40 pb-24 px-6 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <span className="text-2xl font-black uppercase tracking-[0.5em] text-blue-600 mb-6 block">
+              L'école de Français de Clara
+            </span>
+            
+            <h1 
+              className="font-black uppercase italic tracking-tighter leading-[0.8] text-slate-900 mb-12 text-6xl md:text-[120px]"
+              style={{ fontSize: 'clamp(3rem, 10vw, 80px)' }} 
+            >
+              O que você quer <br /> 
+              <span className="text-blue-600">aprender</span> primeiro?
+            </h1>
+            
+            <p className="text-xl md:text-xl text-slate-500 max-w-3xl mx-auto font-medium mb-20 leading-relaxed">
+              Escolha seu objetivo abaixo e descubra o caminho <br className="hidden md:block"/> 
+              personalizado para a sua fluência.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {objectives.map((obj: any) => (
+              <button
+                key={obj.id}
+                onClick={() => handleObjectiveClick(obj.id)}
+                className={`group relative h-[500px] rounded-[3.5rem] overflow-hidden transition-all duration-700 hover:scale-[1.03] shadow-2xl border-4 ${
+                  activeObjectiveId === obj.id ? 'border-blue-600 scale-[1.02]' : 'border-transparent'
+                }`}
+              >
+                <img 
+                  src={obj.imageUrl || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80'} 
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                  alt={obj.name}
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-900/20 to-transparent opacity-90" />
+                
+                <div className="absolute inset-0 p-12 flex flex-col justify-end text-left">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-2xl transform group-hover:rotate-12 transition-transform">
+                    <Icon icon={obj.icon || "ph:star-fill"} width={28} style={{ color: obj.color }} />
+                  </div>
+                  <h3 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none mb-2">
+                    {obj.name}
+                  </h3>
+                  <div className="h-1 w-0 group-hover:w-12 bg-blue-600 transition-all duration-500 rounded-full" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div id="cursos-section" ref={coursesSectionRef} className="container mx-auto px-4 py-24 scroll-mt-20">
         {Object.keys(groupedTracks).length === 0 ? (
           <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed">
-            <GraduationCap size={64} className="mx-auto text-s-300 mb-4" />
-            <h2 className="text-2xl font-black text-s-900 mb-2 uppercase tracking-tighter">Nenhuma trilha disponível</h2>
-            <p className="text-s-500 font-medium">Em breve teremos novos conteúdos preparados para você!</p>
+            <GraduationCap size={64} className="mx-auto text-slate-300 mb-4" />
+            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Nenhuma trilha disponível</h2>
+            <p className="text-slate-500 font-medium">Em breve teremos novos conteúdos preparados para você!</p>
           </div>
         ) : (
-          Object.values(groupedTracks).map((group: any) => {
-            const objective = group.info;
-            if (!objective) return null;
-            const mainAngle = objective.iconRotate || 0;
-            const badgeAngle = mainAngle * 0.1;
-            
-            const hasLockedInGroup = group.tracks.some((t: any) => !hasSubscription && t.isLocked);
+          Object.values(groupedTracks)
+            .filter((group: any) => !activeObjectiveId || group.info.id === activeObjectiveId)
+            .map((group: any) => {
+              const objective = group.info;
+              if (!objective) return null;
+              const mainAngle = objective.iconRotate || 0;
+              const badgeAngle = mainAngle * 0.1;
+              
+              const hasLockedInGroup = group.tracks.some((t: any) => !hasSubscription && t.isLocked);
 
-            return (
-              <div key={objective.id} className="relative w-full mb-52">
-                <SectionDivider />
-                
-                <section className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out scroll-reveal pt-2">
-                  <div className="relative w-full">
-                    <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-s-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
-                      <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
-                        style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
-                      />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
-                      
-                      {hasLockedInGroup && (
-                        <div className="absolute top-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white py-3 px-8 z-30 flex items-center justify-center gap-3 animate-pulse">
-                          <Crown size={18} />
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Conteúdo Premium disponível neste objetivo</span>
+              return (
+                <div key={objective.id} className="relative w-full mb-52">
+                  <SectionDivider />
+                  
+                  <section className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out scroll-reveal pt-2">
+                    <div className="relative w-full">
+                      <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-slate-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
+                        <div 
+                          className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
+                          style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
+                        />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent" />
+                        
+                        {hasLockedInGroup && (
+                          <div className="absolute top-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white py-3 px-8 z-30 flex items-center justify-center gap-3 animate-pulse">
+                            <Crown size={18} />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Conteúdo Premium disponível neste objetivo</span>
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-8 left-8 md:bottom-12 md:left-20 z-20">
+                          <span className="text-[10px] font-black uppercase text-blue-400 tracking-[0.5em] block mb-2 drop-shadow-md">Objectif</span>
+                          <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-none">{objective.name}</h2>
                         </div>
-                      )}
 
-                      <div className="absolute bottom-8 left-8 md:bottom-12 md:left-20 z-20">
-                        <span className="text-[10px] font-black uppercase text-interface-accent tracking-[0.5em] block mb-2 drop-shadow-md">Objectif</span>
-                        <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter font-frenchpress leading-none">{objective.name}</h2>
+                        <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
+                          <Icon icon={objective.icon} width={80} height={80} className="rotate-25" />
+                        </div>
                       </div>
 
-                      <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
-                        <Icon icon={objective.icon} width={80} height={80} className="rotate-25" />
+                      <div className="absolute -bottom-20 -right-18 z-10 text-slate-50 pointer-events-none hidden md:block" style={{ transform: `rotate(${badgeAngle}deg)` }}>
+                        <Icon icon={objective.icon} width={180} height={180} />
+                      </div>
+
+                      <div className="absolute -bottom-10 md:-bottom-14 -left-16 z-10 transition-all duration-700 ease-out group-hover/sep:rotate-[5deg] group-hover/sep:-translate-y-2" style={{ transform: `rotate(${mainAngle}deg)` }}>
+                        <div className="bg-white p-7 rounded-[32px] border border-slate-100 hidden md:block">
+                          <Icon icon={objective.icon} width={48} height={48} className="text-slate-900" />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="absolute -bottom-35 -right-16 z-10 text-s-50 pointer-events-none hidden md:block" style={{ transform: `rotate(${mainAngle}deg)` }}>
-                      <Icon icon={objective.icon} width={250} height={250} />
-                    </div>
+                    <div className="grid grid-cols-1 gap-16 px-6 relative z-20 mt-12">
+                      {group.tracks.map((track: Track) => {
+                        const hasAccess = track.hasAccess ?? false; 
+                        const isLocked = !hasAccess;
+  
+                        const totalLessons = track.modules.reduce((sum, module) => sum + module.lessons.length, 0);
 
-                    <div className="absolute -bottom-10 md:-bottom-14 -left-16 z-10 transition-all duration-700 ease-out group-hover/sep:rotate-[5deg] group-hover/sep:-translate-y-2" style={{ transform: `rotate(${badgeAngle}deg)` }}>
-                      <div className="bg-s-50 p-7 rounded-[32px] border border-s-50 hidden md:block">
-                        <Icon icon={objective.icon} width={48} height={48} className="text-s-900" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-16 px-6 relative z-20 mt-12">
-                    {group.tracks.map((track: Track) => {
-                      const isLocked = !hasSubscription;
-                      const totalLessons = track.modules.reduce((sum, module) => sum + module.lessons.length, 0);
-
-                      return (
-                        <div key={track.id} className="group bg-white rounded-[40px] border shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500">
-                          <div className="flex flex-col lg:flex-row">
-                            
-                            <div 
-                              className="lg:w-2/5 p-12 text-white flex flex-col justify-between relative min-h-[450px]"
-                              style={{ backgroundColor: track.objective?.color || '#0f172a' }}
-                            >
-                              {track.imageUrl && (
-                                <div className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url(${track.imageUrl})` }} />
-                              )}
-                              <div className={`absolute inset-0 transition-all duration-500 ${isLocked ? 'bg-black/75 backdrop-blur-[3px]' : 'bg-black/20 group-hover:bg-black/40'}`} />
+                        return (
+                          <div key={track.id} className="group bg-white rounded-[40px] border shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500 text-left">
+                            <div className="flex flex-col lg:flex-row">
                               
-                              <div className="relative z-10">
-                                <div className="flex items-center gap-2 mb-4">
+                              <div 
+                                className="lg:w-2/5 p-12 text-white flex flex-col justify-between relative min-h-[450px]"
+                                style={{ backgroundColor: track.objective?.color || '#0f172a' }}
+                              >
+                                {track.imageUrl && (
+                                  <div className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url(${track.imageUrl})` }} />
+                                )}
+                                <div className={`absolute inset-0 z-10 transition-all duration-500 ${
+                                  isLocked ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-black/20 group-hover:bg-black/40'
+                                }`} />
+                                
+                                <div className="relative z-10">
+                                  <div className="flex items-center gap-2 mb-4">
+                                    {isLocked ? (
+                                      <span className="bg-rose-500 text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Premium</span>
+                                    ) : (
+                                      <span className="bg-emerald-500 text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Liberado</span>
+                                    )}
+                                  </div>
+                                  <h3 className="text-4xl font-black mb-4 uppercase tracking-tighter leading-none italic">{track.name}</h3>
+                                  <p className="text-white/80 text-sm line-clamp-4 leading-relaxed">{track.description}</p>
+                                </div>
+
+                                <div className="relative z-10 pt-8 border-t border-white/10">
+                                  <div className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-widest text-white/70">
+                                    <Clock size={12} className="text-blue-400" /> {totalLessons} lições
+                                  </div>
+                                  
                                   {isLocked ? (
-                                    <span className="bg-clara-rose text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Premium</span>
+                                    <div className="space-y-4">
+                                      <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] text-center italic">Trilha bloqueada. Assine para desbloquear!</p>
+                                      <Link href="/assinar" className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-bold text-xs uppercase shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                        <Lock size={16} /> Assinar para Liberar
+                                      </Link>
+                                    </div>
                                   ) : (
-                                    <span className="bg-emerald-500 text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Liberado</span>
+                                    <Link href={`/curso/${track.id}`} className="w-full flex items-center justify-center gap-2 bg-white text-slate-900 py-4 rounded-2xl font-bold text-xs uppercase shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                      <Play size={16} fill="currentColor" /> Acessar Agora
+                                    </Link>
                                   )}
                                 </div>
-                                <h3 className="text-4xl font-black mb-4 uppercase tracking-tighter leading-none font-frenchpress">{track.name}</h3>
-                                <p className="text-white/80 text-sm line-clamp-4 leading-relaxed">{track.description}</p>
                               </div>
 
-                              <div className="relative z-10 pt-8 border-t border-white/10">
-                                <div className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-widest text-white/70">
-                                  <Clock size={12} className="text-interface-accent" /> {totalLessons} lições
+                              <div className="lg:w-2/3 p-12 bg-white relative overflow-hidden">
+                                <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
+                                  <Icon icon="ph:book-open-thin" width={300} />
                                 </div>
-                                
-                                {isLocked ? (
-                                  <div className="space-y-4">
-                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] text-center italic">Trilha bloqueada. Assine para desbloquear!</p>
-                                    <Link href="/assinar" className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-bold text-xs uppercase shadow-lg transition-transform hover:scale-105 active:scale-95">
-                                      <Lock size={16} /> Assinar Plano
-                                    </Link>
-                                  </div>
-                                ) : (
-                                  renderAccessButton(track)
-                                )}
-                              </div>
-                            </div>
 
-                            <div className="lg:w-2/3 p-12 bg-white relative overflow-hidden">
-                              <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
-                                <Icon icon="ph:book-open-thin" width={300} />
-                              </div>
-
-                              {isLocked && (
-                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] pointer-events-none">
-                                  <div className="flex flex-col items-center gap-2 opacity-40">
-                                      <Lock size={40} className="text-s-300" />
-                                      <span className="text-[10px] font-black uppercase tracking-[0.5em] text-s-400">Conteúdo Premium</span>
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <h4 className="text-[10px] font-black text-s-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
-                                <span className="w-8 h-px bg-s-200"></span> Programme de formation
-                              </h4>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                                {track.modules.map((module) => (
-                                  <div key={module.id} className={isLocked ? 'opacity-30' : ''}>
-                                    <div className="flex items-center gap-3 mb-4">
-                                      <span className="text-[10px] font-black text-interface-accent">0{module.order}</span>
-                                      <h5 className="font-black text-s-900 text-sm uppercase">{module.title}</h5>
+                                {isLocked && (
+                                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] pointer-events-none">
+                                    <div className="flex flex-col items-center gap-2 opacity-40">
+                                        <Lock size={40} className="text-slate-300" />
+                                        <span className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Conteúdo Premium</span>
                                     </div>
-                                    <ul className="space-y-3">
-                                      {module.lessons.slice(0, 3).map(lesson => (
-                                        <li key={lesson.id} className="text-xs text-s-500 flex items-center gap-3 font-medium">
-                                          <div className="text-s-400 shrink-0">{getLessonIcon(lesson.type)}</div> 
-                                          <span className="truncate">{lesson.title}</span>
-                                        </li>
-                                      ))}
-                                      {module.lessons.length > 3 && (
-                                        <li className="text-[9px] text-(--interface-accent) font-bold uppercase tracking-widest pl-6">
-                                          + {module.lessons.length - 3} atividades
-                                        </li>
-                                      )}
-                                    </ul>
                                   </div>
-                                ))}
+                                )}
+                                
+                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
+                                  <span className="w-8 h-px bg-slate-200"></span> Programme de formation
+                                </h4>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+                                  {track.modules.map((module) => (
+                                    <div key={module.id} className={isLocked ? 'opacity-30' : ''}>
+                                      <div className="flex items-center gap-3 mb-4">
+                                        <span className="text-[10px] font-black text-blue-500">0{module.order}</span>
+                                        <h5 className="font-black text-slate-900 text-sm uppercase">{module.title}</h5>
+                                      </div>
+                                      <ul className="space-y-3">
+                                        {module.lessons.slice(0, 3).map(lesson => (
+                                          <li key={lesson.id} className="text-xs text-slate-500 flex items-center gap-3 font-medium">
+                                            <div className="text-slate-400 shrink-0">
+                                              {getLessonIcon(lesson.type)}
+                                            </div> 
+                                            <span className="truncate">{lesson.title}</span>
+                                          </li>
+                                        ))}
+                                        {module.lessons.length > 3 && (
+                                          <li className="text-[9px] text-blue-600 font-bold uppercase tracking-widest pl-6">
+                                            + {module.lessons.length - 3} lições
+                                          </li>
+                                        )}
+                                      </ul>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
 
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              </div>
-            );
-          })
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              );
+            })
         )}
       </div>
 

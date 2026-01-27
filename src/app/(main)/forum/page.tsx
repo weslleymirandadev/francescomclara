@@ -46,7 +46,7 @@ export default function ForumPage() {
     return () => clearTimeout(debounce);
   }, [search]);
 
-  const [filter, setFilter] = useState("all"); // "all" ou "mine"
+  const [filter, setFilter] = useState("all");
 
   const filteredPosts = posts.filter(post => {
     if (filter === "mine") return post.authorId === session?.user?.id;
@@ -77,7 +77,6 @@ export default function ForumPage() {
               </Button>
             </div>
 
-            {/* Card Sobre a Comunidade */}
             <Card className="hidden lg:block w-80 bg-white/5 backdrop-blur-xl border-white/10 p-8">
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-(--clara-rose) mb-6">A Nossa Comunidade</h3>
               <div className="space-y-6">
@@ -100,10 +99,7 @@ export default function ForumPage() {
           </div>
         </section>
 
-        {/* Busca e Ações */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-  
-          {/* Barra de Busca - Ocupa a maior parte do espaço */}
           <div className="relative group w-full md:flex-1">
             <Input 
               placeholder="Pesquisar por título, aula ou @username..." 
@@ -114,7 +110,6 @@ export default function ForumPage() {
             <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-(--clara-rose) transition-colors" size={20} />
           </div>
 
-          {/* Filtros e Botão de Criar - Alinhados à direita */}
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
               <button 
@@ -148,7 +143,6 @@ export default function ForumPage() {
           </div>
         </div>
 
-        {/* Tabela de Discussões */}
         <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-[2.5rem]">
           <Table>
             <TableHeader>

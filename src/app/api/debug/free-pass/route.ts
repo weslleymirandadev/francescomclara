@@ -4,7 +4,6 @@ import { getToken } from "next-auth/jwt";
 
 export async function GET(req: Request) {
   try {
-    // 1. Pega o token da sessão atual para saber quem é você
     const token = await getToken({ 
       req: req as any, 
       secret: process.env.NEXTAUTH_SECRET 
@@ -16,7 +15,6 @@ export async function GET(req: Request) {
 
     const userId = token.sub;
 
-    // 2. Busca a primeira trilha ativa disponível no banco
     const track = await prisma.track.findFirst({
       where: { active: true }
     });
@@ -25,7 +23,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Nenhuma trilha ativa encontrada no banco." }, { status: 404 });
     }
 
-    // 3. Cria a matrícula (Enrollment) com data de validade longa
     await prisma.enrollment.upsert({
       where: {
         userId_trackId: {
@@ -34,16 +31,15 @@ export async function GET(req: Request) {
         },
       },
       update: {
-        endDate: new Date("2030-12-31"),
+        endDate: new Date("2030-12-31T23:59:59Z"),
       },
       create: {
         userId: userId,
         trackId: track.id,
-        endDate: new Date("2030-12-31"),
+        endDate: new Date("2030-12-31T23:59:59Z"),
       },
     });
 
-    // 4. Cria um registro de pagamento aprovado para "limpar" o proxy
     await prisma.payment.create({
       data: {
         userId: userId,

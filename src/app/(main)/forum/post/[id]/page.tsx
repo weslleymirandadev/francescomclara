@@ -102,7 +102,6 @@ export default function PostDetailPage() {
           <div className="space-y-4">
             {post.comments?.map((comment: any) => (
               <div key={comment.id} className="flex gap-4 items-start pl-6">
-                {/* Avatar do Autor */}
                 <div className="w-10 h-10 rounded-xl bg-slate-200 shrink-0 overflow-hidden border border-white shadow-sm">
                   {comment.author?.image ? (
                     <img 
@@ -117,14 +116,12 @@ export default function PostDetailPage() {
                   )}
                 </div>
 
-                {/* Balão do Comentário */}
                 <div className="flex-1 p-6 bg-white/80 border border-white shadow-sm rounded-[1.8rem] relative">
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-[9px] font-black text-(--clara-rose) uppercase tracking-widest">
                       @{comment.author?.username || "usuário"}
                     </p>
                     
-                    {/* Horário de Envio */}
                     <span className="text-[8px] font-bold text-slate-400 uppercase">
                       {new Date(comment.createdAt).toLocaleDateString('pt-BR', {
                         day: '2-digit',

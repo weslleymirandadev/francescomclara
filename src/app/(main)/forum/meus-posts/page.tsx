@@ -44,7 +44,6 @@ export default function MyPostsPage() {
           <FiArrowLeft /> VOLTAR AO FÓRUM
         </Link>
 
-        {/* Dashboard Header */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2rem] flex items-center gap-6">
             <div className="w-14 h-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg"><FiLayers size={24}/></div>

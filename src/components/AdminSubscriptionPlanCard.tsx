@@ -3,6 +3,7 @@
 import { Crown, CheckCircle2, Check, Edit2 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface AdminSubscriptionPlanCardProps {
   id?: string;
@@ -16,6 +17,7 @@ interface AdminSubscriptionPlanCardProps {
   disabled?: boolean;
   className?: string;
   type: string;
+  availableTracks?: any[];
 }
 
 export function AdminSubscriptionPlanCard({
@@ -29,6 +31,7 @@ export function AdminSubscriptionPlanCard({
   type,
   onEdit,
   disabled = false,
+  availableTracks = [],
   className = "",
 }: AdminSubscriptionPlanCardProps) {
   const finalMonthlyPrice = monthlyPrice || 0;
@@ -50,16 +53,37 @@ export function AdminSubscriptionPlanCard({
     }
   };
 
+  const getFeatureLabel = (featureKey: string) => {
+    if (featureKey.startsWith("track:")) {
+      const trackId = featureKey.split(":")[1];
+      const track = availableTracks.find(t => t.id === trackId);
+      return track ? `Trilha: ${track.name}` : "Trilha não encontrada";
+    }
+
+    const FEATURE_LABELS: Record<string, string> = {
+      all_tracks: "Acesso a todas as trilhas",
+      flashcards: "Flashcards ilimitados",
+      forum_access: "Acesso ao fórum da Clara",
+      kids_content: "Conteúdo especial Kids",
+      offline_mode: "Modo Offline",
+      certificate: "Certificado de conclusão",
+      multi_device: "Telas Simultâneas",
+      priority_support: "Suporte Prioritário",
+      specific_tracks: "Trilhas Selecionadas",
+      "track:trilha-paris": "Trilha Paris"
+    };
+
+    return FEATURE_LABELS[featureKey] || featureKey;
+  };
+
   return (
     <div className={`relative p-8 rounded-3xl bg-white border ${isBestValue ? "border-blue-500" : "border-slate-100"} shadow-sm hover:border-interface-accent transition-all group flex flex-col h-full min-h-[600px] ${className}`}>
-      {/* Badge Melhor Valor */}
       {isBestValue && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg z-10">
           Melhor Valor
         </div>
       )}
 
-      {/* Indicador de Status Ativo/Inativo */}
       <div className="absolute top-4 right-4 z-10">
         {active ? (
           <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full">
@@ -77,7 +101,6 @@ export function AdminSubscriptionPlanCard({
           <Crown size={25} /> <span>{name}</span>
         </h3>
 
-        {/* Preço Mensal */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1 uppercase">Plano Mensal</p>
@@ -93,7 +116,6 @@ export function AdminSubscriptionPlanCard({
           <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
         </div>
 
-        {/* Preço Anual */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1 uppercase">Plano Anual</p>
@@ -119,7 +141,9 @@ export function AdminSubscriptionPlanCard({
             features.slice(0, 5).map((feature: string, i: number) => (
               <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
                 <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                <span>{feature}</span>
+                <span>
+                  {getFeatureLabel(feature) || feature}
+                </span>
               </li>
             ))
           ) : (

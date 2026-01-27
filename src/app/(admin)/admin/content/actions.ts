@@ -266,29 +266,23 @@ export async function saveContentBulkAction(
 ) {
   try {
     return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // 1. DEFINIÇÃO EXPLÍCITA DOS IDS PARA EVITAR 'UNKNOWN'
       const objectiveIdsToDelete = new Set<string>(itemsToDelete.objectives || []);
       const trackIdsToDelete = new Set<string>(itemsToDelete.tracks || []);
       const moduleIdsToDelete = new Set<string>(itemsToDelete.modules || []);
       const lessonIdsToDelete = new Set<string>(itemsToDelete.lessons || []);
-
-      // 2. EXCLUSÕES (ORDEM INVERSA DE HIERARQUIA)
       
-      // Aulas
       if (lessonIdsToDelete.size > 0) {
         await tx.lesson.deleteMany({
           where: { id: { in: Array.from(lessonIdsToDelete) } }
         });
       }
 
-      // Módulos
       if (moduleIdsToDelete.size > 0) {
         await tx.module.deleteMany({
           where: { id: { in: Array.from(moduleIdsToDelete) } }
         });
       }
 
-      // Lógica de Objetivos (Limpa trilhas dependentes antes)
       if (objectiveIdsToDelete.size > 0) {
         const realObjIds = Array.from(objectiveIdsToDelete).filter(id => !id.startsWith('temp-'));
         
@@ -307,7 +301,6 @@ export async function saveContentBulkAction(
         }
       }
 
-      // Trilhas individuais
       if (trackIdsToDelete.size > 0) {
         const realTrackIds = Array.from(trackIdsToDelete).filter(id => !id.startsWith('temp-'));
         if (realTrackIds.length > 0) {
@@ -316,7 +309,6 @@ export async function saveContentBulkAction(
         }
       }
 
-      // 3. SINCRONIZAR OBJETIVOS (UPSERT)
       for (const [objIndex, obj] of localObjectives.entries()) {
         if (objectiveIdsToDelete.has(obj.id)) continue;
 
@@ -326,6 +318,7 @@ export async function saveContentBulkAction(
           create: {
             name: obj.name,
             order: objIndex,
+            color: obj.color || "#3b82f6",
             icon: obj.icon || "lucide:target",
             imageUrl: obj.imageUrl,
             rotation: obj.rotation || 0,
@@ -334,6 +327,7 @@ export async function saveContentBulkAction(
           update: {
             name: obj.name,
             order: objIndex,
+            color: obj.color,
             icon: obj.icon,
             iconRotate: obj.iconRotate,
             imageUrl: obj.imageUrl,
@@ -342,7 +336,6 @@ export async function saveContentBulkAction(
         });
       }
 
-      // 4. SINCRONIZAR TRILHAS
       for (const [tIndex, track] of localTracks.entries()) {
         if (trackIdsToDelete.has(track.id) || objectiveIdsToDelete.has(track.objectiveId)) {
           continue;
@@ -370,12 +363,10 @@ export async function saveContentBulkAction(
         });
 
         if (track.subscriptionPlans) {
-          // 1. Remove os planos antigos para evitar duplicatas ou lixo
           await tx.subscriptionPlanTrack.deleteMany({
             where: { trackId: savedTrack.id }
           });
 
-          // 2. Cria os novos vínculos selecionados
           if (track.subscriptionPlans.length > 0) {
             await tx.subscriptionPlanTrack.createMany({
               data: track.subscriptionPlans.map((sp: any) => ({
@@ -439,5 +430,48 @@ export async function saveContentBulkAction(
   } catch (error) {
     console.error("Erro crítico no salvamento:", error);
     return { success: false, error: "Falha ao sincronizar com o banco de dados." };
+  }
+}
+
+export async function syncModuleLessonsAction(
+  moduleId: string, 
+  lessons: any[], 
+  deletedIds: string[]
+) {
+  try {
+    return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (deletedIds.length > 0) {
+        await tx.lesson.deleteMany({
+          where: { id: { in: deletedIds.filter(id => !id.startsWith('temp-')) } }
+        });
+      }
+
+      const updatedLessons = [];
+      for (const [index, lesson] of lessons.entries()) {
+        const isTemp = String(lesson.id).startsWith('temp-');
+        const saved = await tx.lesson.upsert({
+          where: { id: isTemp ? '0000-0000' : lesson.id },
+          create: {
+            title: lesson.title,
+            type: lesson.type,
+            order: index,
+            moduleId: moduleId,
+            content: lesson.content || "",
+            isPremium: lesson.isPremium,
+          },
+          update: {
+            title: lesson.title,
+            type: lesson.type,
+            order: index,
+            isPremium: lesson.isPremium,
+          }
+        });
+        updatedLessons.push(saved);
+      }
+      return updatedLessons;
+    });
+  } catch (error) {
+    console.error(error);
+    throw error;
   }
 }

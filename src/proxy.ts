@@ -74,13 +74,23 @@ export async function proxy(req: NextRequest) {
   }
 
   if (token) {
-    if (pathname.startsWith('/dashboard/trilhas/')) {
-      const trackId = pathname.split('/')[3];
-      if (trackId && !await hasTrackAccess(token.sub!, trackId)) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+    if (pathname.startsWith('/curso/')) {
+      const trackId = pathname.split('/')[2];
+      
+      if (trackId) {
+        // 1. Verifica se tem assinatura ativa (Plano Global)
+        const hasSubscription = await hasActiveSubscription(token.sub!);
+        
+        // 2. Verifica se tem matrícula específica nesta trilha
+        const hasEnrollment = await hasTrackAccess(token.sub!, trackId);
+
+        // Se não tiver nenhum dos dois, aí sim redireciona
+        if (!hasSubscription && !hasEnrollment) {
+          return NextResponse.redirect(new URL('/dashboard', req.url));
+        }
       }
     }
-
+    
     if (pathname.startsWith('/flashcards')) {
       const userHasAnyEnrollment = await prisma.enrollment.findFirst({
         where: {

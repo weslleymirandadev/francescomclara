@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { upsertSubscriptionPlan, deleteSubscriptionPlan } from "./actions";
 import { toast } from "react-hot-toast";
 import { Loading } from '@/components/ui/loading'
 import { AdminSubscriptionPlanCard } from "@/components/AdminSubscriptionPlanCard";
+import { Icon } from "@iconify/react";
 
 interface Plan {
   id?: string;
@@ -30,12 +31,50 @@ const formatToDisplay = (cents: number) => {
   return value.replace(".", ",");
 };
 
+const AVAILABLE_FEATURES = [
+  { id: 'all_tracks', label: 'Todas as Trilhas', icon: 'ph:layers-fill' },
+  { id: 'specific_tracks', label: 'Trilhas Selecionadas', icon: 'ph:list-checks-fill' },
+  { id: 'flashcards', label: 'Flashcards Ilimitados', icon: 'ph:cards-fill' },
+  { id: 'forum_access', label: 'Acesso ao Fórum', icon: 'ph:chats-teardrop-fill' },
+  { id: 'offline_mode', label: 'Modo Offline', icon: 'ph:cloud-arrow-down-fill' },
+  { id: 'certificate', label: 'Certificado de Conclusão', icon: 'ph:certificate-fill' },
+  { id: 'priority_support', label: 'Suporte Prioritário', icon: 'ph:headset-fill' },
+  { 
+    id: 'family_slots', 
+    label: 'Compartilhar com até X pessoas', 
+    icon: 'ph:users-four-fill',
+    description: 'Permite convidar membros para a mesma assinatura.'
+  },
+  { 
+    id: 'kids_content', 
+    label: 'Conteúdo Kids', 
+    icon: 'ph:baby-fill',
+    description: 'Acesso a trilhas específicas para crianças.'
+  },
+  { 
+    id: 'multi_device', 
+    label: 'Telas Simultâneas', 
+    icon: 'ph:devices-fill',
+    description: 'Acesso em vários dispositivos ao mesmo tempo.'
+  },
+];
+
 export default function SubscriptionClient({ initialPlans }: { initialPlans: Plan[] }) {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [availableTracks, setAvailableTracks] = useState<{id: string, name: string}[]>([]);
+  
+  useEffect(() => {
+    async function loadData() {
+      const res = await fetch("/api/public/content");
+      const data = await res.json();
+      setAvailableTracks(data.tracks || []);
+    }
+    loadData();
+  }, []);
 
   const openCreateModal = () => {
     setEditingPlan({ name: "", monthlyPrice: 0, yearlyPrice: 0, type: "INDIVIDUAL", active: true, isBestValue: false, features: [""] });
@@ -73,7 +112,6 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
       return toast.error("Selecione o tipo do plano!");
     }
 
-    // Validar que o preço anual dividido por 12 seja menor que o mensal
     const yearlyMonthlyPrice = Math.round((editingPlan.yearlyPrice || 0) / 12);
     if (yearlyMonthlyPrice >= (editingPlan.monthlyPrice || 0)) {
       return toast.error("O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)!");
@@ -147,6 +185,7 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               isBestValue={plan.isBestValue}
               active={plan.active}
               features={plan.features}
+              availableTracks={availableTracks}
               onEdit={openEditModal}
               disabled={loading || deletingPlanId !== null}
               type={plan.type}
@@ -266,27 +305,133 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 flex justify-between">
-                  Vantagens <span>{editingPlan?.features.length}</span>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
+                  Funcionalidades do Plano
                 </label>
-                <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                  {editingPlan?.features.map((feature, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input 
-                        value={feature} 
-                        onChange={e => handleFeatureChange(index, e.target.value)}
-                        className="rounded-md bg-slate-100 border-none h-9 text-xs"
-                      />
-                      <button onClick={() => removeFeature(index)} className="cursor-pointer text-black hover:text-rose-500">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {AVAILABLE_FEATURES.map((feature) => {
+                    const isFamily = feature.id === 'family_slots';
+                    
+                    if (!editingPlan) return null;
+
+                    const selectedFeature = editingPlan.features?.find(f => 
+                      isFamily ? f.startsWith('family_slots:') : f === feature.id
+                    );
+                    const isSelected = !!selectedFeature;
+
+                    return (
+                      <div key={feature.id} className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentFeatures = [...(editingPlan.features || [])];
+                            let newFeatures: string[];
+                            
+                            if (isSelected) {
+                              newFeatures = currentFeatures.filter(f => 
+                                isFamily ? !f.startsWith('family_slots:') : f !== feature.id
+                              );
+                            } else {
+                              const defaultValue = isFamily ? 'family_slots:2' : feature.id;
+                              newFeatures = [...currentFeatures, defaultValue];
+                            }
+
+                            setEditingPlan({ ...editingPlan, features: newFeatures } as Plan);
+                          }}
+                          className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                            isSelected 
+                              ? 'border-(--interface-accent) bg-blue-50 text-blue-900 shadow-sm' 
+                              : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                          }`}
+                        >
+                          <Icon icon={feature.icon} className={`text-xl ${isSelected ? 'text-(--interface-accent)' : 'text-slate-300'}`} />
+                          <span className="text-[10px] font-black uppercase tracking-tight">{feature.label}</span>
+                        </button>
+
+                        {isFamily && isSelected && (
+                          <div className="px-4 py-3 bg-blue-100/50 rounded-xl flex items-center justify-between border border-blue-200/50 -mt-1">
+                            <span className="text-[9px] font-black text-blue-700 uppercase tracking-widest">Quantidade de vagas:</span>
+                            <select 
+                              className="bg-white px-2 py-1 rounded-lg text-xs font-black text-blue-900 outline-none border border-blue-200 shadow-sm"
+                              value={selectedFeature?.split(':')[1] || "2"}
+                              onChange={(e) => {
+                                const newQty = e.target.value;
+                                const updatedFeatures = (editingPlan.features || []).map(f => 
+                                  f.startsWith('family_slots:') ? `family_slots:${newQty}` : f
+                                );
+                                setEditingPlan({ ...editingPlan, features: updatedFeatures } as Plan);
+                              }}
+                            >
+                              {[2, 3, 4, 5, 6, 8, 10].map(num => (
+                                <option key={num} value={num.toString()}>{num} Pessoas</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        
+                        {feature.id === 'specific_tracks' && isSelected && (
+                          <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
+                              Liberação de Trilhas (Acesso Específico)
+                            </label>
+                            
+                            <Select 
+                              onValueChange={(trackId) => {
+                                if (!editingPlan) return;
+                                const key = `track:${trackId}`;
+                                if (!editingPlan.features.includes(key)) {
+                                  setEditingPlan({
+                                    ...editingPlan,
+                                    features: [...editingPlan.features, key]
+                                  });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="bg-white border-slate-200 h-11 w-45 rounded-xl">
+                                <SelectValue placeholder="Adicionar trilha ao plano..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTracks.map((track) => (
+                                  <SelectItem key={track.id} value={track.id}>
+                                    {track.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {editingPlan?.features
+                                .filter(f => f.startsWith('track:'))
+                                .map(featureKey => {
+                                  const trackId = featureKey.split(':')[1];
+                                  const trackName = availableTracks.find(t => t.id === trackId)?.name || "Trilha Desconhecida";
+                                  
+                                  return (
+                                    <div key={featureKey} className="flex items-center gap-2 bg-interface-accent/10 text-interface-accent px-3 py-1.5 rounded-full border border-interface-accent/20">
+                                      <span className="text-[10px] font-bold uppercase">{trackName}</span>
+                                      <button 
+                                        onClick={() => {
+                                          setEditingPlan({
+                                            ...editingPlan,
+                                            features: editingPlan.features.filter(f => f !== featureKey)
+                                          });
+                                        }}
+                                        className="hover:text-rose-500 transition-colors"
+                                      >
+                                        <X size={12} strokeWidth={3} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <Button variant="ghost" onClick={addFeature} className="w-full cursor-pointer text-[10px] font-black uppercase text-slate-400 hover:text-interface-accent">
-                  + Adicionar Vantagem
-                </Button>
               </div>
             </div>
 

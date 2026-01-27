@@ -8,7 +8,6 @@ export async function getSubscriptionPlans() {
     const plans = await prisma.subscriptionPlan.findMany({
       orderBy: { monthlyPrice: 'asc' }
     })
-    // Garantir que todos os planos tenham os campos necessários (para compatibilidade com planos antigos)
     return plans.map((plan: any) => ({
       ...plan,
       type: plan.type || 'INDIVIDUAL',
@@ -53,12 +52,24 @@ export async function upsertSubscriptionPlan(data: any) {
       description: planData.description || ''
     };
     
+    const trackIds = planData.features
+      .filter((f: string) => f.startsWith('track:'))
+      .map((f: string) => f.replace('track:', ''));
+
     if (id) {
       await prisma.subscriptionPlan.update({
         where: { id },
-        data: updateData
-      })
-    } else {
+        data: {
+          ...updateData,
+          tracks: {
+            deleteMany: {},
+            create: trackIds.map((trackId: string) => ({
+              trackId: trackId
+            }))
+          }
+        }
+      });
+    }else {
       await prisma.subscriptionPlan.create({
         data: updateData
       })
@@ -74,7 +85,6 @@ export async function upsertSubscriptionPlan(data: any) {
 
 export async function deleteSubscriptionPlan(id: string) {
   try {
-    // Verificar se o plano existe
     const plan = await prisma.subscriptionPlan.findUnique({
       where: { id },
       include: {
@@ -87,7 +97,6 @@ export async function deleteSubscriptionPlan(id: string) {
       return { success: false, error: "Plano não encontrado" }
     }
 
-    // Verificar se há pagamentos associados
     if (plan.payments.length > 0) {
       return { 
         success: false, 

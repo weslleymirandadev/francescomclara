@@ -51,7 +51,6 @@ export function Header({ settings }: HeaderProps) {
   return (
     <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-        {/* LOGO */}
         <Link href="/" className="flex items-center gap-2 group">
           <Image
             src="/static/franca.png"
@@ -78,7 +77,6 @@ export function Header({ settings }: HeaderProps) {
           </span>
         </Link>
 
-        {/* DESKTOP NAVIGATION */}
         <nav className="hidden md:flex items-center gap-8">
           {session && mainNavigation.map((item) => {
             const isActive = pathname.startsWith(item.href);
@@ -112,7 +110,6 @@ export function Header({ settings }: HeaderProps) {
             </Link>
           )}
 
-          {/* USER DROPDOWN */}
           {session && (
             <div className="flex items-center gap-4 ml-4">
               {session && hasActiveSubscription === false && (
@@ -136,7 +133,6 @@ export function Header({ settings }: HeaderProps) {
                   <FiChevronDown size={14} className="text-slate-400 group-hover:rotate-180 transition-transform" />
                 </button>
 
-                {/* DROPDOWN MENU */}
                 <div className="absolute right-0 mt-2 w-56 bg-white shadow-2xl rounded-[1.5rem] p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all border border-slate-100 z-50">
                   <div className="px-4 py-3 border-b border-slate-50 mb-2">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta</p>
@@ -153,15 +149,15 @@ export function Header({ settings }: HeaderProps) {
                   
                   {session?.user?.role === 'ADMIN' && (
                     <Link href="/admin" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
-                      <RiSecurePaymentFill className="text-slate-700" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Painel Admin</span>
+                      <RiSecurePaymentFill className="text-orange-600" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Painel Admin</span>
                     </Link>
                   )}
 
                   {session?.user?.role === 'MODERATOR' && (
                     <Link href="/moderacao" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
-                      <FiMessageSquare className="text-slate-400" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Moderação</span>
+                      <FiMessageSquare className="text-(--interface-accent)" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-(--interface-accent)">Moderação</span>
                     </Link>
                   )}
 
@@ -177,13 +173,11 @@ export function Header({ settings }: HeaderProps) {
           )}
         </nav>
 
-        {/* MOBILE TOGGLE */}
         <button className="md:hidden text-(--slate-800)" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
         </button>
       </div>
 
-      {/* MOBILE MENU */}
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t p-6 space-y-3 shadow-2xl animate-in slide-in-from-top duration-300">
           {session && mainNavigation.map((item) => (

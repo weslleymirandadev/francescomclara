@@ -10,6 +10,7 @@ import { Crown, Check } from "lucide-react";
 import { Loading } from "@/components/ui/loading"
 import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 interface SubscriptionPlan {
   id: string;
@@ -43,14 +44,20 @@ function AssinarPageContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
 
   const planId = searchParams.get('planId') || 'default';
+  const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
     async function checkExistingSubscription() {
-      const res = await fetch("/api/user/me");
-      const data = await res.json();
-      if (data.subscription) {
-        router.push("/dashboard");
+      try {
+        const res = await fetch("/api/user/me");
+        const data = await res.json();
+        
+        if (data.subscription && !searchParams.get('upgrade')) {
+          setUserData(data);
+        }
+      } catch (e) {
+        console.error("Erro ao verificar assinatura");
       }
     }
     if (status === "authenticated") checkExistingSubscription();
@@ -136,33 +143,86 @@ function AssinarPageContent() {
     return (
       <main className="min-h-screen bg-gray-50 px-4 animate-in fade-in duration-700">
         <section id="planos" className="py-12 max-w-7xl mx-auto">
+
+          {userData?.subscription && (
+            <div className="mb-12 p-8 bg-slate-900 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Você já possui um plano ativo</span>
+                </div>
+                <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">{userData.subscription.name}</h3>
+                <p className="text-slate-400 text-sm font-medium mb-8">
+                  Próxima renovação:{" "}
+                  <span className="text-white">
+                    {userData?.enrollments?.[0]?.endDate ? (
+                      (() => {
+                        const date = new Date(userData.enrollments[0].endDate);
+                        return isNaN(date.getTime()) 
+                          ? "Formato de data inválido" 
+                          : date.toLocaleDateString('pt-BR');
+                      })()
+                    ) : (
+                      "Data não disponível"
+                    )}
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="border-white/20 text-white bg-white/20 hover:bg-white/40 font-black uppercase text-[10px] tracking-widest px-8"
+                    onClick={() => window.open('https://www.mercadopago.com.br/subscriptions', '_blank')}
+                  >
+                    Gerenciar Pagamento
+                  </Button>
+                </div>
+              </div>
+              {userData?.enrollments[0]?.createdAt && 
+                (new Date().getTime() - new Date(userData.enrollments[0].createdAt).getTime()) / (1000 * 3600 * 24) < 7 && (
+                  <Button 
+                    variant="ghost" 
+                    className="text-rose-400 hover:text-rose-300 font-black uppercase text-[10px] tracking-widest"
+                    onClick={() => window.location.href = `mailto:suporte@seusite.com?subject=Reembolso: ${userData.subscription.name}`}
+                  >
+                    Solicitar Reembolso (Prazo de 7 dias)
+                  </Button>
+                )}
+            </div>
+          )}
+
           <div className="text-center max-w-2xl mx-auto mb-8">
             <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-(--interface-accent) to-(--clara-rose) text-transparent bg-clip-text py-2">
-              Escolha o plano ideal para você
+              {userData?.subscription ? "Deseja mudar de plano?" : "Escolha o plano ideal para você"}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans && plans.length > 0 ? (
-              plans.map((p: any) => (
-                <SubscriptionPlanCard
-                  key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  monthlyPrice={p.monthlyPrice || 0}
-                  yearlyPrice={p.yearlyPrice || 0}
-                  features={p.features}
-                  isBestValue={p.type === 'FAMILY' || p.id.includes('anual')}
-                  onSubscribe={(id) => router.push(`/assinar?planId=${id}`)}
-                />
-              ))
-            ) : (
-              <div className="col-span-3 text-center py-10 border-2 border-dashed rounded-[40px] border-slate-200">
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">
-                  Nenhum plano disponível no momento.
-                </p>
-              </div>
-            )}
+            {plans.map((p: any) => {
+              const isCurrentPlan = userData?.subscription?.id === p.id || userData?.subscription?.name === p.name;
+              
+              return (
+                <div key={p.id} className="relative">
+                  {isCurrentPlan && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-[0.2em] px-4 py-2 rounded-full shadow-lg border-2 border-white flex items-center gap-2">
+                      <Check size={12} strokeWidth={4} /> Seu Plano Atual
+                    </div>
+                  )}
+
+                  <SubscriptionPlanCard
+                    id={p.id}
+                    name={p.name}
+                    monthlyPrice={p.monthlyPrice || 0}
+                    yearlyPrice={p.yearlyPrice || 0}
+                    features={p.features}
+                    isBestValue={p.type === 'FAMILY'}
+                    buttonText={isCurrentPlan ? "Plano Ativo" : (userData?.subscription ? "Trocar Plano" : "Assinar Agora")}
+                    disabled={isCurrentPlan}
+                    className={isCurrentPlan ? "ring-4 ring-emerald-500/20 border-emerald-500" : ""}
+                    onSubscribe={(id) => !isCurrentPlan && router.push(`/assinar?planId=${id}${userData?.subscription ? '' : ''}`)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </section>
       </main>

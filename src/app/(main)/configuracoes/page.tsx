@@ -6,7 +6,9 @@ import { FiUser, FiBell, FiLock, FiCheck, FiCreditCard } from "react-icons/fi";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/toaster";
 import Link from "next/link";
+import { useRouter }  from "next/navigation";
 
 interface FamilyMember {
   id: string;
@@ -18,6 +20,7 @@ export default function SettingsPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchUserData() {
@@ -105,7 +108,27 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          {isFamilyPlan && (
+          <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] border-l-8 border-l-(--interface-accent)">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-2">
+                  <FiCreditCard className="text-(--interface-accent)" /> O Teu Plano
+                </h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  Status: <span className="text-emerald-500">Ativo</span> • {userData?.subscription?.name || "Plano Gratuito"}
+                </p>
+              </div>
+              <Button
+                typeof="button"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest"
+                onClick={() => router.push('/assinar')}
+              >
+                {userData?.subscription ? "Gerir Assinatura" : "Fazer Upgrade"}
+              </Button>
+            </div>
+          </Card>
+
+           {isFamilyPlan && (
             <div className="mt-10 pt-8 border-t border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
@@ -132,28 +155,6 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-
-          <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] border-l-8 border-l-(--interface-accent)">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div>
-                <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-2">
-                  <FiCreditCard className="text-(--interface-accent)" /> O Teu Plano
-                </h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Status: <span className="text-emerald-500">Ativo</span> • Premium Individual
-                </p>
-              </div>
-              <Button className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest">
-                Gerir Assinatura
-              </Button>
-            </div>
-          </Card>
-
-          <div className="flex justify-end pt-4">
-            <Button className="bg-(--interface-accent) hover:scale-105 transition-all text-white px-12 h-16 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-blue-200">
-              <FiCheck className="mr-2" /> Guardar Configurações
-            </Button>
-          </div>
         </div>
       </div>
     </main>

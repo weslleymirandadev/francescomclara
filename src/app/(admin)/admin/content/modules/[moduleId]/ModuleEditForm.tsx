@@ -17,6 +17,14 @@ import {
 } from "@dnd-kit/core";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
+import { toast } from "react-hot-toast";
+import { Lesson } from "@prisma/client";
+
+type LessonFormState = Omit<Lesson, 'createdAt' | 'updatedAt' | 'readingText'> & {
+  createdAt?: Date;
+  updatedAt?: Date;
+  readingText?: string | null;
+};
 
 function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUpdateType, onUpdateTitle }: { lesson: any, moduleId: string, onExclude: (id: string) => void, onTogglePremium: (id: string, status: boolean) => void, onUpdateType: (id: string, type: LessonType) => void, onUpdateTitle: (id: string, title: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lesson.id });
@@ -52,10 +60,7 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
               className="bg-transparent border-none outline-none focus:ring-2 focus:ring-interface-accent/20 rounded-lg px-2 py-1 text-sm font-bold text-s-700 w-full transition-all"
               placeholder="Título da aula"
             />
-            <LuPencil 
-              size={14} 
-              className="text-s-400 opacity-0 group-hover/input:opacity-100 transition-opacity cursor-pointer" 
-            />
+            <LuPencil size={14} className="text-s-400 opacity-0 group-hover/input:opacity-100 transition-opacity cursor-pointer" />
           </div>
           <div className="flex items-center gap-3 mt-2">
             <select 
@@ -79,9 +84,11 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
       </div>
       <div className="flex items-center gap-2">
         <button onClick={() => onExclude(lesson.id)} className="p-4 text-s-600 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all cursor-pointer"><LuTrash2 size={20} /></button>
-        <Link href={`/admin/content/modules/${moduleId}/lessons/${lesson.id}`} className="p-4 bg-s-50 text-s-600 hover:text-s-900 rounded-2xl transition-all">
-          <ChevronLeft size={20} className="rotate-180" />
-        </Link>
+        {!String(lesson.id).startsWith('temp-') && (
+           <Link href={`/admin/content/modules/${moduleId}/lessons/${lesson.id}`} className="p-4 bg-s-50 text-s-600 hover:text-s-900 rounded-2xl transition-all">
+             <ChevronLeft size={20} className="rotate-180" />
+           </Link>
+        )}
       </div>
     </div>
   );
@@ -90,14 +97,14 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
 export function ModuleEditForm({ initialData }: { initialData: any }) {
   const [moduleData, setModuleData] = useState({
     title: initialData.title,
-    cefrLevel: initialData.cefrLevel || "",
+    cefrLevel: initialData.cefrLevel || "A1",
     isPremium: initialData.isPremium
   });
-  const [lessons, setLessons] = useState(initialData.lessons);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [lessons, setLessons] = useState<LessonFormState[]>(initialData.lessons);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   const handleAddLesson = () => {
@@ -110,7 +117,6 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
       moduleId: initialData.id,
       content: ""
     };
-    
     setLessons([...lessons, newLesson]);
     setHasUnsavedChanges(true);
   };
@@ -133,53 +139,42 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      await actions.updateModuleAction(initialData.id, {
-        title: moduleData.title,
-        cefrLevel: moduleData.cefrLevel as CEFRLevel,
-        isPremium: moduleData.isPremium
-      });
+      await actions.updateModuleAction(initialData.id, moduleData);
 
-      await actions.reorderLessonsAction(lessons.map((l: any) => l.id));
-      for (const lesson of lessons) {
-        await actions.updateLessonTitleAction(lesson.id, lesson.title);
-        await actions.updateLessonTypeAction(lesson.id, lesson.type);
-        await actions.toggleLessonPremiumAction(lesson.id, !lesson.isPremium);
-      }
+      const freshLessons = await actions.syncModuleLessonsAction(
+        initialData.id, 
+        lessons, 
+        deletedIds
+      );
 
+      setLessons(freshLessons);
+      setDeletedIds([]);
       setHasUnsavedChanges(false);
+      toast.success("Tudo salvo com sucesso!");
     } catch (e) {
-      alert("Erro ao salvar.");
+      toast.error("Erro ao salvar.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleExclude = (id: string) => {
+    if (confirm("Deseja excluir esta aula?")) {
+      setLessons(prev => prev.filter(l => l.id !== id));
+      if (!String(id).startsWith('temp-')) {
+        setDeletedIds(prev => [...prev, id]);
+      }
+      setHasUnsavedChanges(true);
+    }
+  };
+
   const handleDiscard = () => {
-    if (confirm("Deseja descartar todas as alterações?")) {
-      setModuleData({
-        title: initialData.title,
-        cefrLevel: initialData.cefrLevel || "",
-        isPremium: initialData.isPremium
-      });
+    if (confirm("Deseja descartar as alterações?")) {
+      setModuleData({ title: initialData.title, cefrLevel: initialData.cefrLevel || "A1", isPremium: initialData.isPremium });
       setLessons(initialData.lessons);
       setHasUnsavedChanges(false);
     }
   };
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('a')) {
-        if (!confirm("Você tem alterações não salvas. Deseja realmente sair?")) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-        }
-      }
-    };
-    document.addEventListener("click", handleClick, true);
-    return () => document.removeEventListener("click", handleClick, true);
-  }, [hasUnsavedChanges]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -193,48 +188,36 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
     }
   };
 
-  if (!mounted) return <div className="max-w-6xl mx-auto p-12">Carregando...</div>;
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-white p-6 md:p-12 text-s-900">
-      <SaveChangesBar 
-        hasChanges={hasUnsavedChanges}
-        loading={isSaving}
-        onSave={handleSaveAll}
-        onDiscard={handleDiscard}
-        saveText="Salvar Alterações"
-        message="Você tem edições pendentes"
-      />
+      <SaveChangesBar hasChanges={hasUnsavedChanges} loading={isSaving} onSave={handleSaveAll} onDiscard={handleDiscard} />
       <div className="max-w-6xl mx-auto space-y-12">
         <header className="flex flex-col gap-6">
-          <div className="flex items-center gap-4 group/title">
-            <Link href={`/admin/content?obj=${initialData.track.objectiveId}&track=${initialData.trackId}`} className="p-2 hover:bg-s-50 rounded-xl transition-all"><ChevronLeft size={24} /></Link>
+          <div className="flex items-center gap-4">
+            <Link href="/admin/content" className="p-2 hover:bg-s-50 rounded-xl"><ChevronLeft size={24} /></Link>
             <input 
               value={moduleData.title}
               onChange={(e) => { setModuleData({ ...moduleData, title: e.target.value }); setHasUnsavedChanges(true); }}
-              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-(--color-s-100) w-full"
+              className="text-4xl font-black uppercase tracking-tighter outline-none border-b-2 border-transparent focus:border-s-100 w-full"
             />
           </div>
-
-          <div className="flex items-center gap-4 bg-s-50 p-4 rounded-3xl border border-(--color-s-100)">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-s-400 ml-1">Nível CEFR</span>
-              <select 
+          <div className="flex items-center gap-4 bg-s-50 p-4 rounded-3xl border border-s-100">
+             <select 
                 value={moduleData.cefrLevel}
                 onChange={(e) => { setModuleData({ ...moduleData, cefrLevel: e.target.value }); setHasUnsavedChanges(true); }}
-                className="bg-white border border-(--color-s-100) px-4 py-2 rounded-xl font-bold text-s-700 outline-none"
+                className="bg-white border border-s-40 border-slate-200 px-4 py-2 rounded-xl font-bold cursor-pointer"
               >
                 {Object.values(CEFRLevel).map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
-            </div>
-
-            <button 
-              onClick={() => { setModuleData({ ...moduleData, isPremium: !moduleData.isPremium }); setHasUnsavedChanges(true); }}
-              className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all ${moduleData.isPremium ? "bg-amber-500 border-amber-600 text-white" : "bg-white border-(--color-s-100) text-s-600"}`}
-            >
-              {moduleData.isPremium ? <Lock size={14} /> : <LockOpen size={14} />}
-              {moduleData.isPremium ? "Módulo Premium" : "Módulo Gratuito"}
-            </button>
+              <button 
+                onClick={() => { setModuleData({ ...moduleData, isPremium: !moduleData.isPremium }); setHasUnsavedChanges(true); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest border cursor-pointer ${moduleData.isPremium ? "bg-amber-500 text-white" : "bg-white text-s-600"}`}
+              >
+                {moduleData.isPremium ? <Lock size={14} /> : <LockOpen size={14} />}
+                {moduleData.isPremium ? "Premium" : "Grátis"}
+              </button>
           </div>
         </header>
 
@@ -249,17 +232,13 @@ export function ModuleEditForm({ initialData }: { initialData: any }) {
                   onUpdateTitle={onUpdateTitle}
                   onUpdateType={onUpdateType}
                   onTogglePremium={onTogglePremium}
-                  onExclude={(id) => { if(confirm("Excluir?")) { setLessons(lessons.filter((l: any) => l.id !== id)); setHasUnsavedChanges(true); }}}
+                  onExclude={handleExclude}
                 />
               ))}
             </div>
           </SortableContext>
-          <button
-            onClick={handleAddLesson}
-            className="w-full py-4 mt-4 border-2 border-dashed rounded-3xl text-s-500 hover:border-interface-accent hover:text-interface-accent transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-[0.2em]"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Adicionar Nova Aula
+          <button onClick={handleAddLesson} className="w-full py-4 mt-4 border-2 border-dashed rounded-3xl text-s-500 hover:text-interface-accent transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest">
+            <Plus size={16} strokeWidth={3} /> Nova Aula
           </button>
         </DndContext>
       </div>

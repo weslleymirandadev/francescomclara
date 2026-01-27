@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   FaHome as Home,
   FaBookOpen as BookOpen,
+  FaBook as Book,
   FaCog as Settings,
   FaUsers as Users,
   FaChartBar as BarChart2,
@@ -14,6 +15,7 @@ import {
 const navigation = [
   { name: 'Geral', shortName: 'Geral', href: '/admin', icon: Home },
   { name: 'Conteúdo', shortName: 'Conteúdo', href: '/admin/content', icon: BookOpen },
+  { name: 'Nivelamento', shortName: 'Teste', href: '/admin/test', icon: Book },
   { name: 'Usuários', shortName: 'Users', href: '/admin/users', icon: Users },
   { name: 'Planos', shortName: 'Planos', href: '/admin/subscriptions', icon: DollarSign },
   { name: 'Relatórios', shortName: 'Relatos', href: '/admin/analytics', icon: BarChart2 },

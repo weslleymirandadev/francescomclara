@@ -52,35 +52,10 @@ export async function GET() {
     const filteredTracks = tracks.map((track: any) => {
       const hasAccess = track.enrollments.length > 0 || hasSubscription;
       
-      if (!hasAccess && !hasSubscription) {
-        const freeLessonsCount = track.modules.reduce((sum: number, m: any) => 
-          sum + m.lessons.filter((l: any) => !l.isPremium).length, 0
-        );
-        const totalLessonsCount = track.modules.reduce((sum: number, m: any) => sum + m.lessons.length, 0);
-
-        return {
-          id: track.id,
-          name: track.name,
-          description: track.description,
-          imageUrl: track.imageUrl,
-          order: track.order,
-          objective: track.objective,
-          modules: track.modules.map((module: any) => {
-            const freeLessons = module.lessons.filter((lesson: any) => !lesson.isPremium);
-            const hasFreeLessons = freeLessons.length > 0;
-            
-            return {
-              ...module,
-              lessons: freeLessons.slice(0, 3),
-              isLocked: module.isPremium || !hasFreeLessons,
-              isPremium: module.isPremium
-            };
-          }),
-          isLocked: true,
-          freeLessonsCount,
-          totalLessonsCount
-        };
-      }
+      const freeLessonsCount = track.modules.reduce((sum: number, m: any) => 
+        sum + m.lessons.filter((l: any) => !l.isPremium).length, 0
+      );
+      const totalLessonsCount = track.modules.reduce((sum: number, m: any) => sum + m.lessons.length, 0);
 
       return {
         id: track.id,
@@ -91,12 +66,13 @@ export async function GET() {
         objective: track.objective,
         modules: track.modules.map((module: any) => ({
           ...module,
-          lessons: module.lessons,
-          isLocked: false,
-          isPremium: false
+          isLocked: !hasAccess && module.isPremium,
+          isPremium: module.isPremium
         })),
-        isLocked: false,
-        hasAccess: true
+        isLocked: !hasAccess,
+        hasAccess: hasAccess,
+        freeLessonsCount,
+        totalLessonsCount
       };
     });
 

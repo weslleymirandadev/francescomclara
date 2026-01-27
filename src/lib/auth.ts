@@ -166,6 +166,7 @@ export const authOptions: NextAuthOptions = {
         token.username = session.username || token.username;
         token.level = session.level || token.level;
         token.banner = session.banner || token.banner;
+        token.onboarded = session.onboarded ?? token.onboarded;
       }
 
       return token;
@@ -179,6 +180,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).username = (token as any).username;
         (session.user as any).level = token.level;
         (session.user as any).banner = token.banner;
+        (session.user as any).onboarded = token.onboarded;
       }
       return session;
     },
