@@ -192,6 +192,20 @@ export function Header({ settings }: HeaderProps) {
             </Link>
           ))}
           
+          {session?.user?.role === 'ADMIN' && (
+            <Link href="/admin" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all">
+              <RiSecurePaymentFill className="text-orange-600 text-xl" />
+              <span className="text-xs font-black uppercase tracking-widest text-orange-600">Painel Admin</span>
+            </Link>
+          )}
+
+          {session?.user?.role === 'MODERATOR' && (
+            <Link href="/moderacao" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all">
+              <FiMessageSquare className="text-(--interface-accent)" />
+              <span className="text-xs font-black uppercase tracking-widest text-(--interface-accent)">Moderação</span>
+            </Link>
+          )}
+
           <div className="h-px bg-slate-100 my-4" />
           
           {session ? (
