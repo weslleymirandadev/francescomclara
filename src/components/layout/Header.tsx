@@ -19,16 +19,11 @@ interface HeaderProps {
   }
 }
 
-const mainNavigation = [
-  { href: "/dashboard", icon: FiLayout, text: "Dashboard" },
-  { href: "/forum", icon: FiMessageSquare, text: "Fórum" },
-  { href: "/flashcards", icon: FaRegClone, text: "Flashcards" },
-];
-
 export function Header({ settings }: HeaderProps) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
+  const [flashcardCount, setFlashcardCount] = useState(0);
   const { data: session, status } = useSession();
 
   useEffect(() => {
@@ -37,16 +32,33 @@ export function Header({ settings }: HeaderProps) {
         try {
           const response = await fetch("/api/user/me");
           if (response.ok) {
-            const userData = await response.json();
-            setHasActiveSubscription(!!userData.subscription); 
+            const data = await response.ok ? await response.json() : null;
+            setHasActiveSubscription(!!data?.subscription);
+          }
+
+          const fcRes = await fetch("/api/flashcards");
+          if (fcRes.ok) {
+            const fcData = await fcRes.json();
+            if (Array.isArray(fcData)) setFlashcardCount(fcData.length);
           }
         } catch (error) {
-          setHasActiveSubscription(false);
+          console.error("Erro ao carregar dados do header", error);
         }
       }
     }
     checkStatus();
   }, [status]);
+
+  const mainNavigation = [
+    { href: "/dashboard", icon: FiLayout, text: "Dashboard" },
+    { href: "/forum", icon: FiMessageSquare, text: "Fórum" },
+    { 
+      href: "/flashcards", 
+      icon: FaRegClone, 
+      text: "Flashcards",
+      hasBadge: flashcardCount > 0
+    },
+  ];
 
   return (
     <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-100">
@@ -96,6 +108,12 @@ export function Header({ settings }: HeaderProps) {
                   ${isActive ? "text-(--interface-accent)" : "text-(--slate-600) group-hover:text-(--interface-accent)"}`}>
                   {item.text}
                 </span>
+                
+                {item.hasBadge && (
+                  <span className="absolute -top-2 -right-3 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-sm">
+                    {flashcardCount}
+                  </span>
+                )}
                 
                 {isActive && (
                   <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-(--interface-accent) rounded-t-full" />

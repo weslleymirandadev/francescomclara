@@ -1,64 +1,54 @@
 "use client";
 
-import { Video } from "lucide-react";
+import { Video, Type } from "lucide-react";
+import { MarkdownEditor } from "./MarkdownEditor";
 
-interface ClassEditorProps {
-  content: any; // Ajuste conforme sua estrutura de JSON
-  onChange: (newContent: any) => void;
-}
-
-export function ClassEditor({ content, onChange }: ClassEditorProps) {
-  // Exemplo de estrutura: { videoUrl: "", description: "" }
+export function ClassEditor({ content, onChange }: { content: any; onChange: (newContent: any) => void }) {
   const data = content || { videoUrl: "", description: "" };
 
-  const updateData = (updates: any) => {
-    onChange({ ...data, ...updates });
+  const getEmbedUrl = (url: string) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    else if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
+    else return url;
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
   };
 
-  return (
-    <div className="w-full max-w-4xl space-y-8 animate-in fade-in zoom-in-95 duration-300">
-      <div className="grid gap-8">
-        {/* Campo de Vídeo */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-s-400 ml-1">
-            URL do Vídeo (YouTube / Vimeo / Mux)
-          </label>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-s-300 group-focus-within:text-interface-accent transition-colors">
-              <Video size={20} />
-            </div>
-            <input 
-              type="text"
-              value={data.videoUrl}
-              onChange={(e) => updateData({ videoUrl: e.target.value })}
-              placeholder="https://www.youtube.com/watch?v=..."
-              className="w-full pl-12 pr-4 py-4 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-2xl font-bold text-s-700 outline-none transition-all"
-            />
-          </div>
-        </div>
+  const embedUrl = getEmbedUrl(data.videoUrl);
 
-        {/* Campo de Teoria / Descrição */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-s-400 ml-1">
-            Teoria da Aula
-          </label>
-          <textarea 
-            value={data.description}
-            onChange={(e) => updateData({ description: e.target.value })}
-            placeholder="Explique a teoria desta aula..."
-            className="w-full p-6 bg-s-50 border-2 border-transparent focus:border-(--color-s-100) focus:bg-white rounded-[32px] font-medium text-s-600 outline-none transition-all min-h-[250px] resize-none"
+  return (
+    <div className="w-full space-y-8">
+      <div className="space-y-4">
+        <div className="relative">
+          <Video className="absolute left-4 top-1/2 -translate-y-1/2 text-s-300" size={18} />
+          <input 
+            value={data.videoUrl || ""}
+            onChange={(e) => onChange({ ...data, videoUrl: e.target.value })}
+            placeholder="URL do Vídeo do Aluno"
+            className="w-full pl-12 pr-4 py-4 bg-s-50 rounded-4xl outline-none font-bold text-s-700 border-2 border-transparent focus:border-s-100 transition-all"
           />
         </div>
+
+        {embedUrl && (
+          <div className="w-full aspect-video rounded-[32px] overflow-hidden shadow-2xl border-8 border-white bg-black">
+            <iframe src={embedUrl} className="w-full h-full" allowFullScreen />
+          </div>
+        )}
       </div>
 
-      {/* Preview de Vídeo Simples */}
-      {data.videoUrl && (
-        <div className="pt-4">
-          <div className="aspect-video w-full bg-s-900 rounded-[32px] flex items-center justify-center overflow-hidden shadow-2xl">
-             <p className="text-white/20 font-black uppercase text-[10px] tracking-widest">Preview do Vídeo</p>
-          </div>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 ml-2">
+          <Type size={14} className="text-s-400" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-s-400">Conteúdo Teórico</span>
         </div>
-      )}
+        <MarkdownEditor 
+          id="class-theory"
+          value={data.description}
+          onChange={(val) => onChange({ ...data, description: val })}
+          placeholder="Escreva a teoria aqui..."
+        />
+      </div>
     </div>
   );
 }

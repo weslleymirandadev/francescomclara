@@ -3,7 +3,6 @@
 import { Crown, CheckCircle2, Check, Edit2 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface AdminSubscriptionPlanCardProps {
   id?: string;
@@ -70,7 +69,6 @@ export function AdminSubscriptionPlanCard({
       multi_device: "Telas Simultâneas",
       priority_support: "Suporte Prioritário",
       specific_tracks: "Trilhas Selecionadas",
-      "track:trilha-paris": "Trilha Paris"
     };
 
     return FEATURE_LABELS[featureKey] || featureKey;

@@ -3,19 +3,11 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { FaGoogle } from "react-icons/fa";
 import Link from "next/link";
-
-const signInSchema = z.object({
-  email: z.string().email("Informe um e-mail válido"),
-  password: z.string().min(6, "Mínimo de 6 caracteres"),
-});
-
-type SignInFormData = z.infer<typeof signInSchema>;
+import { toast } from "react-hot-toast";
+import Turnstile from "react-turnstile";
 
 export default function SignIn() {
   return (
@@ -29,30 +21,35 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
-  const [formError, setFormError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-  });
-
-  const onSubmit = async (data: SignInFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
-    setFormError(null);
+
+    if (!captchaToken) {
+      toast.error("Por favor, complete o desafio de segurança.");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email: data.email,
-        password: data.password,
+      const result = await signIn("email", { 
+        email, 
+        callbackUrl, 
+        redirect: false 
       });
 
       if (result?.error) {
-        setFormError("E-mail ou senha incorretos.");
+        toast.error("Erro ao enviar o link. Verifique seu e-mail.");
       } else {
-        router.push(callbackUrl);
+        toast.success("Merveilleux! O link de acesso já está no seu e-mail.");
+        router.push("/auth/verificar-email");
       }
-    } catch {
-      setFormError("Erro ao autenticar.");
+    } catch (error) {
+      toast.error("Ocorreu um erro inesperado.");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,38 +109,33 @@ function SignInForm() {
             <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-900">Acesse sua Trilha</h2>
           </div>
           
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="SEU E-MAIL"
               type="email"
-              {...register("email")}
-              error={errors.email?.message}
-              placeholder="exemplo@email.com"
-              className="h-16 rounded-2xl border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
+              label="E-MAIL DE ACESSO"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-14 rounded-2xl bg-white border-slate-200 text-slate-900 font-medium"
             />
+            <p className="text-[10px] text-slate-400 font-medium mt-2 ml-1 italic">
+              * Enviaremos um link de acesso instantâneo para o seu e-mail.
+            </p>
 
-            <div className="space-y-1">
-              <Input
-                label="SUA SENHA"
-                type="password"
-                {...register("password")}
-                error={errors.password?.message}
-                placeholder="••••••••"
-                className="h-16 rounded-2xl border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
+            <div className="flex justify-center py-2">
+              <Turnstile
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onVerify={(token) => setCaptchaToken(token)}
               />
-              <div className="flex justify-end pr-1">
-                <Link href="/auth/esqueci-a-senha" className="text-[10px] font-black uppercase text-slate-500 hover:text-(--clara-rose) transition-colors">
-                  Esqueceu a senha?
-                </Link>
-              </div>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl shadow-slate-300 active:scale-[0.98]"
+              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl active:scale-[0.98]"
             >
-              {isSubmitting ? "Carregando..." : "Entrar na Trilha"}
+              {isSubmitting ? "Enviando seu convite..." : "Receber Link de Acesso"}
             </button>
           </form>
 

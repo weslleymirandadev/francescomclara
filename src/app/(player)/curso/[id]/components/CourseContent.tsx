@@ -1,81 +1,123 @@
 'use client';
 
-import { PlayCircle, ArrowLeft, BookOpen, FileText, Video, CheckCircle2 } from "lucide-react";
-import confetti from 'canvas-confetti';
+import { useEffect } from "react";
+import { triggerConfetti } from "@/lib/utils";
+import Script from "next/script";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
-export const triggerConfetti = () => {
-  const duration = 1.5 * 1000;
-  const animationEnd = Date.now() + duration;
-  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 50 };
-  const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-  const interval: any = setInterval(function() {
-    const timeLeft = animationEnd - Date.now();
-    if (timeLeft <= 0) return clearInterval(interval);
-    const particleCount = 25 * (timeLeft / duration);
-    
-    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-    confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-  }, 150);
-};
-
-export function CourseContent({ activeLesson, moduleTitle }: any) {
+export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: any) {
   if (!activeLesson) return null;
 
-  const isVideo = activeLesson.type === 'CLASS';
-
-  const handleManualComplete = () => {
-    triggerConfetti();
-    console.log("Lição concluída:", activeLesson.id);
+  const getEmbedUrl = (url: string) => {
+    if (!url) return "";
+    let videoId = "";
+    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    else if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
+    else return url;
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
   };
 
-  return (
-    <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-white relative pt-8">
-      {isVideo ? (
-        <div className="w-full bg-slate-950 aspect-video flex items-center justify-center relative shrink-0">
-          <div className="text-white/20 flex flex-col items-center gap-4">
-            <Video size={60} strokeWidth={1} />
-            <p className="text-[10px] font-black uppercase tracking-widest">Player de Vídeo</p>
-          </div>
-        </div>
-      ) : (
-        <div className="w-full h-48 bg-slate-50 border-b border-slate-100 flex items-center justify-center shrink-0">
-           <div className="flex flex-col items-center gap-2">
-              <span className="p-4 bg-blue-600/10 rounded-2xl text-blue-600">
-                {activeLesson.type === 'STORY' ? <BookOpen size={32}/> : <FileText size={32}/>}
-              </span>
-              <p className="text-[9px] font-black text-blue-600/40 uppercase tracking-[0.3em]">
-                {activeLesson.type === 'STORY' ? 'História e Contexto' : 'Material de Leitura'}
-              </p>
-           </div>
-        </div>
-      )}
+  const content = typeof activeLesson.content === 'string' 
+    ? JSON.parse(activeLesson.content) 
+    : activeLesson.content;
 
-      <div className="p-12 max-w-4xl mx-auto w-full mb-40">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 block mb-4">
+  const handleComplete = async () => {
+    triggerConfetti();
+    try {
+      await fetch("/api/course/progress", {
+        method: "POST",
+        body: JSON.stringify({ lessonId: activeLesson.id, completed: true }),
+      });
+
+      if (onLessonComplete) {
+        onLessonComplete(activeLesson.id);
+      }
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (activeLesson.type !== 'CLASS') return;
+    
+    // @ts-ignore
+    window.onYouTubeIframeAPIReady = () => {
+      // @ts-ignore
+      new window.YT.Player('youtube-player', {
+        events: {
+          'onStateChange': (event: any) => {
+            // @ts-ignore
+            if (event.data === window.YT.PlayerState.ENDED) {
+              handleComplete();
+            }
+          }
+        }
+      });
+    };
+  }, [activeLesson.id]);
+
+  return (
+    <div className="p-12 max-w-4xl mx-auto w-full animate-in fade-in duration-500">
+      <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />
+      
+      <header className="mb-10">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
           {moduleTitle}
         </span>
-        <h1 className="text-5xl font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-6">
+        <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">
           {activeLesson.title}
         </h1>
-        
-        <div 
-          className="prose prose-slate max-w-none prose-p:text-lg prose-p:leading-relaxed prose-headings:uppercase prose-headings:font-black"
-          dangerouslySetInnerHTML={{ __html: activeLesson.content }} 
-        />
-      </div>
+      </header>
+      
+      <div className="space-y-8">
+        {(activeLesson.type === 'CLASS' || activeLesson.type === 'STORY') && content?.videoUrl && (
+          <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg">
+            <iframe 
+              id="youtube-player" 
+              src={getEmbedUrl(content.videoUrl)} 
+              className="w-full h-full border-0" 
+              allowFullScreen 
+            />
+          </div>
+        )}
 
-      {!isVideo && (
-        <div className="fixed bottom-0 right-0 left-[380px] p-8 bg-linear-to-t from-white via-white to-transparent flex justify-center z-40">
-          <button 
-            onClick={handleManualComplete}
-            className="group flex items-center gap-3 bg-slate-900 hover:bg-blue-600 text-white px-10 h-16 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-2xl hover:scale-105 active:scale-95"
-          >
-            <CheckCircle2 size={20} className="group-hover:animate-bounce" />
-            Entendi, Clara!
-          </button>
+        {activeLesson.type === 'STORY' && content?.script && (
+          <div className="bg-blue-50 p-8 rounded-[32px] border border-blue-100 mt-6 wrap-break-word">
+            <h4 className="text-[10px] font-black uppercase text-blue-400 mb-2 italic">Contexto da Cena</h4>
+            <p className="text-blue-900 font-medium italic">"{content.script}"</p>
+          </div>
+        )}
+
+        <div className="w-full">
+          <div className="text-lg text-slate-600 leading-relaxed wrap-break-word">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h2: ({node, ...props}) => <h2 className="text-2xl font-black text-slate-900 mt-8 mb-4 uppercase italic" {...props} />,
+                p: ({node, ...props}) => <p className="mb-6 whitespace-pre-wrap" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc ml-6 mb-6 space-y-2" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-black text-slate-900" {...props} />,
+                a: ({node, ...props}) => <a className="text-blue-600 underline hover:text-blue-800" {...props} />,
+              }}
+            >
+              {content?.description || content?.text || ""}
+            </ReactMarkdown>
+          </div>
         </div>
-      )}
+
+          <div className="pt-16 pb-20 flex justify-center border-t border-slate-50 mt-12">
+            <button 
+              onClick={handleComplete}
+              className="group flex items-center gap-3 bg-slate-900 hover:bg-emerald-600 text-white px-8 h-14 rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-lg shadow-slate-200"
+            >
+              <span className="text-[11px] font-black uppercase tracking-widest">
+                Entendi, Clara!
+              </span>
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20">
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+              </div>
+            </button>
+          </div>
+      </div>
     </div>
   );
 }

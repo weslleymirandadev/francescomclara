@@ -3,9 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-/**
- * GET - Busca um flashcard específico
- */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -65,7 +62,6 @@ export async function GET(
       );
     }
 
-    // Verificar se o flashcard pertence ao usuário
     if (flashcard.userId !== user.id) {
       return NextResponse.json(
         { error: "Acesso negado" },
@@ -83,109 +79,60 @@ export async function GET(
   }
 }
 
-/**
- * PATCH - Atualiza um flashcard
- * Body: { front?: string, back?: string }
- */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { front, back } = body;
+    const { wasOk } = await request.json();
 
-    // Verificar se o flashcard existe e pertence ao usuário
-    const existingFlashcard = await prisma.flashcard.findUnique({
-      where: { id },
+    const card = await prisma.flashcard.findUnique({
+      where: { id }
     });
 
-    if (!existingFlashcard) {
-      return NextResponse.json(
-        { error: "Flashcard não encontrado" },
-        { status: 404 }
-      );
+    if (!card) {
+      return NextResponse.json({ error: "Flashcard não encontrado" }, { status: 404 });
     }
 
-    if (existingFlashcard.userId !== user.id) {
-      return NextResponse.json(
-        { error: "Acesso negado" },
-        { status: 403 }
-      );
+    if (card.userId !== session.user.id) {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
-    // Preparar dados de atualização
-    const updateData: any = {};
-    if (front !== undefined) updateData.front = front;
-    if (back !== undefined) updateData.back = back;
+    let newLevel = card.level;
+    let nextReview = new Date();
 
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { error: "Nenhum campo fornecido para atualização" },
-        { status: 400 }
-      );
+    if (wasOk) {
+      newLevel = Math.min(card.level + 1, 5);
+      
+      const intervals = [0, 1, 3, 7, 14, 30]; 
+      nextReview.setDate(nextReview.getDate() + intervals[newLevel]);
+    } else {
+      newLevel = 0;
+      nextReview.setMinutes(nextReview.getMinutes() + 10);
     }
 
-    const updatedFlashcard = await prisma.flashcard.update({
+    const updatedCard = await prisma.flashcard.update({
       where: { id },
-      data: updateData,
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            module: {
-              select: {
-                id: true,
-                title: true,
-                track: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      data: {
+        level: newLevel,
+        nextReview: nextReview,
+        lastResult: wasOk ? 'ok' : 'bad'
+      }
     });
 
-    return NextResponse.json(updatedFlashcard);
+    return NextResponse.json(updatedCard);
   } catch (error) {
-    console.error("Error updating flashcard:", error);
-    return NextResponse.json(
-      { error: "Erro ao atualizar flashcard" },
-      { status: 500 }
-    );
+    console.error("Erro ao atualizar flashcard:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
 
-/**
- * DELETE - Remove um flashcard
- */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -214,7 +161,6 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verificar se o flashcard existe e pertence ao usuário
     const existingFlashcard = await prisma.flashcard.findUnique({
       where: { id },
     });

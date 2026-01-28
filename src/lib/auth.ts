@@ -6,6 +6,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { UserRole } from "@prisma/client";
+import EmailProvider from "next-auth/providers/email";
+import { sendAutomationEmail } from "@/lib/mail";
 
 async function resolveUserRole(email: string): Promise<"USER" | "ADMIN" | "MODERATOR"> {
   const roleEntry = await prisma.roleEmail.findUnique({
@@ -43,7 +45,8 @@ export const authOptions: NextAuthOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
+    maxAge: 15 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
 
   secret: process.env.NEXTAUTH_SECRET,
@@ -89,6 +92,10 @@ export const authOptions: NextAuthOptions = {
           include: { passwords: true },
         });
 
+        if (!user) {
+          throw new Error("Usuário não encontrado");
+        }
+
         // -------------------------------------
         // 1) Usuário existe → validar senha
         // -------------------------------------
@@ -104,6 +111,27 @@ export const authOptions: NextAuthOptions = {
 
           return user;
         }
+      },
+    }),
+
+    // --- Email login ---
+    EmailProvider({
+      server: {
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      },
+      from: process.env.EMAIL_FROM,
+      async sendVerificationRequest({ identifier: email, url, provider }) {
+        const { host } = new URL(url);
+        await sendAutomationEmail(
+          email,
+          `Seu link de acesso ao ${host}`,
+          `Clique aqui para entrar na sua conta: ${url}`
+        );
       },
     }),
   ],

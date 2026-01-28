@@ -36,6 +36,7 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ message: "Senha alterada com sucesso!" });
+        
       case "UPDATE_PROFILE":
         return NextResponse.json(await prisma.user.update({
           where: { id: session.user.id },
@@ -78,6 +79,25 @@ export async function POST(req: Request) {
           where: { id: data.memberId, parentId: session.user.id },
           data: { parentId: null }
         }));
+
+      case "UPDATE_NOTIFICATIONS":
+        return NextResponse.json(await prisma.user.update({
+          where: { id: session.user.id },
+          data: { 
+            notifFlashcards: data.notifFlashcards !== undefined ? !!data.notifFlashcards : undefined,
+            notifLessons: data.notifLessons !== undefined ? !!data.notifLessons : undefined,
+            notifForum: data.notifForum !== undefined ? !!data.notifForum : undefined,
+          }
+        }));
+
+      case "DELETE_ACCOUNT":
+        await prisma.account.deleteMany({ where: { userId: session.user.id } });
+        await prisma.session.deleteMany({ where: { userId: session.user.id } });
+        await prisma.lessonProgress.deleteMany({ where: { userId: session.user.id } });
+        
+        await prisma.user.delete({ where: { id: session.user.id } });
+        
+        return NextResponse.json({ message: "Conta eliminada com sucesso" });
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });

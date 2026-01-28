@@ -28,7 +28,7 @@ export function SaveChangesBar({
       <div className="bg-slate-900 rounded-3xl p-4 shadow-2xl border border-white/10 backdrop-blur-md flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-center gap-3 pl-2">
           <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          <p className="text-white text-xs font-bold uppercase tracking-widest">
+          <p className="text-white text-xs font-bold uppercase tracking-widest hidden md:block">
             {message}
           </p>
         </div>

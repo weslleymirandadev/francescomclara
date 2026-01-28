@@ -10,12 +10,12 @@ export default async function AdminTestPage() {
   });
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <header className="mb-10">
-        <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">
-          Gerenciar Teste de Nivelamento
+    <div className="p-4 md:p-8 max-w-5xl mx-auto mb-20 md:mb-0">
+      <header className="mb-6 md:mb-10">
+        <h1 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter">
+          Gerenciar Teste
         </h1>
-        <p className="text-slate-500 text-sm">Configure as perguntas do teste inicial.</p>
+        <p className="hidden sm:block text-slate-500 text-sm">Configure as perguntas do teste inicial.</p>
       </header>
 
       <AdminTestList initialQuestions={questions} testId={test.id} />

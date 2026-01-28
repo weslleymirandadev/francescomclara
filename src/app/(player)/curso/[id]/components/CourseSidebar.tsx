@@ -1,16 +1,17 @@
 'use client';
 
-import { ChevronDown, ChevronRight, Video, BookOpen, FileText, BrainCircuit, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Video, BookOpen, FileText, CheckCircle2 } from "lucide-react";
 
 export function CourseSidebar({ data, activeLesson, setActiveLesson, openModules, toggleModule }: any) {
   
-  const getLessonIcon = (type: string, isActive: boolean) => {
+  const getLessonIcon = (type: string, isActive: boolean, isCompleted: boolean) => {
+    if (isCompleted) return <CheckCircle2 size={14} className="text-emerald-500" />;
+
     const props = { size: 14, className: isActive ? "text-white" : "text-slate-500" };
     switch (type) {
       case 'CLASS': return <Video {...props} />;
       case 'STORY': return <BookOpen {...props} />;
       case 'READING': return <FileText {...props} />;
-      case 'FLASHCARD': return <BrainCircuit {...props} />;
       default: return <Video {...props} />;
     }
   };
@@ -27,10 +28,10 @@ export function CourseSidebar({ data, activeLesson, setActiveLesson, openModules
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 custom-scrollbar">
         {data?.modules?.map((module: any) => (
           <div key={module.id} className="space-y-1">
-            <button 
+            <button
               onClick={() => toggleModule(module.id)}
-              className={`w-full flex items-center justify-between p-5 rounded-[1.5rem] transition-all border ${
-                openModules.includes(module.id) ? 'bg-white border-slate-200 shadow-sm' : 'bg-transparent border-transparent hover:bg-slate-100'
+              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${
+                openModules.includes(module.id) ? 'bg-white shadow-sm' : 'hover:bg-white'
               }`}
             >
               <h4 className="text-[11px] font-black uppercase text-slate-800 tracking-tight">{module.title}</h4>
@@ -39,25 +40,32 @@ export function CourseSidebar({ data, activeLesson, setActiveLesson, openModules
 
             {openModules.includes(module.id) && (
               <div className="mt-1 space-y-1 px-2">
-                {module.lessons?.map((lesson: any) => {
-                  const isActive = activeLesson?.id === lesson.id;
-                  return (
-                    <button
-                      key={lesson.id}
-                      onClick={() => setActiveLesson(lesson)}
-                      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${
-                        isActive ? 'bg-slate-900 text-white shadow-xl' : 'hover:bg-white text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        isActive ? 'bg-blue-600' : 'bg-slate-100'
-                      }`}>
-                        {getLessonIcon(lesson.type, isActive)}
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-tight leading-tight">{lesson.title}</span>
-                    </button>
-                  );
-                })}
+                {module.lessons
+                  ?.filter((lesson: any) => lesson.type !== 'FLASHCARD')
+                  ?.map((lesson: any) => {
+                    const isActive = activeLesson?.id === lesson.id;
+                    
+                    const isCompleted = data?.completedLessons?.includes(lesson.id);
+
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => setActiveLesson(lesson)}
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all text-left ${
+                          isActive ? 'bg-slate-900 text-white shadow-xl' : 'hover:bg-white text-slate-500 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                          isCompleted ? 'bg-emerald-50' : (isActive ? 'bg-blue-600' : 'bg-slate-100')
+                        }`}>
+                          {getLessonIcon(lesson.type, isActive, isCompleted)}
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-tight leading-tight">
+                          {lesson.title}
+                        </span>
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </div>

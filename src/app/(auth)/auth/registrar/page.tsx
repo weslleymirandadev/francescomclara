@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { FaGoogle } from "react-icons/fa";
+import { toast } from "react-hot-toast";
+import Turnstile from "react-turnstile";
+import { signIn } from "next-auth/react";
 
 export default function RegisterPage() {
   return (
@@ -21,11 +24,9 @@ function RegisterForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,47 +34,45 @@ function RegisterForm() {
     setError(null);
     setIsSubmitting(true);
 
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    const { name, email } = formData;
+
+    if (!captchaToken) {
+      toast.error("Por favor, complete o CAPTCHA.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!name || !email) {
       setError("Todos os campos são obrigatórios");
       setIsSubmitting(false);
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("A senha deve ter pelo menos 6 caracteres");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("As senhas não coincidem");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      const registerResponse = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, captchaToken })
       });
 
-      const registerData = await registerResponse.json();
-
-      if (!registerResponse.ok) {
-        setError(registerData.error || 'Erro ao criar conta');
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Erro ao registar");
         setIsSubmitting(false);
         return;
       }
 
-      const loginUrl = `/auth/login?message=${encodeURIComponent('Conta criada com sucesso!')}&callbackUrl=${encodeURIComponent(callbackUrl)}`;
-      router.push(loginUrl);
+      await signIn("email", { 
+        email, 
+        callbackUrl: "/dashboard",
+        redirect: false 
+      });
+
+      toast.success("Sucesso! Verifique seu e-mail para validar a conta.");
+      router.push("/auth/verificar-email");
+
     } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.');
+      toast.error("Erro ao processar registro.");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -84,7 +83,6 @@ function RegisterForm() {
 
   return (
     <div className="min-h-screen flex flex-col items-center relative overflow-hidden font-sans bg-white animate-in fade-in duration-700">
-      
       <div className="absolute top-0 left-0 w-full h-[45vh] z-0 overflow-hidden">
         <div 
           className="w-full h-full bg-cover bg-center opacity-30 grayscale-20"
@@ -157,45 +155,23 @@ function RegisterForm() {
               className="h-14 rounded-2xl bg-white border-slate-200 text-slate-900 font-medium focus:ring-2 focus:ring-(--clara-rose)/20 transition-all"
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                label="SENHA"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                showPassword={showPassword}
-                onTogglePassword={() => setShowPassword(!showPassword)}
-                className="h-14 rounded-2xl bg-white border-slate-200"
-              />
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                label="CONFIRMAR"
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                showPassword={showPassword}
-                onTogglePassword={() => setShowPassword(!showPassword)}
-                className="h-14 rounded-2xl bg-white border-slate-200"
-              />
-            </div>
-            
             {error && (
               <div className="bg-rose-50 border-l-4 border-[#ED2939] text-[#ED2939] text-[10px] font-black p-4 rounded-r-xl uppercase">
                 {error}
               </div>
             )}
+
+            <div className="flex justify-center py-2">
+              <Turnstile
+                sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                onVerify={(token) => setCaptchaToken(token)}
+              />
+            </div>
             
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl active:scale-[0.98]"
+              className="w-full h-16 cursor-pointer bg-slate-900 hover:bg-(--clara-rose) text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[12px] transition-all duration-300 shadow-2xl active:scale-[0.98] disabled:opacity-50"
             >
               {isSubmitting ? 'Preparando Trilha...' : 'Criar Minha Conta'}
             </button>
@@ -208,6 +184,7 @@ function RegisterForm() {
 
           <button
             type="button"
+            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
             className="w-full h-14 cursor-pointer border-2 border-slate-100 bg-white hover:border-(--clara-rose) hover:bg-rose-50/30 rounded-2xl flex items-center justify-center gap-3 transition-all group"
           >
             <FaGoogle className="text-slate-400 group-hover:text-(--clara-rose) transition-colors" size={18} />

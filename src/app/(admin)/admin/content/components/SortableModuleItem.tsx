@@ -25,13 +25,11 @@ function SortableLessonItem({ lesson, markForDeletion, onToggleLock, onUpdateNam
         isDragging ? 'border-interface-accent shadow-lg z-50' : 'border-(--color-s-50) hover:border-(--color-s-100)'
       }`}
     >
-      {/* Esquerda: Drag + Icone + Input */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-s-600 hover:text-s-800 shrink-0">
           <GripVertical size={16} />
         </div>
         
-        {/* Indicador de Tipo/Status */}
         <div className={`p-2 rounded-lg shrink-0 ${lesson.isPremium ? 'bg-s-50 text-s-800' : 'bg-s-50 text-s-600'}`}>
            <Edit3 size={14} />
         </div>
@@ -43,7 +41,6 @@ function SortableLessonItem({ lesson, markForDeletion, onToggleLock, onUpdateNam
         />
       </div>
 
-      {/* Direita: Ações (Lacre e Lixo) */}
       <div className="flex items-center justify-end gap-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-(--color-s-50)/50">
         <button 
           onClick={() => onToggleLock(lesson.id)}
@@ -95,10 +92,8 @@ export function SortableModuleItem({
 
   return (
     <div ref={setNodeRef} style={style} className={`bg-white border-2 rounded-2xl overflow-hidden ${isDragging ? 'border-interface-accent shadow-xl' : 'border-(--color-s-50)'}`}>
-      {/* Header do Módulo */}
       <div className="flex flex-col sm:flex-row items-center p-4 gap-3">
         
-        {/* Esquerda: Drag + Input */}
         <div className="flex items-center gap-3 w-full sm:flex-1">
           <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-s-600 hover:text-s-800 shrink-0">
             <GripVertical size={18} />
@@ -120,7 +115,6 @@ export function SortableModuleItem({
           </div>
         </div>
 
-        {/* Direita: Botões de Ação */}
         <div className="flex items-center justify-end gap-1 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
           <button
             onClick={() => handleToggleModuleLock(module.id)}
@@ -147,8 +141,7 @@ export function SortableModuleItem({
           </button>
         </div>
       </div>
-
-      {/* Área de Lições (Expandida) */}
+      
       {isExpanded && (
         <div className="bg-s-50/30 border-t border-(--color-s-50) p-4 space-y-2">
           {!mounted ? (

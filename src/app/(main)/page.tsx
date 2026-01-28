@@ -97,7 +97,7 @@ export default function Home() {
   const [isExiting, setIsExiting] = useState(false);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [studyContent, setStudyContent] = useState<StudyContent | null>(null);
-
+  const [availableTracks, setAvailableTracks] = useState<{id: string, name: string}[]>([]);
   const [activeObjectiveId, setActiveObjectiveId] = useState<string | null>(null);
   const coursesSectionRef = useRef<HTMLDivElement>(null);
 
@@ -123,6 +123,7 @@ export default function Home() {
         if (data) {
           const allTracks = data.tracks || [];
           setPlans(data.plans || []);
+          setAvailableTracks(data.tracks || []);
           
           if (status === "authenticated") {
             const resUser = await fetch('/api/user/me');
@@ -362,6 +363,7 @@ export default function Home() {
                     features={plan.features}
                     isBestValue={plan.id === 'plano-pro-anual'}
                     onSubscribe={(id) => handleRedirect(`/assinar?planId=${id}`)}
+                    availableTracks={availableTracks}
                   />
                 ))
               ) : (

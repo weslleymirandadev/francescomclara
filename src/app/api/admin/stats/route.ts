@@ -31,7 +31,10 @@ export async function GET() {
           createdAt: true,
           enrollments: {
             take: 1,
-            select: { track: { select: { name: true } } }
+            orderBy: { createdAt: 'desc' },
+            select: {
+              plan: { select: { name: true } }
+            }
           }
         }
       }),

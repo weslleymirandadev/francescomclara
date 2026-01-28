@@ -380,7 +380,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   if (loading) return <Loading />;
     
   return (
-    <main className="animate-in fade-in duration-700">
+    <main className="w-full max-w-100vw overflow-x-hidden animate-in fade-in duration-700">
       <SaveChangesBar 
         hasChanges={hasChanges}
         loading={loading}
@@ -389,10 +389,10 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
         saveText="Enregistrer"
       />
 
-      <div className="max-w-6xl mx-auto md:py-4 ">
+      <div className="max-w-6xl mx-auto px-4 md:px-0">
         <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-(--color-s-50) pb-4 gap-6">
-          <nav className="flex items-center w-full md:max-w-[calc(100vw-700px)] relative">
-            <div className="overflow-x-auto scrollbar-hide flex items-center w-full pb-2 md:pb-0 snap-x touch-pan-x">
+          <nav className="flex items-center w-full md:max-w-[calc(100vw-700px)] min-w-0 relative overflow-hidden">
+            <div className="overflow-x-auto scrollbar-hide flex w-full snap-x touch-pan-x">
               {mounted ? (
                 <DndContext
                   sensors={sensors}
@@ -405,7 +405,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                     items={[...localObjectives.map(o => o.id), 'add-button-id']}
                     strategy={horizontalListSortingStrategy}
                   >
-                    <div className="flex items-center snap-start">
+                    <div className="flex items-center min-w-max">
                       {localObjectives.map((o) => (
                         <SortableObjectiveItem 
                           key={o.id}
@@ -420,14 +420,14 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                           setHasChanges={setHasChanges}
                         />
                       ))}
-                      <div className="shrink-0 pr-4">
+                      <div className="shrink-0 pr-10">
                         <StaticAddButton onClick={handleAddObjective} />
                       </div>
                     </div>
                   </SortableContext>
                 </DndContext>
               ) : (
-                <div className="flex items-center opacity-50">
+                <div className="flex items-center opacity-50 min-w-max">
                   {localObjectives.map((o: any) => (
                     <div key={o.id} className="px-4 py-2 font-black text-[10px] uppercase whitespace-nowrap">
                       {o.name}
@@ -480,60 +480,62 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
               modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             >
               <SortableContext items={tracksInObjective.map(t => t.id)} strategy={verticalListSortingStrategy}>
-                {tracksInObjective.map((track) => (
-                  <SortableTrackItem
-                    key={track.id}
-                    track={track}
-                    configs={configs}
-                    plans={plans}
-                    openTracks={openTracks}
-                    setOpenTracks={setOpenTracks}
-                    setLocalTracks={setLocalTracks}
-                    setHasChanges={setHasChanges}
-                    markForDeletion={markForDeletion}
-                    handleCreateModuleLocal={handleCreateModuleLocal}
-                    setExpandedModule={setExpandedModule}
-                    handleTrackNameChange={handleTrackNameChange}
-                    handleTrackDescriptionChange={handleTrackDescriptionChange}
-                    EditableName={EditableName}
-                    EditableDescription={EditableDescription}
-                    handleLessonDragEnd={handleLessonDragEnd}
-                    handleToggleLessonLock={handleToggleLessonLock}
-                    handleUpdateLessonName={handleLessonTitleChange}
-                    handleToggleModuleLock={handleToggleModuleLock}
-                    renderModules={(t) => (
-                      <DndContext 
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(e) => handleDragEnd(e, t.id)}
-                        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-                      >
-                        <SortableContext 
-                          items={t.modules?.map((m: any) => m.id) || []} 
-                          strategy={verticalListSortingStrategy}
+                <div className="grid grid-cols-1 gap-6">
+                  {tracksInObjective.map((track) => (
+                    <SortableTrackItem
+                      key={track.id}
+                      track={track}
+                      configs={configs}
+                      plans={plans}
+                      openTracks={openTracks}
+                      setOpenTracks={setOpenTracks}
+                      setLocalTracks={setLocalTracks}
+                      setHasChanges={setHasChanges}
+                      markForDeletion={markForDeletion}
+                      handleCreateModuleLocal={handleCreateModuleLocal}
+                      setExpandedModule={setExpandedModule}
+                      handleTrackNameChange={handleTrackNameChange}
+                      handleTrackDescriptionChange={handleTrackDescriptionChange}
+                      EditableName={EditableName}
+                      EditableDescription={EditableDescription}
+                      handleLessonDragEnd={handleLessonDragEnd}
+                      handleToggleLessonLock={handleToggleLessonLock}
+                      handleUpdateLessonName={handleLessonTitleChange}
+                      handleToggleModuleLock={handleToggleModuleLock}
+                      renderModules={(t) => (
+                        <DndContext 
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={(e) => handleDragEnd(e, t.id)}
+                          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
                         >
-                          <div className="grid grid-cols-1 gap-3 md:gap-4 mt-2">
-                            {t.modules?.map((module: any) => (
-                              <SortableModuleItem
-                                key={module.id}
-                                module={module}
-                                expandedModule={expandedModule}
-                                setExpandedModule={setExpandedModule}
-                                markForDeletion={markForDeletion}
-                                handleUpdateModuleName={handleModuleTitleChange}
-                                handleCreateLessonLocal={handleCreateLessonLocal}
-                                handleLessonDragEnd={handleLessonDragEnd}
-                                handleToggleLessonLock={handleToggleLessonLock}
-                                handleUpdateLessonName={handleLessonTitleChange}
-                                handleToggleModuleLock={handleToggleModuleLock}
-                              />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DndContext>
-                    )}
-                  />
-                ))}
+                          <SortableContext 
+                            items={t.modules?.map((m: any) => m.id) || []} 
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="grid grid-cols-1 gap-3 md:gap-4 mt-2">
+                              {t.modules?.map((module: any) => (
+                                <SortableModuleItem
+                                  key={module.id}
+                                  module={module}
+                                  expandedModule={expandedModule}
+                                  setExpandedModule={setExpandedModule}
+                                  markForDeletion={markForDeletion}
+                                  handleUpdateModuleName={handleModuleTitleChange}
+                                  handleCreateLessonLocal={handleCreateLessonLocal}
+                                  handleLessonDragEnd={handleLessonDragEnd}
+                                  handleToggleLessonLock={handleToggleLessonLock}
+                                  handleUpdateLessonName={handleLessonTitleChange}
+                                  handleToggleModuleLock={handleToggleModuleLock}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
+                      )}
+                    />
+                  ))}
+                </div>
               </SortableContext>
             </DndContext>
           </div>

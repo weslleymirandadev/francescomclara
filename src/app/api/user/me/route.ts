@@ -17,8 +17,15 @@ export async function GET() {
     include: {
       children: { select: { id: true, email: true, name: true } },
       enrollments: {
-        where: { OR: [{ endDate: null }, { endDate: { gte: new Date() } }] },
-        include: { track: { select: { id: true, name: true, imageUrl: true } } }
+        where: { 
+          OR: [
+            { endDate: null }, 
+            { endDate: { gte: new Date() } }
+          ] 
+        },
+        include: {
+          plan: true 
+        }
       },
       payments: {
         where: { 
@@ -31,7 +38,10 @@ export async function GET() {
       parent: {
         include: {
           payments: {
-            where: { status: "APPROVED", subscriptionPlan: { type: "FAMILY" } },
+            where: { 
+              status: { equals: "approved", mode: 'insensitive' }, 
+              subscriptionPlan: { type: "FAMILY" } 
+            },
             include: { subscriptionPlan: true },
             take: 1
           }
@@ -41,6 +51,26 @@ export async function GET() {
   });
 
   const activePlan = user?.payments[0]?.subscriptionPlan || user?.parent?.payments[0]?.subscriptionPlan;
+  let tracks: any[] = [];
+  if (activePlan) {
+    const features = activePlan.features as string[] || [];
+    if (features.includes('all_tracks')) {
+      tracks = await prisma.track.findMany({ 
+        where: { active: true },
+        select: { id: true, name: true, imageUrl: true }
+      });
+    } else {
+      const specificTrackIds = features
+        .filter(f => f.startsWith('track:'))
+        .map(f => f.split(':')[1]);
+        
+      tracks = await prisma.track.findMany({
+        where: { id: { in: specificTrackIds } },
+        select: { id: true, name: true, imageUrl: true }
+      });
+    }
+  }
+
   return NextResponse.json({
     profile: {
       name: user?.name,
@@ -59,6 +89,6 @@ export async function GET() {
       isParent: !!activePlan && activePlan.type === 'FAMILY' && !user?.parentId,
       members: user?.children || []
     },
-    enrollments: user?.enrollments.map((e: any) => e.track) || []
+    enrollments: tracks
   });
 }

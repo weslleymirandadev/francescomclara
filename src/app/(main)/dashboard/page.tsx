@@ -189,9 +189,10 @@ export default function Dashboard() {
               <h4 className="text-2xl font-black text-slate-900 group-hover:text-white">
                 {(() => {
                   const all = data.enrollments.flatMap(t => t.modules.flatMap(m => m.lessons));
-                  if (all.length === 0) return "0%";
-                  const done = all.filter(l => data.completedLessonIds.includes(l.id)).length;
-                  return `${Math.round((done / all.length) * 100)}%`;
+                  const relevantLessons = all.filter(l => l.type !== 'FLASHCARD');
+                  if (relevantLessons.length === 0) return "0%";
+                  const done = relevantLessons.filter(l => data.completedLessonIds.includes(l.id)).length;
+                  return `${Math.round((done / relevantLessons.length) * 100)}%`;
                 })()}
               </h4>
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white/80">Progresso Total</p>
@@ -246,7 +247,17 @@ export default function Dashboard() {
             ) : (
               filteredTracks.map((track: Track) => {
                 const hasAccess = hasAllAccess || userPlanFeatures.includes(`track:${track.id}`) || track.hasAccess;
-                const trackProgress = calculateProgress(track.id);
+                const allTrackLessons = track.modules?.flatMap((m: any) => m.lessons) || [];
+
+                const filteredTrackLessons = allTrackLessons.filter((l: any) => l.type !== 'FLASHCARD');
+
+                const completedInTrack = filteredTrackLessons.filter((l: any) => 
+                  data.completedLessonIds.includes(l.id)
+                ).length;
+
+                const trackProgress = filteredTrackLessons.length > 0 
+                  ? Math.round((completedInTrack / filteredTrackLessons.length) * 100) 
+                  : 0;
 
                 return (
                   <motion.div

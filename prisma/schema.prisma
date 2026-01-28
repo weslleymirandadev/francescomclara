@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 model User {
   id                String           @id @default(cuid())
-  parentId          String?          // ID do dono do plano
+  parentId          String? // ID do dono do plano
   parent            User?            @relation("FamilyMembers", fields: [parentId], references: [id])
   children          User[]           @relation("FamilyMembers")
   name              String?
@@ -32,23 +32,25 @@ model User {
   payments          Payment[]
   paymentMethods    PaymentMethod[]
   sessions          Session[]
-  passwords         UserPassword?
   flashcards        Flashcard[]
-}
-
-model UserPassword {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  hash      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailVerified     DateTime?
+  notifFlashcards   Boolean          @default(true)
+  notifLessons      Boolean          @default(true)
+  notifForum        Boolean          @default(true)
 }
 
 enum UserRole {
   USER
   MODERATOR
   ADMIN
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model RoleEmail {
@@ -109,7 +111,6 @@ model Track {
   order             Int                     @default(0)
   active            Boolean                 @default(false)
   modules           Module[]
-  enrollments       Enrollment[]
   paymentItems      PaymentItem[]
   subscriptionPlans SubscriptionPlanTrack[]
   forumPosts        ForumPost[]
@@ -122,7 +123,7 @@ model Track {
 
 model Module {
   id        String     @id @default(cuid())
-  trackId   String 
+  trackId   String
   title     String
   order     Int
   createdAt DateTime   @default(now())
@@ -136,20 +137,22 @@ model Module {
 }
 
 model Lesson {
-  id          String           @id @default(cuid())
-  moduleId    String
-  title       String
-  type        LessonType
-  content     Json
-  order       Int
-  readingText String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  progress    LessonProgress[]
-  flashcards  Flashcard[]
-  isPremium   Boolean          @default(false)
-  forumPosts  ForumPost[]
+  id                 String              @id @default(cuid())
+  moduleId           String
+  title              String
+  type               LessonType
+  content            Json
+  order              Int
+  readingText        String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  isPremium          Boolean             @default(false)
+  module             Module              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  forumPosts         ForumPost[]
+  progress           LessonProgress[]
+  flashcardTemplates FlashcardTemplate[] @relation("LessonMainTemplates")
+  requiredForCards   FlashcardTemplate[] @relation("RelatedLesson")
+  flashcards         Flashcard[]
 
   @@index([moduleId])
   @@index([type])
@@ -169,10 +172,10 @@ model LessonProgress {
 }
 
 enum LessonType {
-  CLASS      // Aula (vídeo/teoria)
-  FLASHCARD  // Flashcard do módulo
-  STORY      // Historinha (vídeos simulando contextos reais)
-  READING    // Leitura
+  CLASS // Aula (vídeo/teoria)
+  FLASHCARD // Flashcard do módulo
+  STORY // Historinha (vídeos simulando contextos reais)
+  READING // Leitura
 }
 
 enum CEFRLevel {
@@ -185,50 +188,66 @@ enum CEFRLevel {
 }
 
 model Enrollment {
-  id        String    @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
-  trackId   String
-  startDate DateTime  @default(now())
+  planId    String
+  startDate DateTime         @default(now())
   endDate   DateTime?
-  createdAt DateTime  @default(now())
-  track     Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, trackId])
   @@index([userId])
-  @@index([trackId])
+  @@index([planId])
 }
 
 model Flashcard {
-  id        String   @id @default(cuid())
-  userId    String
-  lessonId  String?  // Opcional: pode ser criado a partir de uma lição ou manualmente
-  front     String   // Frente do flashcard
-  back      String   // Verso do flashcard
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  id         String   @id @default(cuid())
+  userId     String
+  lessonId   String? // Opcional: pode ser criado a partir de uma lição ou manualmente
+  front      String // Frente do flashcard
+  back       String // Verso do flashcard
+  level      Int      @default(0) // Nível de 0 a 5 (0 = novo, 5 = mestre)
+  nextReview DateTime @default(now()) // Quando o card deve aparecer de novo
+  lastResult String? // 'ok' ou 'bad' para controle interno
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson     Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([nextReview])
+}
+
+model FlashcardTemplate {
+  id       String @id @default(cuid())
+  front    String
+  back     String
+  lessonId String
+  lesson   Lesson @relation("LessonMainTemplates", fields: [lessonId], references: [id], onDelete: Cascade)
+
+  relatedLessonId String?
+  relatedLesson   Lesson? @relation("RelatedLesson", fields: [relatedLessonId], references: [id], onDelete: SetNull)
+
   @@index([lessonId])
+  @@index([relatedLessonId])
 }
 
 model ForumPost {
-  id        String         @id @default(cuid())
+  id        String   @id @default(cuid())
   authorId  String
   title     String
   content   Json
   trackId   String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  
-  author    User           @relation(fields: [authorId], references: [id])
-  track     Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
-  comments  ForumComment[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  lessonId  String?
-  lesson    Lesson?        @relation(fields: [lessonId], references: [id])
+  author   User           @relation(fields: [authorId], references: [id])
+  track    Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  comments ForumComment[]
+
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id])
 
   @@index([trackId])
 }
@@ -267,7 +286,7 @@ model Payment {
 model PaymentItem {
   id          String   @id @default(cuid())
   paymentId   String
-  trackId     String?  // Agora os itens de pagamento referenciam trilhas
+  trackId     String? // Agora os itens de pagamento referenciam trilhas
   quantity    Int      @default(1)
   price       Int
   title       String
@@ -294,27 +313,27 @@ model Refund {
 }
 
 model PaymentMethod {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentId   String?  @unique
-  payment     Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
   last4Digits String
-  brand       String    // visa, mastercard, amex, etc
+  brand       String // visa, mastercard, amex, etc
   holderName  String
   expiryMonth Int
   expiryYear  Int
-  
-  mpCardToken String?   // Token do cartão no Mercado Pago (se disponível)
-  mpCardId    String?   // ID do cartão salvo no Mercado Pago
-  
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  metadata    Json?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  mpCardToken String? // Token do cartão no Mercado Pago (se disponível)
+  mpCardId    String? // ID do cartão salvo no Mercado Pago
+
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([paymentId])
@@ -334,12 +353,13 @@ model SubscriptionPlan {
   monthlyPrice    Int?                    @default(0)
   yearlyPrice     Int?                    @default(0)
   isBestValue     Boolean                 @default(false)
-  discountPrice   Int?                    // Preço com desconto em centavos (opcional)
+  discountPrice   Int? // Preço com desconto em centavos (opcional)
   discountEnabled Boolean                 @default(false)
-  type            SubscriptionPlanType    // INDIVIDUAL ou FAMILY
-  features        Json?                   // Lista de features do plano
+  type            SubscriptionPlanType // INDIVIDUAL ou FAMILY
+  features        Json? // Lista de features do plano
   tracks          SubscriptionPlanTrack[]
-  payments        Payment[]               // Pagamentos associados a este plano
+  enrollments     Enrollment[]
+  payments        Payment[] // Pagamentos associados a este plano
   active          Boolean                 @default(true)
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
@@ -361,42 +381,42 @@ model SubscriptionPlanTrack {
 }
 
 model SiteSettings {
-  id                   String   @id @default("settings")
-  siteName             String   @default("Francês com Clara")
-  supportEmail         String   @default("contato@francescomclara.com")
-  
-  stripeMode           Boolean  @default(true)
-  maintenanceMode      Boolean  @default(false)
+  id           String @id @default("settings")
+  siteName     String @default("Francês com Clara")
+  supportEmail String @default("contato@francescomclara.com")
 
-  instagramActive      Boolean  @default(true)
-  youtubeActive        Boolean  @default(false)
-  whatsappActive       Boolean  @default(false)
-  tiktokActive         Boolean  @default(false)
+  stripeMode      Boolean @default(true)
+  maintenanceMode Boolean @default(false)
 
-  instagramUrl         String   @default("#")
-  youtubeUrl           String   @default("#")
-  whatsappUrl          String   @default("#")
-  tiktokUrl            String   @default("#")
+  instagramActive Boolean @default(true)
+  youtubeActive   Boolean @default(false)
+  whatsappActive  Boolean @default(false)
+  tiktokActive    Boolean @default(false)
 
-  siteNameFirstPart    String   @default("Francês com")
-  siteNameHighlight    String   @default("Clara")
-  siteIcon             String   @default("/static/flower.svg")
-  interfaceIcon        String   @default("/static/franca.png")
-  favicon              String   @default("/static/favicon.svg")
-  highlightColor       String   @default("--clara-rose")
-  siteDescription      String   @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
+  instagramUrl String @default("#")
+  youtubeUrl   String @default("#")
+  whatsappUrl  String @default("#")
+  tiktokUrl    String @default("#")
 
-  notifyNewModule      Boolean  @default(true)
-  notifyPlanExpiring   Boolean  @default(true)
-  notifyInactivity     Boolean  @default(false)
-  welcomeBackMessage   Boolean  @default(true)
-  inactivityDays       Int      @default(7)
-  daysToNotifyExpiring Int      @default(7)
-  expiringMessage      String?  @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
-  inactivityMessage    String?  @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
-  welcomeMessage       String?  @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.")
+  siteNameFirstPart String @default("Francês com")
+  siteNameHighlight String @default("Clara")
+  siteIcon          String @default("/static/flower.svg")
+  interfaceIcon     String @default("/static/franca.png")
+  favicon           String @default("/static/favicon.svg")
+  highlightColor    String @default("--clara-rose")
+  siteDescription   String @default("Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.")
 
-  updatedAt            DateTime @updatedAt
+  notifyNewModule      Boolean @default(true)
+  notifyPlanExpiring   Boolean @default(true)
+  notifyInactivity     Boolean @default(false)
+  welcomeBackMessage   Boolean @default(true)
+  inactivityDays       Int     @default(7)
+  daysToNotifyExpiring Int     @default(7)
+  expiringMessage      String? @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
+  inactivityMessage    String? @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
+  welcomeMessage       String? @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.")
+
+  updatedAt DateTime @updatedAt
 }
 
 model PlacementTest {
@@ -406,15 +426,15 @@ model PlacementTest {
 }
 
 model Question {
-  id              String        @id @default(cuid())
-  text            String
-  points          Int           @default(1) // Cada pergunta pode valer X pontos
-  options         String[]      // Ex: ["Option A", "Option B"]
-  correctOption   Int           // Índice da resposta certa
-  levelAssigned   String        // Qual nível essa pergunta testa (A1, A2, B1...)
-  testId          String
-  test            PlacementTest @relation(fields: [testId], references: [id])
+  id            String        @id @default(cuid())
+  text          String
+  points        Int           @default(1) // Cada pergunta pode valer X pontos
+  options       String[] // Ex: ["Option A", "Option B"]
+  correctOption Int // Índice da resposta certa
+  levelAssigned String // Qual nível essa pergunta testa (A1, A2, B1...)
+  testId        String
+  test          PlacementTest @relation(fields: [testId], references: [id])
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

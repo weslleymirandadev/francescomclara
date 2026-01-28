@@ -60,11 +60,9 @@ export function SortableTrackItem({
 
   return (
     <div ref={setNodeRef} style={style} className={`bg-white border rounded-[2.5rem] overflow-hidden transition-all ${isDragging ? 'z-50 border-interface-accent shadow-2xl' : 'border-(--color-s-50)'}`}>
-      {/* Container Principal: Coluna no mobile (flex-col), Linha no desktop (md:flex-row) */}
       <div className={`group p-6 flex flex-col md:flex-row items-stretch md:items-start gap-6 transition-all ${!track.active ? 'bg-s-100' : 'bg-white'}`}>
         
-        {/* Esquerda: Drag e Imagem */}
-        <div className="flex gap-4">
+        <div className="flex flex-col md:inline-flex gap-4">
           <div {...attributes} {...listeners} className="px-2 flex items-center cursor-grab active:cursor-grabbing text-s-600 hover:text-s-800">
             <GripVertical size={20} />
           </div>
@@ -94,7 +92,6 @@ export function SortableTrackItem({
           </div>
         </div>
 
-        {/* Direita: Conteúdo e Inputs */}
         <div className="flex-1 space-y-4">
           <div className="flex flex-col md:flex-row items-start justify-between gap-4">
             <EditableName track={track} onNameChange={handleTrackNameChange} />
@@ -136,7 +133,6 @@ export function SortableTrackItem({
 
           <EditableDescription track={track} onValueChange={handleTrackDescriptionChange} />
 
-          {/* Rodapé: Botões de Ação e Planos */}
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-(--color-s-50)/50">
             <div className="flex flex-wrap gap-1.5 justify-start w-full">
               {plans?.map((plan) => {
@@ -187,7 +183,6 @@ export function SortableTrackItem({
         </div>
       </div>
 
-      {/* Conteúdo Expandido */}
       {isOpen && (
         <div className="pl-6 md:pl-12 pr-4 pb-8 animate-in slide-in-from-top-2 duration-300">
           {renderModules(track)}

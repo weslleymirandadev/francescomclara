@@ -78,20 +78,17 @@ export async function proxy(req: NextRequest) {
       const trackId = pathname.split('/')[2];
       
       if (trackId) {
-        // 1. Verifica se tem assinatura ativa (Plano Global)
         const hasSubscription = await hasActiveSubscription(token.sub!);
         
-        // 2. Verifica se tem matrícula específica nesta trilha
         const hasEnrollment = await hasTrackAccess(token.sub!, trackId);
 
-        // Se não tiver nenhum dos dois, aí sim redireciona
         if (!hasSubscription && !hasEnrollment) {
           return NextResponse.redirect(new URL('/dashboard', req.url));
         }
       }
     }
     
-    if (pathname.startsWith('/flashcards')) {
+    if (pathname.startsWith('/flashcards') || pathname.startsWith('/forum')) {
       const userHasAnyEnrollment = await prisma.enrollment.findFirst({
         where: {
           userId: token.sub,
@@ -114,10 +111,20 @@ export async function proxy(req: NextRequest) {
 async function hasTrackAccess(userId: string, trackId: string): Promise<boolean> {
   const enrollment = await prisma.enrollment.findFirst({
     where: {
-      userId,
-      trackId,
-      OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+      userId: userId,
+      plan: {
+        tracks: {
+          some: {
+            id: trackId
+          }
+        }
+      },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: new Date() } }
+      ]
     }
   });
+
   return !!enrollment;
 }
