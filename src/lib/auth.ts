@@ -177,7 +177,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: user.email! }
+          where: { email: user.email! },
+          include: {
+            _count: {
+              select: { lessonProgresses: true }
+            }
+          }
         });
 
         if (dbUser) {
@@ -186,6 +191,7 @@ export const authOptions: NextAuthOptions = {
           token.username = dbUser.username;
           token.level = dbUser.level;
           token.banner = dbUser.banner;
+          token.completedLessonsCount = dbUser._count.lessonProgresses;
         }
       }
 
@@ -195,6 +201,7 @@ export const authOptions: NextAuthOptions = {
         token.level = session.level || token.level;
         token.banner = session.banner || token.banner;
         token.onboarded = session.onboarded ?? token.onboarded;
+        token.completedLessonsCount = session.completedLessonsCount ?? token.completedLessonsCount;
       }
 
       return token;
@@ -209,6 +216,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).level = token.level;
         (session.user as any).banner = token.banner;
         (session.user as any).onboarded = token.onboarded;
+        (session.user as any).completedLessonsCount = (token as any).completedLessonsCount;
       }
       return session;
     },

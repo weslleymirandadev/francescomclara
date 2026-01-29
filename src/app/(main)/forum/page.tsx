@@ -56,12 +56,12 @@ export default function ForumPage() {
   if (loading) return <Loading />;
 
   return (
-    <main className="min-h-screen pt-24 pb-20 bg-(--slate-50) animate-in fade-in duration-700">
-      <div className="max-w-7xl mx-auto px-6 space-y-10">
+    <main className="min-h-screen md:pt-24 pb-20 animate-in fade-in duration-700">
+      <div className="max-w-7xl mx-auto md:px-6 space-y-10">
         
-        <section className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white shadow-2xl min-h-[350px] flex items-center">
+        <section className="relative overflow-hidden md:rounded-[2.5rem] bg-slate-900 text-white shadow-2xl min-h-[350px] flex items-center">
           <div className="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1500')] bg-cover bg-center" />
-          <div className="relative z-10 p-10 md:p-16 flex flex-col md:flex-row justify-between items-center gap-10 w-full">
+          <div className="relative z-10 p-5 md:p-16 flex flex-col md:flex-row justify-between items-center gap-10 w-full">
             <div className="max-w-xl space-y-5">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-(--clara-rose) rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
                 <FiStar className="animate-pulse" /> Novidade na Trilha
@@ -100,7 +100,7 @@ export default function ForumPage() {
         </section>
 
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative group w-full md:flex-1">
+          <div className="relative group w-full md:flex-1 px-3 md:px-0">
             <Input 
               placeholder="Pesquisar por título, aula ou @username..." 
               value={search}
@@ -110,7 +110,7 @@ export default function ForumPage() {
             <FiSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-(--clara-rose) transition-colors" size={20} />
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center justify-center gap-3 w-full md:w-auto">
             <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
               <button 
                 onClick={() => setFilter("all")}
@@ -143,14 +143,14 @@ export default function ForumPage() {
           </div>
         </div>
 
-        <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-[2.5rem]">
+        <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-md md:rounded-[2.5rem]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[55%]">Discussão</TableHead>
                 <TableHead>Categoria / Aula</TableHead>
                 <TableHead className="text-center">Respostas</TableHead>
-                <TableHead className="text-right px-10">Data</TableHead>
+                <TableHead className="text-right md:px-10">Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

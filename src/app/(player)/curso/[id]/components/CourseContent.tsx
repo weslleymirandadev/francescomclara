@@ -56,7 +56,7 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
   }, [activeLesson.id]);
 
   return (
-    <div className="p-12 max-w-4xl mx-auto w-full animate-in fade-in duration-500">
+    <div className="pt-12 md:p-12 max-w-4xl mx-auto w-full animate-in fade-in duration-500">
       <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />
       
       <header className="mb-10">

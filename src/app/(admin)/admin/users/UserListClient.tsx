@@ -79,7 +79,7 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
             <div>
               <h1 className="flex items-center gap-2 text-3xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
                 Étudiants 
-                <img src="/static/flower.svg" alt="Flor" className="w-6 h-6 md:w-8 md:h-8 object-contain" />
+                <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none"/>
               </h1>
               <p className="text-slate-400 text-[10px] md:text-sm font-medium italic mt-1">
                 Gestão da base oficial de alunos
@@ -107,23 +107,23 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
-          <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 bg-white shadow-sm flex items-center gap-4 md:gap-6">
+          <div className="p-5 not-even:rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 bg-white shadow-sm flex items-center gap-4 md:gap-6">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center shrink-0">
               <LuUsers size={24} className="md:size-7" />
             </div>
             <div>
               <p className="text-[9px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
-              <div className="text-2xl md:text-4xl font-black text-slate-900 leading-none">{users.length}</div>
+              <div className="text-2xl md:text-3xl font-black text-slate-900 leading-none">{users.length}</div>
             </div>
           </div>
 
-          <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 bg-white shadow-sm flex items-center gap-4 md:gap-6">
+          <div className="p-5 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 bg-white shadow-sm flex items-center gap-4 md:gap-6">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shrink-0">
               <LuUserCheck size={24} className="md:size-7" />
             </div>
             <div>
               <p className="text-[9px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Ativos</p>
-              <div className="text-2xl md:text-4xl font-black text-slate-900 leading-none">
+              <div className="text-2xl md:text-3xl font-black text-slate-900 leading-none">
                 {users.filter(u => u.status === 'Ativo').length}
               </div>
             </div>

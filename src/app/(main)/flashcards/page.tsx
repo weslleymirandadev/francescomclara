@@ -68,7 +68,7 @@ export default function FlashcardsPage() {
   if (!cards || cards.length === 0) {
     return (
       <div className="max-w-4xl mx-auto pt-20 text-center">
-        <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-100">
+        <div className="bg-white p-12 rounded-md md:rounded-3xl shadow-sm border border-slate-100">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <FiLayers size={32} className="text-slate-300" />
           </div>
@@ -124,7 +124,7 @@ export default function FlashcardsPage() {
         </button>
         
         <div className="flex items-center gap-4">
-          <div className="h-2 w-48 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2 w-48 bg-slate-100 rounded-md md:rounded-full overflow-hidden">
             <div 
               className="h-full bg-(--interface-accent) transition-all duration-500"
               style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
@@ -137,7 +137,7 @@ export default function FlashcardsPage() {
       </div>
 
       {mode === 'IDLE' && (
-        <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center">
+        <div className="bg-white p-10 rounded-md md:rounded-3xl shadow-sm border border-slate-100 text-center">
           <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-4">
             Pronto para revisar?
           </h1>
@@ -146,7 +146,7 @@ export default function FlashcardsPage() {
           </p>
           <button 
             onClick={() => setMode('STUDY')}
-            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            className="px-10 py-4 bg-slate-900 text-white rounded-md md:rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
           >
             Começar Revisão
           </button>
@@ -164,7 +164,7 @@ export default function FlashcardsPage() {
             style={{ transformStyle: "preserve-3d" }}
           >
             <div 
-              className={`absolute inset-0 bg-white rounded-[40px] shadow-xl border-2 border-slate-50 flex flex-col items-center justify-center p-12 text-center transition-opacity duration-300 ${isFlipped ? 'opacity-0' : 'opacity-100'}`}
+              className={`absolute inset-0 bg-white rounded-md md:rounded-[40px] shadow-xl border-2 border-slate-50 flex flex-col items-center justify-center p-12 text-center transition-opacity duration-300 ${isFlipped ? 'opacity-0' : 'opacity-100'}`}
               style={{ 
                 backfaceVisibility: 'hidden', 
                 WebkitBackfaceVisibility: 'hidden',
@@ -179,7 +179,7 @@ export default function FlashcardsPage() {
             </div>
 
             <div 
-              className={`absolute inset-0 bg-slate-900 rounded-[40px] shadow-xl flex flex-col items-center justify-center p-12 text-center transition-opacity duration-300 ${isFlipped ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute inset-0 bg-slate-900 rounded-md md:rounded-[40px] shadow-xl flex flex-col items-center justify-center p-12 text-center transition-opacity duration-300 ${isFlipped ? 'opacity-100' : 'opacity-0'}`}
               style={{ 
                 transform: 'rotateY(180deg)', 
                 backfaceVisibility: 'hidden',
@@ -223,17 +223,17 @@ export default function FlashcardsPage() {
       )}
 
       {mode === 'DONE' && (
-        <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-100 text-center">
+        <div className="bg-white p-12 rounded-md md:rounded-3xl shadow-sm border border-slate-100 text-center">
           <div className="text-5xl mb-6">🎯</div>
           <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-2">Incrível!</h1>
           <p className="text-slate-500 mb-8 font-medium">Você revisou {cards.length} termos hoje.</p>
           
           <div className="flex gap-4 max-w-xs mx-auto mb-8">
-            <div className="flex-1 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+            <div className="flex-1 bg-emerald-50 p-4 rounded-md md:rounded-2xl border border-emerald-100">
               <div className="text-emerald-600 font-black text-xl">{stats.ok}</div>
               <div className="text-[9px] font-black text-emerald-600/60 uppercase">Acertos</div>
             </div>
-            <div className="flex-1 bg-red-50 p-4 rounded-2xl border border-red-100">
+            <div className="flex-1 bg-red-50 p-4 rounded-md md:rounded-2xl border border-red-100">
               <div className="text-red-500 font-black text-xl">{stats.bad}</div>
               <div className="text-[9px] font-black text-red-500/60 uppercase">Erros</div>
             </div>
@@ -241,7 +241,7 @@ export default function FlashcardsPage() {
 
           <button 
             onClick={() => window.location.href = '/dashboard'}
-            className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all"
+            className="px-8 py-4 bg-slate-900 text-white rounded-md md:rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-all"
           >
             Voltar ao Dashboard
           </button>

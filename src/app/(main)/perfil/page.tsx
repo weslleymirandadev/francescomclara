@@ -260,19 +260,19 @@ export default function ProfilePage() {
           <Card className="p-10 border-none shadow-2xl bg-slate-900 rounded-[3rem] text-white flex flex-col justify-between overflow-hidden relative">
             <div className="relative z-10">
               <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-10">Conquistas</h2>
-              <div className="space-y-8">
+                <div className="space-y-8">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
                   <p className="text-3xl font-black text-(--interface-accent) italic">{levelNames[user?.level || "A1"]}</p>
                 </div>
                 <div className="h-px bg-white/10 w-full" />
                 <div className="flex justify-between items-center">
-                   <span className="text-[10px] font-black uppercase text-slate-400">Total de Lições</span>
-                   <span className="text-xl font-black">124</span>
+                  <span className="text-[10px] font-black uppercase text-slate-400">Lições Concluídas</span>
+                  <span className="text-xl font-black">{user?.completedLessonsCount || 0}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                   <span className="text-[10px] font-black uppercase text-slate-400">Streak Atual</span>
-                   <span className="text-xl font-black text-orange-400">15 Dias 🔥</span>
+                <div className="flex justify-between items-center opacity-50">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Streak (Ofensiva)</span>
+                  <span className="text-[10px] font-black uppercase bg-white/10 px-2 py-1 rounded text-slate-300">Em Breve</span>
                 </div>
               </div>
             </div>

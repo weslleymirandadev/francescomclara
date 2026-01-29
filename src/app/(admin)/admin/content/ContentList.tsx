@@ -380,7 +380,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
   if (loading) return <Loading />;
     
   return (
-    <main className="w-full max-w-100vw overflow-x-hidden animate-in fade-in duration-700">
+    <main className="w-full overflow-x-hidden animate-in fade-in duration-700">
       <SaveChangesBar 
         hasChanges={hasChanges}
         loading={loading}
@@ -389,8 +389,8 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
         saveText="Enregistrer"
       />
 
-      <div className="max-w-6xl mx-auto px-4 md:px-0">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-(--color-s-50) pb-4 gap-6">
+      <div className="max-w-6xl mx-auto px-0">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-(--slate-50) pb-4 gap-6">
           <nav className="flex items-center w-full md:max-w-[calc(100vw-700px)] min-w-0 relative overflow-hidden">
             <div className="overflow-x-auto scrollbar-hide flex w-full snap-x touch-pan-x">
               {mounted ? (
@@ -405,7 +405,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
                     items={[...localObjectives.map(o => o.id), 'add-button-id']}
                     strategy={horizontalListSortingStrategy}
                   >
-                    <div className="flex items-center min-w-max">
+                    <div className="flex items-center max-w-[95vw]">
                       {localObjectives.map((o) => (
                         <SortableObjectiveItem 
                           key={o.id}
@@ -456,7 +456,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
               setHasChanges(true);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`w-full md:w-auto md:min-w-[250px] bg-s-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 cursor-pointer ${
+            className={`md:w-auto md:min-w-[250px] bg-s-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 cursor-pointer ${
               !activeObjectiveId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black shadow-s-900/20'
             }`}
           >

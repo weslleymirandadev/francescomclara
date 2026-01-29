@@ -41,7 +41,7 @@ export default async function AdminLayout({
       <div className='mt-12 flex flex-1'>
         <AdminSidebar />
         <div className="flex-1 overflow-x-hidden">
-          <main className="pt-8 px-3 md:p-8">
+          <main className="pt-8 md:px-3 md:p-8">
             {children}
             <Toaster />
           </main>

@@ -11,6 +11,7 @@ import { FiUser as User, FiLogOut, FiMessageSquare, FiLayout, FiChevronDown } fr
 import { HiOutlineCog, HiMenu, HiX } from "react-icons/hi";
 import { RiSecurePaymentFill } from "react-icons/ri";
 import { Crown } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   settings?: {
@@ -24,7 +25,9 @@ export function Header({ settings }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasActiveSubscription, setHasActiveSubscription] = useState<boolean | null>(null);
   const [flashcardCount, setFlashcardCount] = useState(0);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     async function checkStatus() {
@@ -49,6 +52,11 @@ export function Header({ settings }: HeaderProps) {
     checkStatus();
   }, [status]);
 
+  useEffect(() => {
+    setIsRedirecting(false);
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   const mainNavigation = [
     { href: "/dashboard", icon: FiLayout, text: "Dashboard" },
     { href: "/forum", icon: FiMessageSquare, text: "Fórum" },
@@ -63,7 +71,14 @@ export function Header({ settings }: HeaderProps) {
   return (
     <header className="fixed w-full border-b-2 border-(--slate-200) bg-white z-100">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" 
+          className="flex items-center gap-2 group"
+          onClick={() => {
+            setIsMobileMenuOpen(false);
+            setIsRedirecting(true);
+            router.push("/");
+          }}
+        >
           <Image
             src="/static/franca.png"
             alt="Bandeira França"
@@ -99,6 +114,11 @@ export function Header({ settings }: HeaderProps) {
                 key={item.href}
                 href={item.href}
                 className="group relative flex items-center gap-2 py-1 transition-all"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsRedirecting(true);
+                  router.push(item.href);
+                }}
               >
                 <Icon 
                   size={18} 
@@ -110,7 +130,7 @@ export function Header({ settings }: HeaderProps) {
                 </span>
                 
                 {item.hasBadge && (
-                  <span className="absolute -top-2 -right-3 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-sm">
+                  <span className="absolute -top-2 -right-3 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
                     {flashcardCount}
                   </span>
                 )}
@@ -123,7 +143,14 @@ export function Header({ settings }: HeaderProps) {
           })}
 
           {!session && (
-            <Link href="/auth/login" className="font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:text-(--interface-accent)">
+            <Link href="/auth/login" 
+              className="font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:text-(--interface-accent)"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsRedirecting(true);
+                router.push("/auth/login");
+              }}
+            >
               Entrar
             </Link>
           )}
@@ -135,6 +162,11 @@ export function Header({ settings }: HeaderProps) {
                   href="/assinar" 
                   className="ml-4 flex items-center justify-center bg-linear-to-r from-clara-rose to-pink-500 text-white w-12 h-12 rounded-xl font-bold hover:shadow-lg transition-all"
                   title="Assinar Agora"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsRedirecting(true);
+                    router.push("/assinar");
+                  }}
                 >
                   <Crown size={20} />
                 </Link>
@@ -157,23 +189,51 @@ export function Header({ settings }: HeaderProps) {
                     <p className="text-xs font-bold text-slate-700 truncate">{session.user?.email}</p>
                   </div>
 
-                  <Link href="/perfil" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                  <Link href="/perfil" 
+                    className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsRedirecting(true);
+                      router.push("/perfil");
+                    }}
+                  >
                     <User size={16} /> <span className="text-sm">Editar Perfil</span>
                   </Link>
                   
-                  <Link href="/configuracoes" className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl">
+                  <Link href="/configuracoes" 
+                    className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsRedirecting(true);
+                      router.push("/configuracoes");
+                    }}
+                  >
                     <HiOutlineCog size={16} /> <span className="text-sm">Conta e Segurança</span>
                   </Link>
                   
                   {session?.user?.role === 'ADMIN' && (
-                    <Link href="/admin" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
+                    <Link href="/admin" 
+                      className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsRedirecting(true);
+                        router.push("/admin");
+                      }}
+                    >
                       <RiSecurePaymentFill className="text-orange-600" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Painel Admin</span>
                     </Link>
                   )}
 
                   {session?.user?.role === 'MODERATOR' && (
-                    <Link href="/moderacao" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all">
+                    <Link 
+                      href="/moderacao" className="flex items-center gap-2 p-3 hover:bg-slate-50 rounded-xl transition-all"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsRedirecting(true);
+                        router.push("/moderacao");
+                      }}
+                    >
                       <FiMessageSquare className="text-(--interface-accent)" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-(--interface-accent)">Moderação</span>
                     </Link>
@@ -203,22 +263,66 @@ export function Header({ settings }: HeaderProps) {
               key={item.href}
               href={item.href}
               className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:bg-(--slate-50) hover:text-(--interface-accent) rounded-2xl transition-all"
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsRedirecting(true);
+                router.push(item.href);
+              }}
             >
               <item.icon size={20} className="text-(--interface-accent)" />
               {item.text}
             </Link>
           ))}
+
+          {session && (
+            <div>
+              <Link 
+                href="/perfil" className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:bg-(--slate-50) hover:text-(--interface-accent) rounded-2xl transition-all"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsRedirecting(true);
+                  router.push("/perfil");
+                }}
+              >
+                <User size={20} className="text-(--clara-rose)" /> <span >Editar Perfil</span>
+              </Link>
+              
+              <Link 
+                href="/configuracoes" className="flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-(--slate-700) hover:bg-(--slate-50) hover:text-(--interface-accent) rounded-2xl transition-all"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsRedirecting(true);
+                  router.push("/configuracoes");
+                }}
+              >
+                <HiOutlineCog size={20} className="text-(--clara-rose)" /> <span>Conta e Segurança</span>
+              </Link>
+            </div>
+          )}
           
           {session?.user?.role === 'ADMIN' && (
-            <Link href="/admin" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all">
+            <Link 
+              href="/admin" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsRedirecting(true);
+                router.push("/admin");
+              }}
+            >
               <RiSecurePaymentFill className="text-orange-600 text-xl" />
               <span className="text-xs font-black uppercase tracking-widest text-orange-600">Painel Admin</span>
             </Link>
           )}
 
           {session?.user?.role === 'MODERATOR' && (
-            <Link href="/moderacao" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all">
+            <Link 
+              href="/moderacao" className="flex items-center gap-2 p-4 hover:bg-slate-50 rounded-xl transition-all"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsRedirecting(true);
+                router.push("/moderacao");
+              }}
+            >
               <FiMessageSquare className="text-(--interface-accent)" />
               <span className="text-xs font-black uppercase tracking-widest text-(--interface-accent)">Moderação</span>
             </Link>
@@ -228,7 +332,11 @@ export function Header({ settings }: HeaderProps) {
           
           {session ? (
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                setIsRedirecting(true);
+                signOut({ callbackUrl: '/' })
+              }}
               className="w-full flex items-center gap-4 p-4 font-black text-[11px] uppercase tracking-widest text-red-500 bg-red-50/50 rounded-2xl"
             >
               <FiLogOut size={20} /> Sair da conta

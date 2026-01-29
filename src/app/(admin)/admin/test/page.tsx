@@ -10,12 +10,15 @@ export default async function AdminTestPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto mb-20 md:mb-0">
+    <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8 animate-in fade-in duration-700">
       <header className="mb-6 md:mb-10">
-        <h1 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter">
+        <h1 className="flex items-center gap-2 text-3xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
           Gerenciar Teste
+          <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none"/>
         </h1>
-        <p className="hidden sm:block text-slate-500 text-sm">Configure as perguntas do teste inicial.</p>
+        <p className="text-slate-400 text-[10px] md:text-sm font-medium italic mt-1">
+          Configure as perguntas do teste inicial.
+        </p>
       </header>
 
       <AdminTestList initialQuestions={questions} testId={test.id} />

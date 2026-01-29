@@ -74,12 +74,12 @@ function SignInForm() {
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
         <div className="absolute -bottom-10 -left-10 flex items-end">
-          <img src="/static/flower.svg" className="w-56 h-56 opacity-100 -rotate-12 translate-y-10" alt="" />
-          <img src="/static/flower.svg" className="w-32 h-32 opacity-100 animate-[spin_80s_linear_infinite] -translate-x-12" alt="" />
+          <img src="/static/flower.svg" className="w-20 h-20 md:w-56 md:h-56 opacity-100 -rotate-12 -translate-y-5 md:translate-y-10" alt="" />
+          <img src="/static/flower.svg" className="w-16 h-16 md:w-32 md:h-32 opacity-100 animate-[spin_80s_linear_infinite] -translate-x-16 md:-translate-x-12" alt="" />
         </div>
         <div className="absolute -bottom-10 -right-10 flex items-end">
-          <img src="/static/flower.svg" className="w-56 h-56 opacity-100 rotate-12 translate-y-10" alt="" />
-          <img src="/static/flower.svg" className="w-32 h-32 opacity-100 animate-[spin_70s_linear_infinite_reverse] -translate-x-8" alt="" />
+          <img src="/static/flower.svg" className="w-20 h-20 md:w-56 md:h-56 opacity-100 rotate-12 -translate-y-5 md:translate-y-10" alt="" />
+          <img src="/static/flower.svg" className="w-16 h-16 md:w-32 md:h-32 opacity-100 animate-[spin_70s_linear_infinite_reverse] -translate-x-12 md:-translate-x-8" alt="" />
         </div>
       </div>
 

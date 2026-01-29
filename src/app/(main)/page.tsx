@@ -460,7 +460,7 @@ export default function Home() {
         </div>
       </section>
 
-      <div id="cursos-section" ref={coursesSectionRef} className="container mx-auto px-4 py-24 scroll-mt-20">
+      <div id="cursos-section" ref={coursesSectionRef} className="container mx-auto md:px-4 py-24 scroll-mt-20">
         {Object.keys(groupedTracks).length === 0 ? (
           <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed">
             <GraduationCap size={64} className="mx-auto text-slate-300 mb-4" />
@@ -484,7 +484,7 @@ export default function Home() {
                   
                   <section className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out scroll-reveal pt-2">
                     <div className="relative w-full">
-                      <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-slate-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
+                      <div className="relative w-full h-72 md:h-100 md:rounded-4xl overflow-hidden bg-slate-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
                         <div 
                           className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-2000 group-hover/sep:scale-110"
                           style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
@@ -519,7 +519,7 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-16 px-6 relative z-20 mt-12">
+                    <div className="grid grid-cols-1 gap-16 px-3 md:px-6 relative z-20 mt-12">
                       {group.tracks.map((track: Track) => {
                         const hasAccess = track.hasAccess ?? false; 
                         const isLocked = !hasAccess;
@@ -531,7 +531,7 @@ export default function Home() {
                             <div className="flex flex-col lg:flex-row">
                               
                               <div 
-                                className="lg:w-2/5 p-12 text-white flex flex-col justify-between relative min-h-[450px]"
+                                className="lg:w-2/5 p-6 md:p-12 text-white flex flex-col justify-between relative md:min-h-[450px]"
                                 style={{ backgroundColor: track.objective?.color || '#0f172a' }}
                               >
                                 {track.imageUrl && (

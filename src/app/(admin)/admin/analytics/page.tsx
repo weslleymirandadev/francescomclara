@@ -21,6 +21,7 @@ interface AnalyticsData {
   users: { total: number; active: number };
   plans: { individual: number; family: number; monthly: number; yearly: number };
   revenue: { monthly: number; total: number };
+  churnRate?: string;
   recentStudents: Array<{
     id: string;
     name: string;
@@ -64,10 +65,21 @@ export default function AdminAnalytics() {
         ['Faturamento Mensal', formatPrice(data.revenue.monthly)],
         ['Faturamento Total', formatPrice(data.revenue.total)],
         ['Alunos Totais', data.users.total.toString()],
-        ['Alunos Ativos', data.users.active.toString()],
+        ['Taxa de Churn', `${data.churnRate || '0.0'}%`],
+        ['LTV Médio', ltvValue],
       ],
       theme: 'striped',
       headStyles: { fillColor: [244, 63, 94] }
+    });
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 10,
+      head: [['Data', 'Aluno', 'Trilha/Plano']],
+      body: data.recentStudents.map(s => [
+        new Date(s.createdAt).toLocaleDateString('pt-BR'),
+        s.name,
+        s.planType || "N/A"
+      ]),
     });
 
     doc.save("financeiro-clara.pdf");
@@ -81,7 +93,7 @@ export default function AdminAnalytics() {
 
   return (
     <div className="min-h-screen bg-white animate-in fade-in duration-700">
-      <div className="p-4 md:p-10 max-w-7xl mx-auto w-full space-y-6 md:space-y-10">
+      <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-(--slate-100) pb-6 md:pb-8 gap-4">
           <div className="w-full sm:w-auto">
@@ -125,9 +137,14 @@ export default function AdminAnalytics() {
               <span className="text-[9px] font-black text-(--slate-400) uppercase tracking-widest italic">Meta &lt; 3%</span>
             </div>
             <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">Taxa de Churn</p>
-            <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">2.4%</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">
+              {data?.churnRate || "2.4"}%
+            </h2>
             <div className="mt-4 md:mt-6 h-1 w-full bg-(--slate-50) rounded-full overflow-hidden">
-               <div className="h-full bg-rose-500 w-[24%]" />
+              <div 
+                className="h-full bg-rose-500" 
+                style={{ width: `${data?.churnRate || "0.0"}%` }} 
+              />
             </div>
           </div>
 
@@ -164,8 +181,12 @@ export default function AdminAnalytics() {
                       </span>
                     </div>
                     <div className="min-w-0">
-                      <p className="font-black text-(--slate-800) text-xs md:text-base truncate max-w-[140px] md:max-w-none">{student.name}</p>
-                      <p className="text-[8px] md:text-[9px] font-black text-(--slate-400) uppercase tracking-widest">{student.planType}</p>
+                      <p className="font-black text-(--slate-800) text-xs md:text-base truncate">
+                        {student.name}
+                      </p>
+                      <p className="text-[8px] md:text-[9px] font-black text-(--slate-400) uppercase tracking-widest">
+                        {student.planType || "Sem Plano"}
+                      </p>
                     </div>
                   </div>
                   
