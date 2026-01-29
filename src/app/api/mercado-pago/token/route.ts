@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, CardToken } from "mercadopago";
 import { getMercadoPagoToken } from "@/lib/mercadopago";
