@@ -18,13 +18,17 @@ interface Plan {
   name: string;
   monthlyPrice: number;
   yearlyPrice: number;
-  price?: number; // Compatibilidade
   type: 'INDIVIDUAL' | 'FAMILY';
-  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
   active: boolean;
   features: string[];
   isBestValue: boolean;
 }
+
+const formatToDisplay = (cents: number) => {
+  if (!cents) return "0,00";
+  const value = (cents / 100).toFixed(2);
+  return value.replace(".", ",");
+};
 
 export default function SubscriptionClient({ initialPlans }: { initialPlans: Plan[] }) {
   const [plans, setPlans] = useState<Plan[]>(initialPlans);
@@ -140,12 +144,12 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               name={plan.name}
               monthlyPrice={plan.monthlyPrice}
               yearlyPrice={plan.yearlyPrice}
-              price={plan.price}
               isBestValue={plan.isBestValue}
               active={plan.active}
               features={plan.features}
               onEdit={openEditModal}
               disabled={loading || deletingPlanId !== null}
+              type={plan.type}
             />
           ))}
 
@@ -181,15 +185,23 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Tipo</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">
+                  Tipo
+                </label>
                 <Select 
-                  value={editingPlan?.type} 
-                  onValueChange={v => setEditingPlan(prev => ({ ...prev!, type: v as 'INDIVIDUAL' | 'FAMILY' }))}
+                  // Se for null ou undefined, o value fica undefined, o que ativa o placeholder
+                  value={editingPlan?.type || undefined} 
+                  onValueChange={v => setEditingPlan(prev => ({ 
+                    ...prev!, 
+                    type: v as 'INDIVIDUAL' | 'FAMILY' 
+                  }))}
                 >
-                  <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11">
-                    <SelectValue />
+                  <SelectTrigger className="rounded-md cursor-pointer bg-slate-100 border-none h-11 w-full">
+                    {/* O placeholder é o que impede de ficar "pequinininho" */}
+                    <SelectValue placeholder="Selecione o tipo..." />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Removido o Item com value="", deixamos apenas as opções reais */}
                     <SelectItem value="INDIVIDUAL">Individual</SelectItem>
                     <SelectItem value="FAMILY">Família</SelectItem>
                   </SelectContent>
@@ -217,40 +229,47 @@ export default function SubscriptionClient({ initialPlans }: { initialPlans: Pla
                 {/* Preço Mensal */}
                 <div className="grid gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-400">Preço Mensal</label>
-                  <Input 
-                    type="number"
-                    value={editingPlan ? (editingPlan.monthlyPrice || editingPlan.price || 0) / 100 : 0}
-                    onChange={e => {
-                        const val = Number(e.target.value);
-                        setEditingPlan(prev => ({ ...prev!, monthlyPrice: Math.round(val * 100) }));
-                    }}
-                    className="rounded-md bg-slate-100 border-none h-11"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
+                    <Input 
+                      type="text" // Mudamos para text para ter controle total
+                      inputMode="numeric" // Abre o teclado numérico no celular
+                      value={formatToDisplay((editingPlan?.monthlyPrice || 0))}
+                      onChange={e => {
+                        const rawValue = e.target.value.replace(/\D/g, ""); // Pega só os números
+                        const cents = Number(rawValue);
+                        setEditingPlan(prev => ({ ...prev!, monthlyPrice: cents }));
+                      }}
+                      className="rounded-md bg-slate-100 border-none h-11 pl-10 font-mono font-bold"
+                      placeholder="0,00"
+                    />
+                  </div>
                   <p className="text-[10px] font-bold text-interface-accent italic">
-                    {formatPrice(editingPlan?.monthlyPrice || editingPlan?.price || 0)}/mês
+                    {formatPrice(editingPlan?.monthlyPrice || 0)}/mês
                   </p>
                 </div>
                 
                 {/* Preço Anual */}
                 <div className="grid gap-2">
                   <label className="text-[10px] font-black uppercase text-slate-400">Preço Anual</label>
-                  <Input 
-                    type="number"
-                    value={editingPlan ? (editingPlan.yearlyPrice || 0) / 100 : 0}
-                    onChange={e => {
-                        const val = Number(e.target.value);
-                        setEditingPlan(prev => ({ ...prev!, yearlyPrice: Math.round(val * 100) }));
-                    }}
-                    className="rounded-md bg-slate-100 border-none h-11"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">R$</span>
+                    <Input 
+                      type="text"
+                      inputMode="numeric"
+                      value={formatToDisplay((editingPlan?.yearlyPrice || 0))}
+                      onChange={e => {
+                        const rawValue = e.target.value.replace(/\D/g, "");
+                        const cents = Number(rawValue);
+                        setEditingPlan(prev => ({ ...prev!, yearlyPrice: cents }));
+                      }}
+                      className="rounded-md bg-slate-100 border-none h-11 pl-10 font-mono font-bold"
+                      placeholder="0,00"
+                    />
+                  </div>
                   <p className="text-[10px] font-bold text-green-600 italic">
-                    {formatPrice(Math.round((editingPlan?.yearlyPrice || 0) / 12))}/mês
+                    {formatPrice(Math.round((editingPlan?.yearlyPrice || 0) / 12))}/mês (equivalente)
                   </p>
-                  {editingPlan && editingPlan.yearlyPrice > 0 && editingPlan.monthlyPrice > 0 && (
-                    <p className="text-[9px] text-slate-500">
-                      Economia: {formatPrice((editingPlan.monthlyPrice || editingPlan.price || 0) - Math.round(editingPlan.yearlyPrice / 12))}/mês
-                    </p>
-                  )}
                 </div>
               </div>
 

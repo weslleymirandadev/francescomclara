@@ -1,8 +1,21 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Relatórios - Francês com Clara",
-  description: "Visualize e analise os dados da plataforma Francês com Clara.",
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
+
+    const siteName = settings?.siteName || "Francês com Clara";
+
+    return {
+      title: `Relatórios - ${siteName}`,
+      description: "Acompanhe o desempenho do seu site com análises detalhadas e insights valiosos.",
+    }
+  } catch (e) {
+    return { title: "Relatórios - Francês com Clara" }
+  }
 };
 
 export default function AdminAnalyticsLayout({
@@ -11,8 +24,8 @@ export default function AdminAnalyticsLayout({
     children: React.ReactNode;
     }) {
     return (
-    <div className="min-h-screen pb-2 md:px-6">
+      <div className="min-h-screen pb-2 md:px-6">
         {children}
-    </div>
+      </div>
     );
 }

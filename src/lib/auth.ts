@@ -26,6 +26,7 @@ async function findOrCreateSocialUser(email: string, name: string, image?: strin
         name,
         image,
         role: await resolveUserRole(email) as UserRole,
+        level: "A1"
       },
     });
   }
@@ -166,11 +167,12 @@ export const authOptions: NextAuthOptions = {
     },
 
     // JWT → carrega ID e role do usuário para o token
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         (token as any).id = (user as any).id;
         (token as any).role = (user as any).role;
       }
+
       return token;
     },
 

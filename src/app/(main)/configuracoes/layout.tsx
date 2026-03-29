@@ -1,8 +1,21 @@
 import { Metadata } from "next";
+import { prisma } from "@/lib/prisma"
 
-export const metadata: Metadata = {
-  title: "Configurações - Francês com Clara",
-  description: "Gerencie suas preferências e dados de conta.",
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
+
+    const siteName = settings?.siteName || "Francês com Clara";
+
+    return {
+      title: `Configurações - ${siteName}`,
+      description: "Personalize as configurações do seu site para melhor atender às suas necessidades administrativas.",
+    }
+  } catch (e) {
+    return { title: "Configurações - Francês com Clara" }
+  }
 };
 
 export default function SettingsLayout({

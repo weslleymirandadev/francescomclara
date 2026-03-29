@@ -1,80 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
-import { hasActiveSubscription } from "@/lib/permissions";
-import path from "path";
+import { redis } from "@/lib/redis"
 
-// Rotas que devem ser ignoradas completamente pelo middleware
-const IGNORED_ROUTES = [
-  "/api/mercado-pago", // segurança extra
-];
+const IGNORED_ROUTES = ["/api/mercado-pago"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // 1. Ignorar webhooks e toda API (PROTEGE 100%)
-  if (pathname.startsWith("/api")) {
-    return NextResponse.next();
-  }
-
-  // 2. Ignorar arquivos estáticos
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/assets") ||
-    pathname.includes(".") 
-  ) {
-    return NextResponse.next();
-  }
-
-  // 3. Ignorar webhooks explicitamente
-  if (IGNORED_ROUTES.includes(pathname)) {
-    return NextResponse.next();
-  }
-
-  // 4. Autenticação
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  const isPublicApiRoute =
-    (pathname === "/api/tracks") &&
-    req.method === "GET";
+  const sensitiveRoutes = [
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/register",
+    "/api/user/update",
+    "/api/user/upload",
+  ];
 
-  const isPublicRoute =
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/assinar") || // Permitir acesso inicial, mas a página verifica autenticação
+  if (sensitiveRoutes.some(route => pathname.startsWith(route))) {
+    const key = `rate-limit:${ip}:${pathname}`;
+    const current = await redis.incr(key);
+    if (current === 1) await redis.expire(key, 60);
+
+    if (current > 5) {
+      return new NextResponse(JSON.stringify({ error: "Muitas solicitações." }), { 
+        status: 429, 
+        headers: { 'Content-Type': 'application/json' } 
+      });
+    }
+  }
+
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
+    if (token?.role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  if (pathname.startsWith("/moderacao") || pathname.startsWith("/api/moderacao")) {
+    if (token?.role !== "ADMIN" && token?.role !== "MODERATOR") {
+      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    }
+  }
+
+  if (IGNORED_ROUTES.some(route => pathname.startsWith(route)) || 
+      pathname.startsWith("/_next") || 
+      pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  const settings = await prisma.siteSettings.findFirst({ where: { id: "settings" } });
+  const isAdmin = token?.role === "ADMIN";
+
+  if (settings?.maintenanceMode && !isAdmin) {
+    if (pathname !== "/manutencao" && !pathname.startsWith("/auth")) {
+      return NextResponse.redirect(new URL("/manutencao", req.url));
+    }
+  }
+
+  const isPublicRoute = 
+    pathname.startsWith("/auth") || 
+    pathname.startsWith("/api/auth") ||
+    pathname === "/" || 
+    pathname === "/manutencao" ||
     pathname.startsWith("/api/public") ||
-    pathname.startsWith("/public") ||
-    pathname === "/" ||
-    isPublicApiRoute;
+    pathname.startsWith("/api/webhooks");
 
-  // 5. Proteger rotas autenticadas
   if (!isPublicRoute && !token) {
     const url = new URL("/auth/login", req.url);
-    url.searchParams.set("callbackUrl", pathname + req.nextUrl.search);
+    url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
   if (token) {
-    // Verificar acesso a trilhas
     if (pathname.startsWith('/dashboard/trilhas/')) {
-      const parts = pathname.split('/');
-      const trackId = parts[3]; // Pega o ID da trilha da URL
+      const trackId = pathname.split('/')[3];
       if (trackId && !await hasTrackAccess(token.sub!, trackId)) {
         return NextResponse.redirect(new URL('/dashboard', req.url));
       }
     }
-
-    // Proteger rotas que requerem assinatura ativa
-    if (pathname === '/flashcards' || pathname.startsWith('/flashcards/')) {
-      const hasSubscription = await hasActiveSubscription(token.sub!);
-      if (!hasSubscription) {
-        return NextResponse.redirect(new URL('/assinar', req.url));
-      }
-    }
-
-    // Redirecionar /minha-trilha para página principal
-    if (pathname === '/minha-trilha' || pathname.startsWith('/minha-trilha/')) {
-      return NextResponse.redirect(new URL('/', req.url));
-    }
+  
   }
 
   // 7. Permissões para /admin
@@ -82,11 +87,6 @@ export async function proxy(req: NextRequest) {
     if (!token || token.role != "ADMIN") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
-  }
-
-  // 8. Redirecionar usuário logado que tenta ir para login/registrar
-  if (token && (pathname === "/auth/login" || pathname === "/auth/registrar")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();
@@ -97,17 +97,8 @@ async function hasTrackAccess(userId: string, trackId: string): Promise<boolean>
     where: {
       userId,
       trackId,
-      OR: [
-        { endDate: null }, // Acesso vitalício
-        { endDate: { gte: new Date() } } // Acesso ativo
-      ]
+      OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
     }
   });
   return !!enrollment;
 }
-
-export const config = {
-  matcher: [
-    "/((?!api/auth|_next|static|.*\\..*).*)",
-  ],
-};

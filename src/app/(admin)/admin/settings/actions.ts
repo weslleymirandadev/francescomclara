@@ -17,12 +17,12 @@ export async function updateSettings(data: any) {
     await prisma.siteSettings.upsert({
       where: { id: "settings" },
       update: {
-        siteName: data.siteName,
         siteNameFirstPart: data.siteNameFirstPart,
         siteNameHighlight: data.siteNameHighlight,
         siteIcon: data.siteIcon,
-        interfaceIcon: data.interfaceIcon,
         highlightColor: data.highlightColor,
+        interfaceIcon: data.interfaceIcon,
+        siteName: data.siteName,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,
@@ -34,15 +34,20 @@ export async function updateSettings(data: any) {
         whatsappUrl: data.whatsappUrl,
         tiktokActive: data.tiktokActive,
         tiktokUrl: data.tiktokUrl,
+        notifyNewModule: data.notifyNewModule,
+        notifyPlanExpiring: data.notifyPlanExpiring,
+        notifyInactivity: data.notifyInactivity,
+        daysToNotifyExpiring: data.daysToNotifyExpiring,
+        inactivityDays: data.inactivityDays,
       },
       create: {
         id: "settings",
-        siteName: data.siteName,
         siteNameFirstPart: data.siteNameFirstPart,
         siteNameHighlight: data.siteNameHighlight,
         siteIcon: data.siteIcon,
-        interfaceIcon: data.interfaceIcon,
         highlightColor: data.highlightColor,
+        interfaceIcon: data.interfaceIcon,
+        siteName: data.siteName,
         supportEmail: data.supportEmail,
         stripeMode: data.stripeMode,
         maintenanceMode: data.maintenanceMode,
@@ -54,15 +59,30 @@ export async function updateSettings(data: any) {
         whatsappUrl: data.whatsappUrl,
         tiktokActive: data.tiktokActive,
         tiktokUrl: data.tiktokUrl,
+        notifyNewModule: data.notifyNewModule || true,
+        notifyPlanExpiring: data.notifyPlanExpiring || true,
+        notifyInactivity: data.notifyInactivity || false,
+        daysToNotifyExpiring: data.daysToNotifyExpiring || 7,
+        inactivityDays: data.inactivityDays || 7,
       }
     });
 
-    revalidatePath("/admin/settings");
-    revalidatePath("/"); 
+    revalidatePath('/', 'layout');
     
     return { success: true };
   } catch (error) {
     console.error("Erro ao salvar:", error);
     return { success: false };
   }
+}
+
+export async function getPublicStripeKey() {
+  const settings = await prisma.siteSettings.findUnique({ 
+    where: { id: "settings" } 
+  });
+
+  // Retorna a chave pública de teste ou live
+  return settings?.stripeMode 
+    ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE 
+    : process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST;
 }

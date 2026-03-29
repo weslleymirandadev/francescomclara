@@ -3,25 +3,22 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { formatPrice } from "@/lib/price";
-import { 
-  BookOpen, Video, GraduationCap, Clock, Layers, BookText, 
-  Lock, Sparkles, Play, CheckCircle2, Crown, CheckCircle2 as CheckCircle
-} from "lucide-react";
-import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard";
+import { useRouter } from "next/navigation";
+import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText, Sparkles, Lock, Crown, Play } from "lucide-react";
 import Image from "next/image";
-import { Icon } from '@iconify/react';
+import { Icon } from "@iconify/react";
 import { getGlobalData } from "./actions/settings";
-import { Loading } from   '@/components/ui/loading'
+import { Loading } from "@/components/ui/loading";
+import { Button } from "@/components/ui/button";
+import { SubscriptionPlanCard } from "@/components/SubscriptionPlanCard"
 
-// Tipos para usuários logados (Duolingo)
 type Lesson = {
   id: string;
   title: string;
   type: string;
   order: number;
+
   isPremium?: boolean;
 };
 
@@ -30,6 +27,7 @@ type Module = {
   title: string;
   order: number;
   lessons: Lesson[];
+
   isLocked?: boolean;
   isPremium?: boolean;
 };
@@ -50,6 +48,8 @@ type Track = {
   imageUrl: string | null;
   active: boolean;
   modules: Module[];
+  createdAt: string;
+  updatedAt: string;
   isLocked?: boolean;
   hasAccess?: boolean;
   freeLessonsCount?: number;
@@ -62,54 +62,17 @@ type StudyContent = {
   completedLessonIds: string[];
 };
 
-// Tipos para landing page (usuários deslogados)
-type LandingLesson = {
-  id: string;
-  title: string;
-  type: string;
-  order: number;
-};
-
-type LandingModule = {
-  id: string;
-  title: string;
-  order: number;
-  lessons: LandingLesson[];
-};
-
-type LandingTrack = {
-  id: string;
-  name: string;
-  description: string;
-  objective: {
-    id: string;
-    name: string;
-    icon: string;
-    iconRotate: number;
-    order: number;
-    color: string;
-    imageUrl?: string;
-  };
-  imageUrl: string | null;
-  active: boolean;
-  modules: LandingModule[];
-  createdAt: string;
-  updatedAt: string;
-};
-
 type SubscriptionPlan = {
   id: string;
   name: string;
   description: string | null;
-  monthlyPrice: number;
   yearlyPrice: number;
-  price?: number; // Compatibilidade
+  monthlyPrice: number;
+  isBestValue: boolean;
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
-  isBestValue: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period?: 'MONTHLY' | 'YEARLY'; // Compatibilidade
   features: any;
   tracks: Array<{
     id: string;
@@ -122,21 +85,18 @@ type SubscriptionPlan = {
 
 export default function Home() {
   const { data: session, status } = useSession();
-  const router = useRouter();
-  
-  // Estados para usuários logados (Duolingo)
-  const [studyContent, setStudyContent] = useState<StudyContent | null>(null);
-  const [loadingStudy, setLoadingStudy] = useState(true);
-  
-  // Estados para landing page (usuários deslogados)
-  const [tracks, setTracks] = useState<LandingTrack[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
-  const [loadingLanding, setLoadingLanding] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [accessMap, setAccessMap] = useState<Record<string, { hasAccess: boolean }>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const [greeting, setGreeting] = useState("");
   const [scrollY, setScrollY] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+
+  const [studyContent, setStudyContent] = useState<StudyContent | null>(null);
 
   const FR = (
     <Image
@@ -149,124 +109,90 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) setGreeting("Bonjour ! ☕");
-    else if (hour >= 12 && hour < 18) setGreeting("Bon après-midi ! 🥖");
-    else setGreeting("Bonsoir ! 🍷");
-  }, []);
-
-  // Lógica para usuários logados (Duolingo)
-  useEffect(() => {
-    async function fetchStudyContent() {
-      if (status === "loading") return;
-      
-      if (!session?.user) {
-        setLoadingStudy(false);
-        return;
-      }
-
+    async function loadData() {
+      setLoading(true);
       try {
-        const response = await fetch("/api/user/study-content");
-        if (!response.ok) throw new Error("Failed to fetch");
-        const data = await response.json();
-        setStudyContent(data);
-      } catch (error) {
-        console.error("Error fetching study content:", error);
-        toast.error("Erro ao carregar conteúdo");
-      } finally {
-        setLoadingStudy(false);
-      }
-    }
+        const resPublic = await fetch('/api/public/content');
+        const publicData = await resPublic.json();
+        setPlans(publicData.plans || []);
+        
+        if (status === "authenticated") {
+          const resUser = await fetch('/api/user/me');
+          if (resUser.ok) {
+            const userData = await resUser.json();
+            
+            setStudyContent({
+              tracks: userData.enrollments?.map((e: any) => e.track) || [],
+              hasActiveSubscription: !!userData.payments?.length,
+              completedLessonIds: []
+            });
 
-    fetchStudyContent();
-  }, [session, status]);
-
-  // Lógica para landing page (usuários deslogados)
-  useEffect(() => {
-    async function checkAccess() {
-      if (session?.user && tracks.length > 0) {
-        const newAccessMap: Record<string, { hasAccess: boolean }> = {};
-
-        await Promise.all(tracks.map(async (track) => {
-          const itemKey = `track-${track.id}`;
-          try {
-            const response = await fetch(`/api/user/has-access?id=${track.id}`);
-            const { hasAccess } = await response.json();
-            newAccessMap[itemKey] = { hasAccess };
-          } catch (error) {
-            console.error("Error checking access for track:", track.id, error);
-            newAccessMap[itemKey] = { hasAccess: false };
+            const allTracks = publicData.tracks.map((track: Track) => ({
+              ...track,
+              hasAccess: userData.enrollments?.some((e: any) => e.trackId === track.id)
+            }));
+            setTracks(allTracks);
           }
-        }));
-
-        setAccessMap(prev => ({ ...prev, ...newAccessMap }));
+        } else {
+          setTracks(publicData.tracks);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
       }
     }
 
-    if (tracks.length > 0) {
-      checkAccess();
-    }
-  }, [session, tracks]);
+    loadData();
+  }, [status]);
 
   useEffect(() => {
-    async function fetchLandingData() {
-      if (session?.user) {
-        setLoadingLanding(false);
-        return;
-      }
-
+    async function load() {
+      setLoading(true);
       try {
-        setLoadingLanding(true);
-        const [tracksRes, plansRes] = await Promise.all([
-          fetch('/api/tracks?active=true'),
-          fetch('/api/subscription-plans?active=true'),
-        ]);
-
-        if (!tracksRes.ok) throw new Error('Failed to fetch tracks');
-        const tracksData = await tracksRes.json();
-        setTracks(tracksData);
-
-        if (plansRes.ok) {
-          const plansData = await plansRes.json();
-          setSubscriptionPlans(plansData);
+        const data = await getGlobalData();
+        console.log("Planos vindos do banco:", data.plans);
+        
+        if (data && data.plans) {
+          setPlans(data.plans);
         }
       } catch (error) {
         console.error("Erro ao carregar planos:", error);
-        setSubscriptionPlans([]);
+        setPlans([]);
       } finally {
-        setLoadingLanding(false);
+        setLoading(false);
       }
     }
-
-    fetchLandingData();
-  }, [session]);
+    load();
+  }, []);
 
   useEffect(() => {
-    async function fetchPublicContent() {
-      if (session?.user) return;
-
+    async function fetchData() {
       try {
         const response = await fetch('/api/public/content');
         const data = await response.json();
         
-        const sortedTracks = data.tracks.sort((a: LandingTrack, b: LandingTrack) => {
+        const sortedTracks = data.tracks.sort((a: Track, b: Track) => {
           const orderA = a.objective?.order ?? 0;
           const orderB = b.objective?.order ?? 0;
           return orderA - orderB;
         });
 
         setTracks(sortedTracks);
+        setPlans(data.plans);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
         toast.error("Erro ao carregar conteúdo");
+      } finally {
+        setLoading(false);
       }
     }
-    fetchPublicContent();
-  }, [session]);
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || session?.user) return;
+    if (!video) return;
 
     video.muted = true;
 
@@ -286,19 +212,22 @@ export default function Home() {
     };
 
     attemptPlay();
-  }, [session]);
+  }, []);
 
   useEffect(() => {
-    if (session?.user) return;
-    
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setGreeting("Bonjour ! ☕");
+    else if (hour >= 12 && hour < 18) setGreeting("Bon après-midi ! 🥖");
+    else setGreeting("Bonsoir ! 🍷");
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [session]);
+  }, []);
 
   useEffect(() => {
-    if (session?.user) return;
-
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -310,13 +239,13 @@ export default function Home() {
 
     document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
     return () => observer.disconnect();
-  }, [tracks, session]);
+  }, [tracks]);
 
   const getLessonIcon = (type: string) => {
     const props = { size: 14, strokeWidth: 2.5 };
     switch (type) {
       case 'CLASS': return <Video {...props} />;
-      case 'FLASHCARD': return <Layers {...props} />;
+      case 'FLASHCARDS': return <Layers {...props} />;
       case 'STORY': return <BookText {...props} />;
       case 'READING': return <BookOpen {...props} />;
       default: return <GraduationCap {...props} />;
@@ -327,7 +256,7 @@ export default function Home() {
     return studyContent?.completedLessonIds.includes(lessonId) || false;
   };
 
-  const renderAccessButton = (track: LandingTrack) => {
+  const renderAccessButton = (track: Track) => {
     const itemId = `track-${track.id}`;
     const hasAccess = accessMap[itemId]?.hasAccess || false;
 
@@ -352,7 +281,7 @@ export default function Home() {
     );
   };
 
-  const groupedTracks = tracks.reduce((acc: any, track: LandingTrack) => {
+  const groupedTracks = tracks.reduce((acc: any, track: Track) => {
     const objId = track.objective?.id || 'default';
     if (!acc[objId]) {
       acc[objId] = {
@@ -365,8 +294,8 @@ export default function Home() {
   }, {});
 
   const SectionDivider = () => (
-    <div className="relative w-screen left-1/2 -translate-x-1/2 h-12 md:h-32 z-45 pointer-events-none overflow-visible mb-10 mt-18">
-      <div className="absolute left-1/2 -translate-x-1/2 w-[115vw] -translate-y-1/2 -rotate-2">
+    <div className="relative w-screen left-1/2 -translate-x-1/2 h-12 md:h-32 z-[45] pointer-events-none overflow-visible mb-10 mt-18">
+      <div className="absolute left-1/2 -translate-x-1/2 w-[115vw] -translate-y-1/2 -rotate-[2deg]">
         <svg 
           className="w-full h-60 md:h-100 overflow-visible" 
           preserveAspectRatio="none" 
@@ -410,19 +339,11 @@ export default function Home() {
     }, 800);
   };
 
-  // Se não estiver logado, mostrar landing page (apenas vídeo e planos)
   if (!session?.user) {
-    if (loadingLanding) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-s-50">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
-        </div>
-      );
-    }
-
+    if (loading) <Loading />;
     return (
-      <main className="min-h-screen bg-s-50 overflow-x-hidden">
-        <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-s-900">
+      <main className="min-h-screen bg-[var(--color-s-50)] overflow-x-hidden">
+        <section className="relative h-[85vh] min-h-[650px] flex items-center overflow-hidden bg-[var(--color-s-900)]">
           <div className="absolute inset-0 z-0"
             style={{  transform: `translateY(${scrollY * 0.3}px)` }}
           >
@@ -441,7 +362,7 @@ export default function Home() {
               <source src="/hero-video.mp4" type="video/mp4" />
             </video>
             
-            <div className="absolute inset-0 bg-linear-to-b from-blue-900/40 via-s-900/60 to-s-900 z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-900/40 via-[var(--color-s-900)]/60 to-[var(--color-s-900)] z-10"></div>
           </div>
 
           <div className="container mx-auto px-4 relative z-20">
@@ -469,17 +390,23 @@ export default function Home() {
 
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 shadow-xl"
+                  onClick={() => document.getElementById('trilhas')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="bg-white text-blue-900 px-8 py-4 rounded-full font-bold hover:bg-red-500 hover:text-white transition-all transform hover:scale-105 shadow-xl cursor-pointer"
                 >
+                  Explorar Trilhas
+                </button>
+                <button
+                  onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition-all cursor-pointer"
+                  >
                   Ver Planos
                 </button>
               </div>
             </div>
           </div>
         </section>
-        <div className="relative w-full h-0 z-46 pointer-events-none overflow-visible">
-          <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 -rotate-2">
+        <div className="relative w-full h-0 z-[46] pointer-events-none overflow-visible">
+          <div className="absolute left-1/2 -translate-x-1/2 w-[110vw] -translate-y-1/2 rotate-[-2deg]">
             <svg 
               className="w-full h-32 overflow-visible" 
               preserveAspectRatio="none" 
@@ -494,27 +421,58 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="relative container mx-auto px-4 z-50">
-          <section id="planos" className="py-12">
-            <div className="text-center max-w-2xl mx-auto mb-4">
-              <h2 className="text-4xl font-black mb-4 tracking-tight bg-linear-to-r from-clara-rose to-pink-500 text-transparent bg-clip-text py-2 px-4 rounded-full">Assinaturas</h2>
-              <p className="text-[var(--color-s-50)]0">Invista no seu futuro com planos que cabem no seu bolso.</p>
+        <div className="relative container mx-auto px-4 py-16">
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0 overflow-hidden">
+            <div className="absolute top-[5%] left-[5%] -rotate-12" style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
+              <Icon icon="ph:airplane-tilt-fill" className="w-[120px] md:w-[250px]" />
+            </div>
+            <div className="absolute top-[25%] right-[8%] rotate-12" style={{ transform: `translateY(${scrollY * -0.15}px)` }}>
+              <Icon icon="ph:briefcase-fill" className="w-[100px] md:w-[200px]" />
+            </div>
+            <div className="absolute top-[44%] left-[10%] rotate-[25deg]" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
+              <Icon icon="ph:graduation-cap-fill" className="w-[110px] md:w-[220px]" />
+            </div>
+            <div className="absolute top-[65%] right-[5%] -rotate-6" style={{ transform: `translateY(${scrollY * -0.1}px)` }}>
+              <Icon icon="ph:users-three-fill" className="w-[140px] md:w-[280px]" />
+            </div>
+            <div className="absolute top-[85%] left-[15%] rotate-12" style={{ transform: `translateY(${scrollY * 0.08}px)` }}>
+              <Icon icon="ph:leaf-fill" className="w-[90px] md:w-[180px]" />
+            </div>
+          </div>
+
+          <SectionDivider />
+
+          <section id="planos" className="py-24">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <h2 className="text-4xl font-black mb-4 tracking-tight bg-gradient-to-r from-[var(--interface-accent)] to-[var(--clara-rose)] text-transparent bg-clip-text py-2">
+                Assinaturas
+              </h2>
+              <p className="text-s-500 font-medium">
+                Invista no seu futuro com planos que cabem no seu bolso.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {subscriptionPlans.map((plan) => (
-                <SubscriptionPlanCard
-                  key={plan.id}
-                  id={plan.id}
-                  name={plan.name}
-                  monthlyPrice={plan.monthlyPrice}
-                  yearlyPrice={plan.yearlyPrice}
-                  price={plan.price}
-                  isBestValue={plan.isBestValue}
-                  features={plan.features}
-                  onSubscribe={(planId) => handleRedirect(`/assinar?planId=${planId}`)}
-                />
-              ))}
+              {plans && plans.length > 0 ? (
+                plans.map((plan: any) => (
+                  <SubscriptionPlanCard
+                    key={plan.id}
+                    id={plan.id}
+                    name={plan.name}
+                    monthlyPrice={plan.monthlyPrice || 0}
+                    yearlyPrice={plan.yearlyPrice || 0}
+                    features={plan.features}
+                    isBestValue={plan.id === 'plano-pro-anual'}
+                    onSubscribe={(id) => handleRedirect(`/assinar?planId=${id}`)}
+                  />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10 border-2 border-dashed rounded-[40px]">
+                  <p className="text-s-400 font-bold uppercase tracking-widest text-xs">
+                    Carregando planos disponíveis...
+                  </p>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -522,23 +480,16 @@ export default function Home() {
     );
   }
 
-  // Lógica para usuários logados (Duolingo)
-  if (loadingStudy) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-s-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-clara-rose"></div>
-      </div>
-    );
-  }
+  if (loading) <Loading />;
 
   const hasSubscription = studyContent?.hasActiveSubscription || false;
   const studyTracks = studyContent?.tracks || [];
 
   return (
-    <main className="min-h-screen bg-s-50 overflow-x-hidden">
-      {/* Banner para não-assinantes */}
+    <main className="mt-4 relative min-h-screen bg-[var(--color-s-50)] overflow-x-hidden">
+      {/* Banner de Incentivo para não assinantes */}
       {!hasSubscription && (
-        <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white py-4">
+        <div className="bg-linear-to-r from-blue-600 to-purple-600 text-white py-4 fixed min-w-full left-0 z-50 shadow-lg">
           <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Sparkles size={24} />
@@ -557,212 +508,194 @@ export default function Home() {
         </div>
       )}
 
-      {/* Conteúdo principal */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {studyTracks.length === 0 ? (
-          <div className="text-center py-20">
+      <div className="container mx-auto px-4 py-24" id="trilhas">
+        {Object.keys(groupedTracks).length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed">
             <GraduationCap size={64} className="mx-auto text-s-300 mb-4" />
-            <h2 className="text-2xl font-bold text-s-900 mb-2">Nenhuma trilha disponível</h2>
-            <p className="text-s-600">Em breve teremos conteúdo para você estudar!</p>
+            <h2 className="text-2xl font-black text-s-900 mb-2 uppercase tracking-tighter">Nenhuma trilha disponível</h2>
+            <p className="text-s-500 font-medium">Em breve teremos novos conteúdos preparados para você!</p>
           </div>
         ) : (
-          <div className="space-y-12">
-            {studyTracks.map((track) => {
-              const totalLessons = track.modules.reduce((sum, m) => sum + m.lessons.length, 0);
-              const completedLessons = track.modules.reduce((sum, m) => 
-                sum + m.lessons.filter(l => isLessonCompleted(l.id)).length, 0
-              );
-              const progress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+          Object.values(groupedTracks).map((group: any) => {
+            const objective = group.info;
+            if (!objective) return null;
 
-              return (
-                <div 
-                  key={track.id} 
-                  className={`bg-white rounded-2xl shadow-lg overflow-hidden border-2 ${
-                    track.isLocked ? 'border-(--color-s-200) opacity-75' : 'border-transparent'
-                  }`}
-                >
-                  {/* Header da trilha */}
-                  <div 
-                    className="p-8 text-white relative overflow-hidden"
-                    style={{ backgroundColor: track.objective?.color || '#0f172a' }}
-                  >
-                    {track.imageUrl && (
+            // Cálculo de ângulos idêntico ao original
+            const mainAngle = objective.iconRotate || 0;
+            const badgeAngle = mainAngle * 0.1;
+            
+            const hasLockedInGroup = group.tracks.some((t: any) => !hasSubscription && t.isLocked);
+
+            return (
+              <div key={objective.id} className="relative w-full mb-52">
+                <SectionDivider />
+                
+                <section className="relative w-full max-w-7xl mx-auto overflow-visible transition-all duration-1000 ease-out scroll-reveal pt-2">
+                  <div className="relative w-full">
+                    {/* BANNER COM DECORAÇÕES ORIGINAIS */}
+                    <div className="relative w-full h-72 md:h-100 rounded-4xl overflow-hidden bg-s-900 shadow-[-32px_-32px_64px_-16px_rgba(0,0,0,0.2)] group/sep">
                       <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-30"
-                        style={{ backgroundImage: `url(${track.imageUrl})` }}
+                        className="absolute inset-0 bg-cover bg-center opacity-60 transition-transform duration-[2000ms] group-hover/sep:scale-110"
+                        style={{ backgroundImage: `url(${objective.imageUrl || ''})` }}
                       />
-                    )}
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Icon icon={track.objective?.icon} width={32} height={32} />
-                            <span className="text-sm font-bold uppercase tracking-wider opacity-90">
-                              {track.objective?.name}
-                            </span>
-                          </div>
-                          <h2 className="text-3xl font-black mb-2">{track.name}</h2>
-                          <p className="text-white/90 text-sm">{track.description}</p>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                      
+                      {/* LÓGICA DE AVISO PREMIUM DO PAGE2 */}
+                      {hasLockedInGroup && (
+                        <div className="absolute top-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white py-3 px-8 z-30 flex items-center justify-center gap-3 animate-pulse">
+                          <Crown size={18} />
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Conteúdo Premium disponível neste objetivo</span>
                         </div>
-                        {track.isLocked && (
-                          <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-lg">
-                            <Lock size={20} />
-                          </div>
-                        )}
+                      )}
+
+                      <div className="absolute bottom-8 left-8 md:bottom-12 md:left-20 z-20">
+                        <span className="text-[10px] font-black uppercase text-interface-accent tracking-[0.5em] block mb-2 drop-shadow-md">Objectif</span>
+                        <h2 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter font-frenchpress leading-none">{objective.name}</h2>
                       </div>
 
-                      {/* Progresso */}
-                      {!track.isLocked && (
-                        <div className="mt-6">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="font-bold">Progresso</span>
-                            <span>{completedLessons} / {totalLessons} lições</span>
-                          </div>
-                          <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                      {/* ÍCONES INTERNOS DO BANNER */}
+                      <div className="absolute -top-7 right-40 z-20 text-white hidden md:block">
+                        <Icon icon={objective.icon} width={80} height={80} className="rotate-[25deg]" />
+                      </div>
+                    </div>
+
+                    {/* DECORAÇÕES EXTERNAS (ÍCONES GRANDES E ROTACIONADOS) */}
+                    <div className="absolute -bottom-35 -right-16 z-10 text-s-50 pointer-events-none hidden md:block" style={{ transform: `rotate(${mainAngle}deg)` }}>
+                      <Icon icon={objective.icon} width={250} height={250} />
+                    </div>
+
+                    <div className="absolute -bottom-10 md:-bottom-14 -left-16 z-10 transition-all duration-700 ease-out group-hover/sep:rotate-[5deg] group-hover/sep:-translate-y-2" style={{ transform: `rotate(${badgeAngle}deg)` }}>
+                      <div className="bg-s-50 p-7 rounded-[32px] border border-s-50 hidden md:block">
+                        <Icon icon={objective.icon} width={48} height={48} className="text-s-900" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-16 px-6 relative z-20 mt-12">
+                    {group.tracks.map((track: Track) => {
+                      const isLocked = !hasSubscription;
+                      const totalLessons = track.modules.reduce((sum, module) => sum + module.lessons.length, 0);
+
+                      return (
+                        <div key={track.id} className="group bg-white rounded-[40px] border shadow-sm overflow-hidden hover:shadow-2xl transition-all duration-500">
+                          <div className="flex flex-col lg:flex-row">
+                            
+                            {/* LADO ESQUERDO: ESTILO ORIGINAL COM LÓGICA DE BLOQUEIO */}
                             <div 
-                              className="h-full bg-white rounded-full transition-all duration-500"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Info para não-assinantes */}
-                      {track.isLocked && track.freeLessonsCount !== undefined && (
-                        <div className="mt-6 bg-white/10 backdrop-blur-sm p-4 rounded-lg">
-                          <p className="text-sm font-bold mb-1">
-                            {track.freeLessonsCount} lições gratuitas disponíveis
-                          </p>
-                          <p className="text-xs text-white/80">
-                            Desbloqueie {track.totalLessonsCount! - track.freeLessonsCount} lições premium com uma assinatura
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Módulos e lições */}
-                  <div className="p-6">
-                    <div className="space-y-6">
-                      {track.modules.map((module, moduleIndex) => (
-                        <div key={module.id} className="border-l-4 border-blue-200 pl-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${
-                              module.isLocked 
-                                ? 'bg-s-200 text-s-400' 
-                                : 'bg-blue-100 text-blue-600'
-                            }`}>
-                              {module.isLocked ? <Lock size={20} /> : module.order}
-                            </div>
-                            <h3 className="font-bold text-lg text-s-900">{module.title}</h3>
-                            {module.isLocked && (
-                              <span className="ml-auto px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">
-                                Premium
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {module.lessons.map((lesson) => {
-                              const completed = isLessonCompleted(lesson.id);
-                              const isLocked = lesson.isPremium && !hasSubscription;
-
-                              return (
-                                <Link
-                                  key={lesson.id}
-                                  href={isLocked ? "/assinar" : `/?track=${track.id}&lesson=${lesson.id}`}
-                                  className={`group relative p-4 rounded-xl border-2 transition-all ${
-                                    completed
-                                      ? 'bg-green-50 border-green-200'
-                                      : isLocked
-                                      ? 'bg-s-50 border-(--color-s-200) opacity-60 cursor-not-allowed'
-                                      : 'bg-white border-(--color-s-200) hover:border-blue-300 hover:shadow-md'
-                                  }`}
-                                >
-                                  {isLocked && (
-                                    <div className="absolute top-2 right-2">
-                                      <Lock size={16} className="text-s-400" />
-                                    </div>
+                              className="lg:w-2/5 p-12 text-white flex flex-col justify-between relative min-h-[450px]"
+                              style={{ backgroundColor: track.objective?.color || '#0f172a' }}
+                            >
+                              {track.imageUrl && (
+                                <div className="absolute inset-0 bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url(${track.imageUrl})` }} />
+                              )}
+                              <div className={`absolute inset-0 transition-all duration-500 ${isLocked ? 'bg-black/75 backdrop-blur-[3px]' : 'bg-black/20 group-hover:bg-black/40'}`} />
+                              
+                              <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-4">
+                                  {isLocked ? (
+                                    <span className="bg-clara-rose text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Premium</span>
+                                  ) : (
+                                    <span className="bg-emerald-500 text-[9px] font-black px-2 py-1 rounded uppercase tracking-widest">Liberado</span>
                                   )}
-                                  {completed && (
-                                    <div className="absolute top-2 right-2">
-                                      <CheckCircle2 size={16} className="text-green-600" />
-                                    </div>
-                                  )}
-                                  
-                                  <div className="flex items-start gap-3">
-                                    <div className={`p-2 rounded-lg ${
-                                      completed
-                                        ? 'bg-green-100 text-green-600'
-                                        : isLocked
-                                        ? 'bg-s-200 text-s-400'
-                                        : 'bg-blue-100 text-blue-600'
-                                    }`}>
-                                      {getLessonIcon(lesson.type)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className={`font-medium text-sm ${
-                                        isLocked ? 'text-s-400' : 'text-s-900'
-                                      }`}>
-                                        {lesson.title}
-                                      </p>
-                                      {isLocked && (
-                                        <p className="text-xs text-s-400 mt-1">Premium</p>
-                                      )}
-                                    </div>
+                                </div>
+                                <h3 className="text-4xl font-black mb-4 uppercase tracking-tighter leading-none font-frenchpress">{track.name}</h3>
+                                <p className="text-white/80 text-sm line-clamp-4 leading-relaxed">{track.description}</p>
+                              </div>
+
+                              <div className="relative z-10 pt-8 border-t border-white/10">
+                                <div className="flex items-center gap-2 mb-6 text-[10px] font-black uppercase tracking-widest text-white/70">
+                                  <Clock size={12} className="text-interface-accent" /> {totalLessons} lições
+                                </div>
+                                
+                                {isLocked ? (
+                                  <div className="space-y-4">
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-[0.2em] text-center italic">Trilha bloqueada. Assine para desbloquear!</p>
+                                    <Link href="/assinar" className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-bold text-xs uppercase shadow-lg transition-transform hover:scale-105 active:scale-95">
+                                      <Lock size={16} /> Assinar Plano
+                                    </Link>
                                   </div>
-                                </Link>
-                              );
-                            })}
-                          </div>
-
-                          {/* Bloqueio de módulo premium */}
-                          {module.isLocked && module.lessons.length === 0 && (
-                            <div className="bg-linear-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl p-6 text-center">
-                              <Crown size={32} className="mx-auto text-yellow-600 mb-2" />
-                              <p className="font-bold text-s-900 mb-1">Conteúdo Premium</p>
-                              <p className="text-sm text-s-600 mb-4">
-                                Este módulo está disponível apenas para assinantes
-                              </p>
-                              <Link
-                                href="/assinar"
-                                className="inline-block bg-linear-to-r from-clara-rose to-pink-500 text-white px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all"
-                              >
-                                Assinar Agora
-                              </Link>
+                                ) : (
+                                  renderAccessButton(track)
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
 
-                    {/* Botão de ação principal */}
-                    <div className="mt-8 pt-6 border-t border-(--color-s-200)">
-                      {track.isLocked ? (
-                        <Link
-                          href="/assinar"
-                          className="w-full flex items-center justify-center gap-3 bg-linear-to-r from-clara-rose to-pink-500 text-white py-4 rounded-xl font-bold hover:shadow-lg transition-all"
-                        >
-                          <Crown size={20} />
-                          Desbloquear Trilha Completa
-                        </Link>
-                      ) : (
-                        <Link
-                          href={`/?track=${track.id}`}
-                          className="w-full flex items-center justify-center gap-3 bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-all"
-                        >
-                          <Play size={20} />
-                          Continuar Estudando
-                        </Link>
-                      )}
-                    </div>
+                            {/* LADO DIREITO: MÓDULOS COM OVERLAY DE BLOQUEIO */}
+                            <div className="lg:w-2/3 p-12 bg-white relative overflow-hidden">
+                              <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
+                                <Icon icon="ph:book-open-thin" width={300} />
+                              </div>
+
+                              {isLocked && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[1px] pointer-events-none">
+                                  <div className="flex flex-col items-center gap-2 opacity-40">
+                                      <Lock size={40} className="text-s-300" />
+                                      <span className="text-[10px] font-black uppercase tracking-[0.5em] text-s-400">Conteúdo Premium</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <h4 className="text-[10px] font-black text-s-400 uppercase tracking-[0.4em] mb-12 flex items-center gap-4">
+                                <span className="w-8 h-[1px] bg-s-200"></span> Programme de formation
+                              </h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
+                                {track.modules.map((module) => (
+                                  <div key={module.id} className={isLocked ? 'opacity-30' : ''}>
+                                    <div className="flex items-center gap-3 mb-4">
+                                      <span className="text-[10px] font-black text-interface-accent">0{module.order}</span>
+                                      <h5 className="font-black text-s-900 text-sm uppercase">{module.title}</h5>
+                                    </div>
+                                    <ul className="space-y-3">
+                                      {module.lessons.slice(0, 3).map(lesson => (
+                                        <li key={lesson.id} className="text-xs text-s-500 flex items-center gap-3 font-medium">
+                                          <div className="text-s-400 shrink-0">{getLessonIcon(lesson.type)}</div> 
+                                          <span className="truncate">{lesson.title}</span>
+                                        </li>
+                                      ))}
+                                      {module.lessons.length > 3 && (
+                                        <li className="text-[9px] text-[var(--interface-accent)] font-bold uppercase tracking-widest pl-6">
+                                          + {module.lessons.length - 3} atividades
+                                        </li>
+                                      )}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                </section>
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* Seção do Fórum */}
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="bg-slate-900 rounded-[3rem] p-12 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+              <Icon icon="ph:chats-teardrop-fill" width={200} />
+            </div>
+            <div className="relative z-10 max-w-2xl">
+              <span className="text-[var(--interface-accent)] font-black uppercase text-[10px] tracking-[0.3em] mb-4 block">Communauté d'apprentissage</span>
+              <h2 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-6">Ficou com alguma dúvida nas lições?</h2>
+              <p className="text-slate-400 mb-10 leading-relaxed">Participe do nosso fórum exclusivo para tirar dúvidas diretamente com a Clara.</p>
+              <Link href="/forum">
+                <Button className="bg-[var(--interface-accent)] hover:bg-white hover:text-slate-900 text-white px-10 h-16 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">
+                  Explorar o Fórum
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
