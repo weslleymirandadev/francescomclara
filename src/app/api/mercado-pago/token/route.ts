@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, CardToken } from "mercadopago";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
+
+const token = await getMercadoPagoToken();
 
 const mp = new MercadoPagoConfig({
-  accessToken: process.env.MP_ACCESS_TOKEN!,
+  accessToken: token,
 });
 
 /**
@@ -11,6 +14,7 @@ const mp = new MercadoPagoConfig({
  * Necessário para checkout transparente de assinaturas
  */
 export async function POST(req: Request) {
+
   try {
     const { 
       cardNumber, 

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
-import { formatPrice } from "@/lib/price";
 import { useRouter } from "next/navigation";
 import { BookOpen, Video, GraduationCap, CheckCircle2, Clock, Layers, BookText, Sparkles, Lock, Crown, Play } from "lucide-react";
 import Image from "next/image";
@@ -70,12 +69,10 @@ type SubscriptionPlan = {
   yearlyPrice: number;
   monthlyPrice: number;
   isBestValue: boolean;
-  price: number;
   originalPrice?: number;
   discountPrice: number | null;
   discountEnabled: boolean;
   type: 'INDIVIDUAL' | 'FAMILY';
-  period: 'MONTHLY' | 'YEARLY';
   features: any;
   tracks: Array<{
     id: string;
@@ -112,30 +109,42 @@ export default function Home() {
   );
 
   useEffect(() => {
-    async function checkAccess() {
-      if (session?.user?.id && tracks.length > 0) {
-        const newAccessMap: Record<string, { hasAccess: boolean }> = {};
+    async function loadData() {
+      setLoading(true);
+      try {
+        const resPublic = await fetch('/api/public/content');
+        const publicData = await resPublic.json();
+        setPlans(publicData.plans || []);
+        
+        if (status === "authenticated") {
+          const resUser = await fetch('/api/user/me');
+          if (resUser.ok) {
+            const userData = await resUser.json();
+            
+            setStudyContent({
+              tracks: userData.enrollments?.map((e: any) => e.track) || [],
+              hasActiveSubscription: !!userData.payments?.length,
+              completedLessonIds: []
+            });
 
-        await Promise.all(tracks.map(async (track) => {
-          const itemKey = `track-${track.id}`;
-          try {
-            const response = await fetch(`/api/user/has-access?id=${track.id}`);
-            const { hasAccess } = await response.json();
-            newAccessMap[itemKey] = { hasAccess };
-          } catch (error) {
-            console.error("Error checking access for track:", track.id, error);
-            newAccessMap[itemKey] = { hasAccess: false };
+            const allTracks = publicData.tracks.map((track: Track) => ({
+              ...track,
+              hasAccess: userData.enrollments?.some((e: any) => e.trackId === track.id)
+            }));
+            setTracks(allTracks);
           }
-        }));
-
-        setAccessMap(prev => ({ ...prev, ...newAccessMap }));
+        } else {
+          setTracks(publicData.tracks);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
       }
     }
 
-    if (tracks.length > 0) {
-      checkAccess();
-    }
-  }, [session, tracks]);
+    loadData();
+  }, [status]);
 
   useEffect(() => {
     async function load() {
@@ -444,17 +453,14 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Use "plans" em vez de "subscriptionPlans" se for esse o nome no seu useState */}
               {plans && plans.length > 0 ? (
                 plans.map((plan: any) => (
                   <SubscriptionPlanCard
                     key={plan.id}
                     id={plan.id}
                     name={plan.name}
-                    // Passamos o price direto para o card tratar a lógica de mensal/anual
-                    price={plan.price}
-                    monthlyPrice={plan.period === 'MONTHLY' ? plan.price : 0}
-                    yearlyPrice={plan.period === 'YEARLY' ? plan.price : 0}
+                    monthlyPrice={plan.monthlyPrice || 0}
+                    yearlyPrice={plan.yearlyPrice || 0}
                     features={plan.features}
                     isBestValue={plan.id === 'plano-pro-anual'}
                     onSubscribe={(id) => handleRedirect(`/assinar?planId=${id}`)}

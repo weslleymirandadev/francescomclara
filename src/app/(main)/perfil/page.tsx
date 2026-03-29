@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiCamera, FiUser, FiEdit3, FiAtSign, FiCalendar, FiInfo } from "react-icons/fi";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { toast } from "react-hot-toast";
@@ -12,12 +11,24 @@ import { toast } from "react-hot-toast";
 export default function ProfilePage() {
   const { data: session, update } = useSession();
   const user = session?.user;
+
+  console.log("DADOS DO USUÁRIO NA SESSÃO:", user);
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({ name: "", username: "", bio: "" });
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const levelNames: Record<string, string> = {
+    A1: "A1 INICIANTE",
+    A2: "A2 BÁSICO",
+    B1: "B1 INTERMÉDIAIRE",
+    B2: "B2 AVANCÉ",
+    C1: "C1 SUPÉRIEUR",
+    C2: "C2 MAÎTRISE",
+  };
 
   useEffect(() => {
     if (user) {
@@ -29,16 +40,32 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const syncSession = async () => {
+      await update(); 
+    };
+    syncSession();
+  }, []);
+
   const handleSaveProfile = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/user/update-profile", {
+      const res = await fetch("/api/user/update", {
         method: "POST",
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_PROFILE",
+          data: {
+            name: formData.name,
+            username: formData.username,
+            bio: formData.bio
+          }
+        }),
       });
+      
       const result = await res.json();
 
-      if (!res.ok) throw new Error(result.error);
+      if (!res.ok) throw new Error(result.error || "Erro ao atualizar perfil");
 
       await update({
         ...session?.user,
@@ -62,21 +89,53 @@ export default function ProfilePage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("type", "profile");
 
     setIsUploading(true);
     try {
-      const res = await fetch("/api/user/upload-image", { 
+      const res = await fetch("/api/user/upload", {
         method: "POST", 
         body: formData 
       });
       const data = await res.json();
       
       if (data.success) {
-        await update({ ...session?.user, image: data.imageUrl });
+        await update({ ...session?.user, image: data.url });
         toast.success("Foto atualizada!");
+      } else {
+        throw new Error(data.error);
       }
-    } catch (err) {
-      toast.error("Erro no upload");
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadBanner = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", "banner");
+
+    setIsUploading(true);
+    try {
+      const res = await fetch("/api/user/upload", {
+        method: "POST", 
+        body: formData 
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        await update({ ...session?.user, banner: data.url });
+        toast.success("Banner atualizado!");
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro no upload do banner");
     } finally {
       setIsUploading(false);
     }
@@ -94,13 +153,22 @@ export default function ProfilePage() {
           className="w-full h-full object-cover opacity-50"
           alt="Paris Banner"
         />
-        <button className="absolute bottom-6 right-6 p-3 bg-white/10 backdrop-blur-md text-white rounded-2xl hover:bg-white/20 transition-all border border-white/20">
+        <input 
+          type="file" 
+          ref={bannerInputRef} 
+          onChange={handleUploadBanner} 
+          className="hidden" 
+          accept="image/*" 
+        />
+        <button 
+          className="absolute bottom-6 right-6 p-3 bg-white/10 backdrop-blur-md text-white rounded-2xl hover:bg-white/20 transition-all border border-white/20"
+          onClick={() => bannerInputRef.current?.click()}
+        >
           <FiCamera size={20} />
         </button>
       </div>
 
       <div className="max-w-7xl mx-auto px-6">
-        {/* AVATAR OVERLAP */}
         <div className="relative -mt-24 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex flex-col md:flex-row md:items-end gap-6">
             <div className="relative">
@@ -116,7 +184,7 @@ export default function ProfilePage() {
               <button
                 type="button" 
                 onClick={() => avatarInputRef.current?.click()}
-                className="absolute bottom-4 right-4 w-11 h-11 bg-[var(--interface-accent)] text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-[var(--color-s-50)] hover:scale-110 transition-all"
+                className="absolute bottom-4 right-4 w-11 h-11 bg-[var(--interface-accent)] text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-[var(--color-s-50)] hover:scale-110 transition-all cursor-pointer"
               >
                 <FiCamera size={20} />
               </button>
@@ -198,7 +266,7 @@ export default function ProfilePage() {
               <div className="space-y-8">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nível atual</p>
-                  <p className="text-3xl font-black text-[var(--interface-accent)] italic">B1 INTERMÉDIAIRE</p>
+                  <p className="text-3xl font-black text-[var(--interface-accent)] italic">{levelNames[user?.level || "A1"]}</p>
                 </div>
                 <div className="h-[1px] bg-white/10 w-full" />
                 <div className="flex justify-between items-center">

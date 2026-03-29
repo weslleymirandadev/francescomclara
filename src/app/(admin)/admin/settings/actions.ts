@@ -37,6 +37,7 @@ export async function updateSettings(data: any) {
         notifyNewModule: data.notifyNewModule,
         notifyPlanExpiring: data.notifyPlanExpiring,
         notifyInactivity: data.notifyInactivity,
+        daysToNotifyExpiring: data.daysToNotifyExpiring,
         inactivityDays: data.inactivityDays,
       },
       create: {
@@ -61,16 +62,27 @@ export async function updateSettings(data: any) {
         notifyNewModule: data.notifyNewModule || true,
         notifyPlanExpiring: data.notifyPlanExpiring || true,
         notifyInactivity: data.notifyInactivity || false,
+        daysToNotifyExpiring: data.daysToNotifyExpiring || 7,
         inactivityDays: data.inactivityDays || 7,
       }
     });
 
-    revalidatePath("/admin/settings");
-    revalidatePath("/"); 
+    revalidatePath('/', 'layout');
     
     return { success: true };
   } catch (error) {
     console.error("Erro ao salvar:", error);
     return { success: false };
   }
+}
+
+export async function getPublicStripeKey() {
+  const settings = await prisma.siteSettings.findUnique({ 
+    where: { id: "settings" } 
+  });
+
+  // Retorna a chave pública de teste ou live
+  return settings?.stripeMode 
+    ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE 
+    : process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST;
 }

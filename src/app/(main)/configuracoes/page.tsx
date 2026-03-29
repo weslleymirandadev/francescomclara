@@ -1,15 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { FiUser, FiBell, FiLock, FiCheck, FiCreditCard } from "react-icons/fi";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+interface FamilyMember {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const res = await fetch("/api/user/me");
+        const data = await res.json();
+        setUserData(data);
+      } catch (e) {
+        console.error("Erro ao carregar dados", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUserData();
+  }, []);
+
+  const isFamilyPlan = userData?.subscription?.type === 'FAMILY';
+  const members = userData?.family?.members || [];
+  const currentPlanName = userData?.subscription?.name || "Nenhum plano ativo";
 
   if (loading) return <Loading />;
 
@@ -28,7 +55,6 @@ export default function SettingsPage() {
 
         <div className="space-y-8">
           
-          {/* SEÇÃO: SEGURANÇA (SENHA) */}
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem]">
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
               <FiLock className="text-[var(--interface-accent)]" /> Segurança e Acesso
@@ -45,14 +71,18 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="flex items-end">
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50">
-                  Alterar Palavra-passe
-                </Button>
+                <Link href="/auth/alterar-minha-senha" title="Alterar Senha" className="w-full">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-14 rounded-2xl border-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all active:scale-[0.98]"
+                  >
+                    Alterar Palavra-passe
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>
 
-          {/* SEÇÃO: NOTIFICAÇÕES (O QUE JÁ TINHAS) */}
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem]">
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
               <FiBell className="text-[var(--clara-rose)]" /> Notificações de Estudo
@@ -75,7 +105,34 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          {/* SEÇÃO: PLANO (NOVO - BASEADO NO PRISMA) */}
+          {isFamilyPlan && (
+            <div className="mt-10 pt-8 border-t border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Membros do Plano ({members.length}/3)
+                </h3>
+              </div>
+              
+              <div className="space-y-3">
+                {members.map((member: FamilyMember) => (
+                  <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-200" />
+                      <span className="text-sm font-bold text-slate-700">{member.email}</span>
+                    </div>
+                    <Button variant="ghost" className="text-rose-500 text-[10px] font-black uppercase">Remover</Button>
+                  </div>
+                ))}
+                
+                {members.length < 3 && (
+                  <button className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-[var(--interface-accent)] hover:text-[var(--interface-accent)] transition-all">
+                    + Convidar Membro
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] border-l-8 border-l-[var(--interface-accent)]">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>

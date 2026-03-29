@@ -8,15 +8,19 @@ import { Header } from '@/components/layout/Header'
 import { prisma } from "@/lib/prisma"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
-  });
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
 
-  const siteName = settings?.siteName || "Francês com Clara";
+    const siteName = settings?.siteName || "Francês com Clara";
 
-  return {
-    title: `Administração - ${siteName}`,
-    description: "Painel administrativo para gerenciar o conteúdo e configurações do seu site de forma eficiente.",
+    return {
+      title: `Administração - ${siteName}`,
+      description: "Painel administrativo para gerenciar o conteúdo e configurações do seu site de forma eficiente.",
+    }
+  } catch (e) {
+    return { title: "Perfil - Francês com Clara" }
   }
 };
 

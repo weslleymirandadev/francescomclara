@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getMercadoPagoToken } from "@/lib/mercadopago";
 
 type PaymentItem = {
   id: string;
@@ -17,6 +18,8 @@ type PaymentMetadata = {
 };
 
 export async function POST(req: Request) {
+  const token = await getMercadoPagoToken();
+
   try {
     const { paymentId, userId } = await req.json();
     console.log(`Iniciando processo de reembolso para pagamento ${paymentId}, usuário ${userId}`);
@@ -92,7 +95,7 @@ export async function POST(req: Request) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           status: 'cancelled'

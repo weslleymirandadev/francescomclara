@@ -60,6 +60,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
     tiktokActive: initialSettings?.tiktokActive ?? false,
     tiktokUrl: initialSettings?.tiktokUrl || "",
     daysToNotifyExpiring: initialSettings?.daysToNotifyExpiring ?? 7,
+    inactivityDays: initialSettings?.inactivityDays ?? 7,
   });
 
   const handleChange = (field: string, value: any) => {
@@ -134,7 +135,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
               Paramètres 
               <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
@@ -148,7 +149,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-pink-50 rounded-2xl text-clara-rose">
+                <div className="p-3 bg-pink-50 rounded-2xl text-[var(--clara-rose)]">
                   <Palette size={24} />
                 </div>
                 <div>
@@ -176,7 +177,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
               </div>
 
               <div className="grid grid-cols-1 gap-8">
-                {/* CONSTRUTOR DE NOME */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Texto Base</label>
@@ -276,7 +276,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* E-MAIL DE SUPORTE */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Suporte</label>
                     <Input 
@@ -286,7 +285,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     />
                   </div>
 
-                  {/* SELETOR DE COR DINÂMICO */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cor de Destaque</label>
@@ -300,7 +298,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     </div>
                     <div className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative shrink-0"
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative flex-shrink-0"
                         style={{ backgroundColor: formData.highlightColor?.startsWith('--') ? `var(${formData.highlightColor})` : (formData.highlightColor || '#D44D8C') }}
                       >
                         <input 
@@ -311,7 +309,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                         />
                       </div>
                       <Input 
-                        value={formData.highlightColor || ""} // Garante que nunca seja undefined para não dar erro de controlled input
+                        value={formData.highlightColor || ""}
                         onChange={e => handleChange("highlightColor", e.target.value)}
                         className="h-12 border-none bg-transparent font-mono text-xs" 
                       />
@@ -376,7 +374,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 <div className="p-4 bg-white rounded-2xl flex items-center justify-between border border-slate-100">
                   <div>
                     <p className="text-xs font-bold text-slate-700">Modo Produção</p>
-                    <p className="text-[9px] text-slate-400 uppercase font-black">Stripe Gateway</p>
+                    <p className="text-[9px] text-slate-400 uppercase font-black">Mercado Pago</p>
                   </div>
                   <Switch 
                     checked={formData.stripeMode}
@@ -399,12 +397,12 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
             <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-50 text-interface-accent rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-rose-50 text-[var(--interface-accent)] rounded-2xl flex items-center justify-center">
                   <Bell size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-black uppercase tracking-tighter">Fluxos de Engajamento</h3>
-                  <p className="text-[10px] text-s-400 font-medium uppercase tracking-widest text-balance">
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest text-balance">
                     Configure como e quando o sistema deve falar com seus alunos
                   </p>
                 </div>
@@ -412,13 +410,13 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
               <div className="space-y-6">
                 {/* Automação 01: Expiração de Plano */}
-                <div className="group border border-(--color-s-100) rounded-[2rem] overflow-hidden transition-all hover:border-(--color-s-200)">
-                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-s-50/50">
+                <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
+                  <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                          <span className="text-xs font-black uppercase tracking-widest text-s-900">Aviso de Vencimento</span>
+                          <span className="text-xs font-black uppercase tracking-widest text-slate-900">Aviso de Vencimento</span>
                         </div>
                         <Switch 
                           checked={formData.notifyPlanExpiring} 
@@ -427,22 +425,17 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       </div>
                       
                       <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-s-400 uppercase">Avisar o aluno</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">Avisar o aluno</span>
                         <div className="flex items-center bg-white border border-slate-200 rounded-lg px-2">
                           <input 
                             type="number"
-                            value={formData.daysToNotifyExpiring || 0} 
+                            value={formData.daysToNotifyExpiring} 
                             onChange={(e) => { 
-                              setFormData({
-                                ...formData, 
-                                daysToNotifyExpiring: parseInt(e.target.value) || 0 
-                              }); 
-                              setHasChanges(true); 
-                            }}
+                              setFormData({ ...formData, daysToNotifyExpiring: parseInt(e.target.value)}); setHasChanges(true); }}
                             className="w-16 h-8 text-center font-bold text-xs border-none focus:ring-0"
                           />
                         </div>
-                        <span className="text-[10px] font-bold text-s-400 uppercase">dias antes do plano acabar</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">dias antes do plano acabar</span>
                       </div>
 
                       <textarea 
@@ -494,25 +487,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                 </div>
               </div>
             </section>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white group cursor-pointer hover:bg-black transition-all relative overflow-hidden">
-              <div className="relative z-10">
-                <Globe size={24} className="mb-4 text-emerald-400" />
-                <h3 className="text-xl font-black uppercase tracking-tighter">API & Integrações</h3>
-                <p className="text-[10px] text-slate-400 font-medium mb-4 italic text-balance">
-                  Configure Stripe, SMTP e chaves externas
-                </p>
-                <div className="flex flex-col gap-2 items-start">
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
-                    Configurar Stripe →
-                  </Button>
-                  <Button variant="link" className="text-white p-0 h-auto font-black text-[10px] uppercase tracking-widest hover:translate-x-2 transition-transform">
-                    Servidor de E-mail (SMTP) →
-                  </Button>
-                </div>
-              </div>
-              <Globe size={80} className="absolute -right-4 -bottom-4 text-white/5 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
-            </div>
           </div>
         </div>
       </div>
