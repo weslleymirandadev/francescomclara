@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { 
   FaHome as Home,
   FaBookOpen as BookOpen,
+  FaBook as Book,
   FaCog as Settings,
   FaUsers as Users,
   FaChartBar as BarChart2,
@@ -14,6 +15,7 @@ import {
 const navigation = [
   { name: 'Geral', shortName: 'Geral', href: '/admin', icon: Home },
   { name: 'Conteúdo', shortName: 'Conteúdo', href: '/admin/content', icon: BookOpen },
+  { name: 'Nivelamento', shortName: 'Teste', href: '/admin/test', icon: Book },
   { name: 'Usuários', shortName: 'Users', href: '/admin/users', icon: Users },
   { name: 'Planos', shortName: 'Planos', href: '/admin/subscriptions', icon: DollarSign },
   { name: 'Relatórios', shortName: 'Relatos', href: '/admin/analytics', icon: BarChart2 },
@@ -25,7 +27,7 @@ export function AdminSidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-(--color-s-200)">
+      <aside className="hidden md:flex w-[280px] flex-col sticky top-[70px] h-[calc(100vh-70px)] bg-white border-r-2 border-(--color-s-200) animate-in fade-in duration-700">
         <div className="flex items-center gap-2 px-6 py-8">
           <h1 className="text-lg font-bold text-interface-accent tracking-wider uppercase">
             Admin Panel

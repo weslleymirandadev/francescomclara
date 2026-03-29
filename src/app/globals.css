@@ -12,7 +12,7 @@
 }
 
 :root {
-  /* Escala Slate Completa (Para você usar em tudo: texto, bg, bordas) */
+  /* Escala Slate Completa */
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
   --slate-200: #e2e8f0;
@@ -109,9 +109,48 @@
 
   --color-interface-accent: var(--interface-accent);
   --color-clara-rose: var(--clara-rose);
-  --color-ivory: var(--ivory);
 
   --font-frenchpress: var(--font-frenchpress);
+}
+
+@layer base {
+  /* --- CUSTOM SCROLLBAR --- */
+  
+  /* Largura da barra */
+  ::-webkit-scrollbar {
+    width: 12px;               /* Barra vertical */
+    height: 12px;              /* Barra horizontal */
+  }
+
+  /* Fundo da barra (Track) */
+  ::-webkit-scrollbar-track {
+    background: var(--color-s-100);
+    border-radius: 100px;
+  }
+
+  /* A "alça" da barra (Thumb) */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--clara-rose);
+    border-radius: 100px;
+    border: 3px solid var(--color-s-100);
+    transition: all 0.3s ease;
+  }
+
+  /* Quando passa o mouse na alça */
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--interface-accent, #0055A4);
+    cursor: pointer;
+  }
+
+  /* Suporte para Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--clara-rose) var(--color-s-100);
+  }
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 @layer utilities {

@@ -6,6 +6,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { UserRole } from "@prisma/client";
+import EmailProvider from "next-auth/providers/email";
+import { sendAutomationEmail } from "@/lib/mail";
 
 async function resolveUserRole(email: string): Promise<"USER" | "ADMIN" | "MODERATOR"> {
   const roleEntry = await prisma.roleEmail.findUnique({
@@ -43,7 +45,8 @@ export const authOptions: NextAuthOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 dias
+    maxAge: 15 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
 
   secret: process.env.NEXTAUTH_SECRET,
@@ -89,6 +92,10 @@ export const authOptions: NextAuthOptions = {
           include: { passwords: true },
         });
 
+        if (!user) {
+          throw new Error("Usuário não encontrado");
+        }
+
         // -------------------------------------
         // 1) Usuário existe → validar senha
         // -------------------------------------
@@ -104,27 +111,27 @@ export const authOptions: NextAuthOptions = {
 
           return user;
         }
+      },
+    }),
 
-        // -------------------------------------
-        // 2) Usuário não existe → criar conta
-        // -------------------------------------
-        const hashed = await hash(password, 10);
-
-        const created = await prisma.user.create({
-          data: {
-            email,
-            name: email.split("@")[0],
-            role: await resolveUserRole(email) as UserRole,
-            passwords: {
-              create: {
-                hash: hashed,
-              },
-            },
-          },
-          include: { passwords: true },
-        });
-
-        return created;
+    // --- Email login ---
+    EmailProvider({
+      server: {
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      },
+      from: process.env.EMAIL_FROM,
+      async sendVerificationRequest({ identifier: email, url, provider }) {
+        const { host } = new URL(url);
+        await sendAutomationEmail(
+          email,
+          `Seu link de acesso ao ${host}`,
+          `Clique aqui para entrar na sua conta: ${url}`
+        );
       },
     }),
   ],
@@ -169,8 +176,32 @@ export const authOptions: NextAuthOptions = {
     // JWT → carrega ID e role do usuário para o token
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        (token as any).id = (user as any).id;
-        (token as any).role = (user as any).role;
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+          include: {
+            _count: {
+              select: { lessonProgresses: true }
+            }
+          }
+        });
+
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+          token.username = dbUser.username;
+          token.level = dbUser.level;
+          token.banner = dbUser.banner;
+          token.completedLessonsCount = dbUser._count.lessonProgresses;
+        }
+      }
+
+      if (trigger === "update" && session) {
+        token.name = session.name || token.name;
+        token.username = session.username || token.username;
+        token.level = session.level || token.level;
+        token.banner = session.banner || token.banner;
+        token.onboarded = session.onboarded ?? token.onboarded;
+        token.completedLessonsCount = session.completedLessonsCount ?? token.completedLessonsCount;
       }
 
       return token;
@@ -179,8 +210,13 @@ export const authOptions: NextAuthOptions = {
     // Sessão → devolve ID e role pra UI a partir do token
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = (token as any).id;
-        (session.user as any).role = (token as any).role;
+        (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).username = (token as any).username;
+        (session.user as any).level = token.level;
+        (session.user as any).banner = token.banner;
+        (session.user as any).onboarded = token.onboarded;
+        (session.user as any).completedLessonsCount = (token as any).completedLessonsCount;
       }
       return session;
     },

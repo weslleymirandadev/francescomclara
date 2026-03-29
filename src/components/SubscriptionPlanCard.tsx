@@ -11,7 +11,10 @@ interface SubscriptionPlanCardProps {
   isBestValue?: boolean;
   features: string[] | any;
   onSubscribe?: (planId: string) => void;
+  buttonText?: string; 
+  disabled?: boolean;
   className?: string;
+  availableTracks?: any[];
 }
 
 export function SubscriptionPlanCard({
@@ -21,7 +24,9 @@ export function SubscriptionPlanCard({
   yearlyPrice,
   isBestValue = false,
   features,
+  availableTracks = [],
   onSubscribe,
+  buttonText = "Assinar Agora",
   className = "",
 }: SubscriptionPlanCardProps) {
   const finalMonthlyPrice = monthlyPrice || 0;
@@ -32,6 +37,28 @@ export function SubscriptionPlanCard({
     if (onSubscribe) {
       onSubscribe(id);
     }
+  };
+
+  const getFeatureLabel = (featureKey: string) => {
+    if (featureKey.startsWith("track:")) {
+      const trackId = featureKey.split(":")[1];
+      const track = availableTracks.find(t => t.id === trackId);
+      return track ? `Trilha: ${track.name}` : "Trilha não encontrada";
+    }
+
+    const FEATURE_LABELS: Record<string, string> = {
+      all_tracks: "Acesso a todas as trilhas",
+      flashcards: "Flashcards ilimitados",
+      forum_access: "Acesso ao fórum da Clara",
+      kids_content: "Conteúdo especial Kids",
+      offline_mode: "Modo Offline",
+      certificate: "Certificado de conclusão",
+      multi_device: "Telas Simultâneas",
+      priority_support: "Suporte Prioritário",
+      specific_tracks: "Trilhas Selecionadas",
+    };
+
+    return FEATURE_LABELS[featureKey] || featureKey;
   };
 
   return (
@@ -47,7 +74,6 @@ export function SubscriptionPlanCard({
           <Crown size={25} /> <span>{name}</span>
         </h3>
 
-        {/* Preço Mensal */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Mensal</p>
@@ -63,7 +89,6 @@ export function SubscriptionPlanCard({
           <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
         </div>
 
-        {/* Preço Anual */}
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Anual</p>
@@ -89,7 +114,9 @@ export function SubscriptionPlanCard({
             features.map((feature: string, i: number) => (
               <li key={i} className="flex items-start gap-3 text-sm text-s-600">
                 <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                <span>{feature}</span>
+                <span>
+                  {getFeatureLabel(feature) || feature}
+                </span>
               </li>
             ))
           ) : (
@@ -101,7 +128,7 @@ export function SubscriptionPlanCard({
           onClick={handleClick}
           className="w-full py-3 rounded-xl font-bold bg-black text-white hover:opacity-90 transition-all shadow-md text-sm mt-auto cursor-pointer"
         >
-          Assinar
+          {buttonText}
         </button>
       </div>
     </div>

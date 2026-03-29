@@ -1,4 +1,4 @@
-import { PrismaClient, SubscriptionPlanType, Prisma } from "@prisma/client";
+import { PrismaClient, SubscriptionPlanType, Prisma, LessonType, CEFRLevel } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
@@ -10,6 +10,7 @@ const prisma = new PrismaClient({ adapter } as any);
 async function main() {
   console.log("🚀 Iniciando seed...");
 
+  // 1. Configurações do Site
   await prisma.siteSettings.upsert({
     where: { id: "settings" },
     update: {},
@@ -24,7 +25,8 @@ async function main() {
     },
   });
 
-  const plansData: Prisma.SubscriptionPlanCreateInput[] = [
+  // 2. Planos de Assinatura
+  const plansData = [
     {
       id: 'plano-pro',
       name: 'Plano Pro',
@@ -39,8 +41,8 @@ async function main() {
       id: 'plano-familia',
       name: 'Plano Família',
       description: 'Aprenda francês com até 4 pessoas da sua família.',
-      monthlyPrice: 0, 
-      yearlyPrice: 149700,
+      monthlyPrice: 14700, 
+      yearlyPrice: 139700,
       type: SubscriptionPlanType.FAMILY,
       active: true,
       features: ["Até 4 contas", "Suporte prioritário"],
@@ -49,32 +51,104 @@ async function main() {
 
   const createdPlans = [];
   for (const p of plansData) {
-    const plan = await prisma.subscriptionPlan.create({
-      data: p
+    const plan = await prisma.subscriptionPlan.upsert({
+      where: { id: p.id },
+      update: p,
+      create: p
     });
     createdPlans.push(plan);
   }
 
+  // 3. Objetivo
   const travelObj = await prisma.objective.upsert({
     where: { name: 'Viagem' },
-    update: {},
+    update: {
+        icon: 'ph:airplane-tilt-fill',
+        color: '#E11D48'
+    },
     create: { 
       name: 'Viagem',
-      imageUrl: "https://cdn.discordapp.com/attachments/1430318700837339281/1461787586359201924/henrique-ferreira-nuKDw3ywCSw-unsplash.jpg?ex=6971c207&is=69707087&hm=fcaf44a427e1633c7a18d97382be4b745e87ed3e288618598419b005d554f25e&" 
+      icon: 'ph:airplane-tilt-fill',
+      color: '#E11D48',
+      imageUrl: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=1000" 
     }
   });
 
-  const tracksData = [
+  const careerObj = await prisma.objective.upsert({
+    where: { name: 'Carreira' },
+    update: {},
+    create: { 
+      name: 'Carreira',
+      icon: 'ph:briefcase-fill',
+      color: '#2563EB',
+      imageUrl: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1000" 
+    }
+  });
+
+  const cultureObj = await prisma.objective.upsert({
+    where: { name: 'Cultura' },
+    update: {},
+    create: { 
+      name: 'Cultura',
+      icon: 'ph:paint-brush-broad-fill',
+      color: '#8B5CF6',
+      imageUrl: "https://images.unsplash.com/photo-1467269204594-9661b134dd2b?q=80&w=1000" 
+    }
+  });
+
+  // 4. Trilhas, Módulos e Lições
+  const tracksToCreate = [
     {
-      id: 'trilha-viagem',
+      id: 'trilha-paris',
       name: 'Sobrevivência em Paris',
-      description: 'Focado em situações reais de viagem.',
+      description: 'O essencial para se comunicar em aeroportos, hotéis e ruas.',
       objectiveId: travelObj.id,
-      imageUrl: "https://media.discordapp.net/attachments/1430318700837339281/1461787583825575946/france-jobs-1.webp?ex=6971c206&is=69707086&hm=ea2dd0f4dc0495268c1720d9009b4fbbea0bd7d4055579366ec868f82d465905&=&format=webp&width=1110&height=724",
+      imageUrl: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?q=80&w=1000",
+      modules: [
+        {
+          title: 'Primeiros Passos na França',
+          lessons: [
+            { title: 'No Controle de Passaportes', type: LessonType.CLASS, isPremium: false },
+            { title: 'Check-in no Hotel', type: LessonType.STORY, isPremium: true }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'trilha-business',
+      name: 'Francês Corporativo',
+      description: 'Termos técnicos e etiqueta para reuniões e e-mails profissionais.',
+      objectiveId: careerObj.id,
+      imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000",
+      modules: [
+        {
+          title: 'Comunicação Profissional',
+          lessons: [
+            { title: 'Apresentação Pessoal', type: LessonType.CLASS, isPremium: false },
+            { title: 'Vocabulário de Negócios', type: LessonType.CLASS, isPremium: true }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'trilha-gastronomia',
+      name: 'O Mundo do Vinho e Queijo',
+      description: 'Explore a cultura gastronômica francesa e aprenda a degustar.',
+      objectiveId: cultureObj.id,
+      imageUrl: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=1000",
+      modules: [
+        {
+          title: 'Introdução à Enologia',
+          lessons: [
+            { title: 'Tipos de Uvas', type: LessonType.CLASS, isPremium: false },
+            { title: 'Harmonização Básica', type: LessonType.STORY, isPremium: true }
+          ]
+        }
+      ]
     }
   ];
 
-  for (const t of tracksData) {
+  for (const t of tracksToCreate) {
     const track = await prisma.track.upsert({
       where: { id: t.id },
       update: { active: true },
@@ -84,21 +158,37 @@ async function main() {
         description: t.description,
         imageUrl: t.imageUrl,
         active: true,
-        objective: { connect: { id: t.objectiveId } }
+        objectiveId: t.objectiveId,
+        modules: {
+          create: t.modules.map((m, mIdx) => ({
+            title: m.title,
+            order: mIdx + 1,
+            cefrLevel: CEFRLevel.A1,
+            lessons: {
+              create: m.lessons.map((l, lIdx) => ({
+                title: l.title,
+                type: l.type,
+                order: lIdx + 1,
+                content: {},
+                isPremium: l.isPremium
+              }))
+            }
+          }))
+        }
       }
     });
 
+    // VINCULAR AOS PLANOS (PRO e FAMÍLIA)
     for (const plan of createdPlans) {
-    await prisma.subscriptionPlanTrack.create({
-      data: {
-        subscriptionPlanId: plan.id,
-        trackId: track.id
-      }
-    });
-  }
+      await prisma.subscriptionPlanTrack.upsert({
+        where: { subscriptionPlanId_trackId: { subscriptionPlanId: plan.id, trackId: track.id } },
+        update: {},
+        create: { subscriptionPlanId: plan.id, trackId: track.id }
+      });
+    }
   }
 
-  console.log('✅ Seed finalizado: Planos Pro (Mensal/Anual) e Família configurados!');
+  console.log('✅ Seed finalizado com sucesso!');
 }
 
 main()

@@ -34,14 +34,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const getColorClasses = (colorValue: string) => {
       const colorMap: Record<string, any> = {
         default: {
-          border: "border-[var(--color-s-200)]",
-          ring: "focus:ring-[var(--color-s-100)] focus:border-[var(--color-s-400)]",
-          label: "peer-focus:text-[var(--color-s-600)]"
+          border: "border-(--slate-200)",
+          ring: "focus:ring-(--slate-100) focus:border-(--slate-400)",
+          label: "peer-focus:text-(--slate-600)"
         },
         primary: {
-          border: "border-[var(--color-s-200)]",
-          ring: "focus:ring-[var(--clara-rose)]/10 focus:border-[var(--clara-rose)]",
-          label: "peer-focus:text-[var(--clara-rose)]"
+          border: "border-(--slate-200)",
+          ring: "focus:ring-(--clara-rose)/10 focus:border-(--clara-rose)",
+          label: "peer-focus:text-(--clara-rose)"
         }
       }
       return colorMap[colorValue] || colorMap.default
@@ -57,7 +57,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           className={cn(
             "peer flex w-full rounded-xl border bg-white px-4 py-3 text-sm transition-all duration-200 outline-none",
-            "placeholder-transparent focus:placeholder-slate-400",
+            "placeholder:text-transparent focus:placeholder-slate-400",
             colorClasses.border,
             colorClasses.ring,
             hasError && "border-rose-500 focus:border-rose-500 focus:ring-rose-100",
@@ -72,7 +72,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               "absolute left-3 px-1 transition-all duration-200 pointer-events-none",
               "text-xs font-bold uppercase tracking-widest",
               "top-[-9px] bg-white z-10",
-              "peer-placeholder-shown:top-[12px] peer-placeholder-shown:text-sm peer-placeholder-shown:font-medium peer-placeholder-shown:tracking-normal peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-s-400",
+              "peer-placeholder-shown:top-3 peer-placeholder-shown:text-sm peer-placeholder-shown:font-medium peer-placeholder-shown:tracking-normal peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-s-400",
               "peer-focus:top-[-9px] peer-focus:text-xs peer-focus:font-bold peer-focus:tracking-widest peer-focus:bg-white peer-focus:z-20",
               "peer-[:not(:placeholder-shown)]:top-[-9px] peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:font-bold peer-[:not(:placeholder-shown)]:bg-white",
               colorClasses.label,

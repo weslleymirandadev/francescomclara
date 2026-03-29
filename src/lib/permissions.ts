@@ -124,29 +124,6 @@ export async function getPlanFeatures(userId: string) {
     }
   });
 
-  const payment = user?.payments?.[0] || user?.parent?.payments?.[0];
-  const plan = payment?.plan;
-
-  return {
-    hasActivePlan: !!payment,
-    planType: plan?.type ?? "FREE",
-    hasForumAccess: !!payment,
-  };
-}
-
-export async function canModeratePost(user: { id: string; role: UserRole } | undefined, postId: string) {
-  if (!user) return false;
-  if (isAdmin(user) || isModerator(user)) return true;
-
-  return false;
-}
-
-export async function canCreatePost(userId: string | null, trackId?: string | null) {
-  if (!userId) return false;
-
-  if (!trackId) return true; // criar post público
-
-  if (trackId) return hasTrackAccess(userId, trackId);
-
-  return false;
+  const plan = user?.payments[0]?.plan || user?.parent?.payments[0]?.plan;
+  return plan?.features ? (plan.features as any) : {};
 }

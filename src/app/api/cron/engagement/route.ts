@@ -19,6 +19,8 @@ export async function GET(req: Request) {
 
   let inactivitySent = 0;
   let expiringSent = 0;
+  let flashcardsSent = 0;
+  let welcomeSent = 0;
 
   if (settings.notifyInactivity && settings.inactivityMessage) {
     const thresholdDate = new Date();
@@ -35,6 +37,52 @@ export async function GET(req: Request) {
         settings.inactivityMessage
       );
       if (success) inactivitySent++;
+    }
+  }
+
+  if (settings.welcomeBackMessage && settings.welcomeMessage) {
+    const newUsers = await prisma.user.findMany({
+      where: {
+        welcomeEmailSent: false,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      }
+    });
+
+    for (const user of newUsers) {
+      const success = await sendAutomationEmail(
+        user.email!,
+        `Bem-vindo(a) ao ${settings.siteName || 'Francês com Clara'}!`,
+        settings.welcomeMessage
+      );
+      if (success) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { welcomeEmailSent: true }
+        });
+        welcomeSent++;
+      }
+    }
+  }
+
+  const usersWithCards = await prisma.user.findMany({
+    where: {
+      flashcards: { some: {} },
+    },
+    include: {
+      _count: {
+        select: { flashcards: true }
+      }
+    }
+  });
+
+  for (const user of usersWithCards) {
+    if (user.email) {
+      const success = await sendAutomationEmail(
+        user.email,
+        "🇫🇷 Hora da Revisão!",
+        `Olá! Você tem ${user._count.flashcards} flashcards esperando por você. Pratique um pouco hoje para não esquecer o que aprendeu!`
+      );
+      if (success) flashcardsSent++;
     }
   }
 
@@ -63,6 +111,6 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ 
     success: true, 
-    stats: { inactivitySent, expiringSent } 
+    stats: { inactivitySent, expiringSent, flashcardsSent, welcomeSent } 
   });
 }

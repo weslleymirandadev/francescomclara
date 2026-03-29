@@ -20,7 +20,12 @@ const createPrismaClient = () => {
     }).$extends(withAccelerate());
   }
 
-  const pool = new pg.Pool({ connectionString: url });
+  const pool = new pg.Pool({ 
+    connectionString: url,
+    max: 10,
+    idleTimeoutMillis: 30000,
+  });
+  
   const adapter = new PrismaPg(pool);
   
   return new PrismaClient({ adapter });
