@@ -17,14 +17,14 @@ export function Toaster() {
         },
         duration: 4000,
         success: {
-          className: '!bg-green-50 !text-green-700 border-green-200',
+          className: '!bg-green-50 !text-green-700 border-green-200 flex',
           iconTheme: {
             primary: '#10b981',
             secondary: 'white',
           },
         },
         error: {
-          className: '!bg-red-50 !text-red-700 border-red-200 !max-h-32',
+          className: '!bg-red-50 !text-red-700 border-red-200 !max-h-32 flex',
           iconTheme: {
             primary: '#ef4444',
             secondary: 'white',

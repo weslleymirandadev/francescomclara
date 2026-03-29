@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
-import { redis } from "@/lib/redis"
+import { hasActiveSubscription } from "@/lib/permissions";
+import { redis } from "@/lib/redis";
 
 const IGNORED_ROUTES = ["/api/mercado-pago"];
 
@@ -73,19 +74,34 @@ export async function proxy(req: NextRequest) {
   }
 
   if (token) {
-    if (pathname.startsWith('/dashboard/trilhas/')) {
-      const trackId = pathname.split('/')[3];
-      if (trackId && !await hasTrackAccess(token.sub!, trackId)) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
+    if (pathname.startsWith('/curso/')) {
+      const trackId = pathname.split('/')[2];
+      
+      if (trackId) {
+        const hasSubscription = await hasActiveSubscription(token.sub!);
+        
+        const hasEnrollment = await hasTrackAccess(token.sub!, trackId);
+
+        if (!hasSubscription && !hasEnrollment) {
+          return NextResponse.redirect(new URL('/dashboard', req.url));
+        }
       }
     }
-  
-  }
+    
+    if (pathname.startsWith('/flashcards') || pathname.startsWith('/forum')) {
+      const userHasAnyEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          userId: token.sub,
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date() } }
+          ]
+        }
+      });
 
-  // 7. Permissões para /admin
-  if (pathname.startsWith("/admin")) {
-    if (!token || token.role != "ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
+      if (!userHasAnyEnrollment) {
+        return NextResponse.redirect(new URL('/assinar', req.url));
+      }
     }
   }
 
@@ -95,10 +111,20 @@ export async function proxy(req: NextRequest) {
 async function hasTrackAccess(userId: string, trackId: string): Promise<boolean> {
   const enrollment = await prisma.enrollment.findFirst({
     where: {
-      userId,
-      trackId,
-      OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+      userId: userId,
+      plan: {
+        tracks: {
+          some: {
+            id: trackId
+          }
+        }
+      },
+      OR: [
+        { endDate: null },
+        { endDate: { gte: new Date() } }
+      ]
     }
   });
+
   return !!enrollment;
 }

@@ -3,170 +3,101 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
-/**
- * GET - Lista todos os flashcards do usuário autenticado
- * Query params:
- * - lessonId: string (opcional) - filtrar por lição específica
- */
+interface SimpleProgress {
+  lessonId: string;
+}
+
+interface FlashcardTemplate {
+  id: string;
+  front: string;
+  back: string;
+  lessonId: string;
+}
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
+    const userId = session.user.id;
+    const now = new Date();
+
+    const userProgress: SimpleProgress[] = await prisma.lessonProgress.findMany({
+      where: { userId, completed: true },
+      select: { lessonId: true }
+    });
+    
+    const completedIds = userProgress.map((p) => p.lessonId);
+
+    const availableTemplates: FlashcardTemplate[] = await prisma.flashcardTemplate.findMany({
+      where: {
+        OR: [
+          { relatedLessonId: null },
+          { relatedLessonId: { in: completedIds } }
+        ]
+      }
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const lessonId = searchParams.get('lessonId');
-
-    const where: any = {
-      userId: user.id,
-    };
-
-    if (lessonId) {
-      where.lessonId = lessonId;
-    }
+    await Promise.all(
+      availableTemplates.map((template: FlashcardTemplate) =>
+        prisma.flashcard.upsert({
+          where: {
+            id: `${userId}_${template.id}` 
+          },
+          create: {
+            id: `${userId}_${template.id}`,
+            userId,
+            front: template.front,
+            back: template.back,
+            lessonId: template.lessonId,
+            level: 0,
+            nextReview: now
+          },
+          update: {} 
+        })
+      )
+    );
 
     const flashcards = await prisma.flashcard.findMany({
-      where,
+      where: {
+        userId,
+        nextReview: { lte: now }
+      },
       include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            module: {
-              select: {
-                id: true,
-                title: true,
-                track: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        lesson: { select: { title: true } }
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ level: 'asc' }, { nextReview: 'asc' }],
+      take: 20
     });
 
-    return NextResponse.json(flashcards);
+    return NextResponse.json(flashcards.sort(() => Math.random() - 0.5));
   } catch (error) {
-    console.error("Error fetching flashcards:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar flashcards" },
-      { status: 500 }
-    );
+    console.error("Erro Flashcards:", error);
+    return NextResponse.json({ error: "Erro ao processar" }, { status: 500 });
   }
 }
 
-/**
- * POST - Cria um novo flashcard
- * Body: { front: string, back: string, lessonId?: string }
- */
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
     const body = await request.json();
     const { front, back, lessonId } = body;
 
-    // Validações
-    if (!front || !back) {
-      return NextResponse.json(
-        { error: "Campos obrigatórios: front, back" },
-        { status: 400 }
-      );
-    }
-
-    // Se lessonId for fornecido, verificar se a lição existe
-    if (lessonId) {
-      const lesson = await prisma.lesson.findUnique({
-        where: { id: lessonId },
-      });
-
-      if (!lesson) {
-        return NextResponse.json(
-          { error: "Lição não encontrada" },
-          { status: 404 }
-        );
-      }
-    }
+    if (!front || !back) return NextResponse.json({ error: "Campos obrigatórios" }, { status: 400 });
 
     const flashcard = await prisma.flashcard.create({
       data: {
-        userId: user.id,
+        userId: session.user.id,
         front,
         back,
         lessonId: lessonId || null,
-      },
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            module: {
-              select: {
-                id: true,
-                title: true,
-                track: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      }
     });
 
     return NextResponse.json(flashcard, { status: 201 });
   } catch (error) {
-    console.error("Error creating flashcard:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar flashcard" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro ao criar" }, { status: 500 });
   }
 }
-

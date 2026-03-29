@@ -40,6 +40,12 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   const [hasChanges, setHasChanges] = useState(false);
   
   const [formData, setFormData] = useState<SettingsFormData>({
+    welcomeBackMessage: initialSettings?.welcomeBackMessage ?? true,
+    expiringReminder: initialSettings?.expiringReminder ?? true,
+    inactivityReminder: initialSettings?.inactivityReminder ?? true,
+    expiringMessage: initialSettings?.expiringMessage || "Seu plano está chegando ao fim! Não perca o acesso à sua jornada.",
+    inactivityMessage: initialSettings?.inactivityMessage || "Sentimos sua falta! Que tal retomar sua jornada de francês hoje?",
+    welcomeMessage: initialSettings?.welcomeMessage || "Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.",
     siteDescription: initialSettings?.siteDescription || "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
     seoDescription: initialSettings?.seoDescription || "Aprenda francês de forma prática e cultural com a Clara.",
     siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
@@ -123,7 +129,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
   if (loading) return <Loading />;
 
   return (
-    <div className="w-full bg-white min-h-screen pb-32">
+    <div className="w-full bg-white min-h-screen pb-32 animate-in fade-in duration-700">
       <SaveChangesBar 
         hasChanges={hasChanges}
         loading={loading}
@@ -135,7 +141,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-50 pb-8">
           <div>
-            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-[var(--interface-accent)] uppercase tracking-tighter">
+            <h1 className="flex gap-1 text-4xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter">
               Paramètres 
               <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none" />
             </h1>
@@ -149,7 +155,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 shadow-sm">
               <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-pink-50 rounded-2xl text-[var(--clara-rose)]">
+                <div className="p-3 bg-pink-50 rounded-2xl text-(--clara-rose)">
                   <Palette size={24} />
                 </div>
                 <div>
@@ -248,7 +254,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     <textarea 
                       value={formData.siteDescription}
                       onChange={e => handleChange("siteDescription", e.target.value)}
-                      className="w-full min-h-[80px] p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
+                      className="w-full min-h-20 p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
                       placeholder="Texto que aparece abaixo da logo no rodapé..."
                     />
                   </div>
@@ -298,7 +304,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                     </div>
                     <div className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                       <div 
-                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative flex-shrink-0"
+                        className="w-12 h-12 rounded-xl border-4 border-white shadow-sm relative shrink-0"
                         style={{ backgroundColor: formData.highlightColor?.startsWith('--') ? `var(${formData.highlightColor})` : (formData.highlightColor || '#D44D8C') }}
                       >
                         <input 
@@ -397,7 +403,7 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
 
             <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-8">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-50 text-[var(--interface-accent)] rounded-2xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-rose-50 text-(--interface-accent) rounded-2xl flex items-center justify-center">
                   <Bell size={24} />
                 </div>
                 <div>
@@ -409,7 +415,6 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
               </div>
 
               <div className="space-y-6">
-                {/* Automação 01: Expiração de Plano */}
                 <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
                   <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
                     <div className="flex-1 space-y-4">
@@ -441,14 +446,13 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       <textarea 
                         value={formData.expiringMessage}
                         onChange={(e) => { setFormData({...formData, expiringMessage: e.target.value}); setHasChanges(true); }}
-                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        className="w-full min-h-20 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
                         placeholder="Sua mensagem de renovação..."
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Automação 02: Inatividade */}
                 <div className="group border border-slate-100 rounded-[2rem] overflow-hidden transition-all hover:border-slate-200">
                   <div className="p-6 flex flex-col md:flex-row gap-6 bg-slate-50/50">
                     <div className="flex-1 space-y-4">
@@ -479,11 +483,39 @@ export default function AdminSettings({ initialSettings }: { initialSettings: Se
                       <textarea 
                         value={formData.inactivityMessage}
                         onChange={(e) => { setFormData({...formData, inactivityMessage: e.target.value}); setHasChanges(true); }}
-                        className="w-full min-h-[80px] p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                        className="w-full min-h-20 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
                         placeholder="Mensagem de saudade..."
                       />
                     </div>
                   </div>
+                </div>
+
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-900">
+                        Mensagem de Boas-vindas (Primeiro Acesso)
+                      </span>
+                    </div>
+                    <Switch 
+                      checked={formData.welcomeBackMessage} 
+                      onCheckedChange={(val) => { 
+                        setFormData({...formData, welcomeBackMessage: val}); 
+                        setHasChanges(true); 
+                      }}
+                    />
+                  </div>
+
+                  <textarea 
+                    value={formData.welcomeMessage}
+                    onChange={(e) => { 
+                      setFormData({...formData, welcomeMessage: e.target.value}); 
+                      setHasChanges(true); 
+                    }}
+                    className="w-full min-h-24 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-interface-accent transition-all resize-none"
+                    placeholder="Escreve aqui a mensagem que o aluno verá no primeiro acesso..."
+                  />
                 </div>
               </div>
             </section>

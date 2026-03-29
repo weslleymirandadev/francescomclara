@@ -1,6 +1,6 @@
 export default function MaintenancePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4 text-center animate-in fade-in duration-700">
       <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 mb-2">
         Estamos em Manutenção
       </h1>

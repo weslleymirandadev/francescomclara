@@ -12,7 +12,8 @@ declare module 'next-auth' {
       banner?: string | null;
       level?: string | null;
       role: UserRole;
-      username?: string | null
+      username?: string | null;
+      completedLessonsCount?: string | null;
     };
   }
 

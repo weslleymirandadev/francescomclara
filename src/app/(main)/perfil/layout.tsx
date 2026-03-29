@@ -24,7 +24,7 @@ export default function PerfilLayout({
     children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-s-50 pb-12 px-6">
+    <div className="min-h-screen bg-s-50 pb-12">
       {children}
     </div>
   );

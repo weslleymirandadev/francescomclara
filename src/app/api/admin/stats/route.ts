@@ -20,7 +20,7 @@ export async function GET() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [totalUsers, recentStudentsRaw, activeUsers] = await Promise.all([
+    const [totalUsers, recentStudentsRaw, activeUsers, canceledSubscriptions] = await Promise.all([
       prisma.user.count(),
       prisma.user.findMany({
         take: 5,
@@ -31,7 +31,10 @@ export async function GET() {
           createdAt: true,
           enrollments: {
             take: 1,
-            select: { track: { select: { name: true } } }
+            orderBy: { createdAt: 'desc' },
+            select: {
+              plan: { select: { name: true } },
+            }
           }
         }
       }),
@@ -40,8 +43,15 @@ export async function GET() {
           enrollments: { some: { OR: [{ endDate: null }, { endDate: { gte: now } }] } },
           payments: { some: { status: 'APPROVED' } }
         }
-      })
+      }),
+      prisma.enrollment.count({ 
+        where: { 
+          endDate: { lt: now } 
+        } 
+      }),
     ]);
+
+    const churnRate = totalUsers > 0 ? ((canceledSubscriptions / totalUsers) * 100).toFixed(1) : "0.0";
 
     const allPlans = await prisma.subscriptionPlan.findMany({ 
       where: { active: true } 
@@ -119,6 +129,7 @@ export async function GET() {
         total: totalUsers,
         active: activeUsers
       },
+      churnRate,
       plans: {
         individual: stats.individual.size,
         family: stats.family.size,
@@ -133,7 +144,13 @@ export async function GET() {
         id: s.id,
         name: s.name || "Sem nome",
         createdAt: s.createdAt,
-        planType: s.enrollments[0]?.track?.name || "N/A"
+        planType: s.enrollments[0]?.plan?.name || "Sem Plano",
+        enrollments: s.enrollments[0] ? [{
+          ...s.enrollments[0],
+          track: {
+            name: s.enrollments[0].plan?.name || "Sem Plano"
+          }
+        }] : []
       }))
     });
 

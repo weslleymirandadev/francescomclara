@@ -27,7 +27,7 @@ export default async function AuthLayout({
   });
 
   return (
-    <div className="min-h-screen bg-[var(--color-s-50)]">
+    <div className="min-h-screen bg-(--slate-50)">
       <Header settings={settings || undefined} />
       
       <main className="pt-10">
