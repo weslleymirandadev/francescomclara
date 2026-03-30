@@ -1,8 +1,9 @@
 packages:
-  - '.'
+  - .
 
 onlyBuiltDependencies:
   - '@prisma/engines'
+  - core-js
   - esbuild
   - prisma
   - sharp
