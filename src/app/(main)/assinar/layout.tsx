@@ -10,13 +10,20 @@ export default function RootLayout({
 }>) {
   return (
     <>
+      {/* 1. Script de Segurança (Antifraude) */}
       <Script
         src="https://www.mercadopago.com/v2/security.js"
-        //@ts-ignore
+        strategy="afterInteractive"
         view="checkout"
         output="deviceId"
-      ></Script>
-      <Script src="https://sdk.mercadopago.com/js/v2"></Script>
+      />
+
+      {/* 2. SDK Principal do Mercado Pago */}
+      <Script
+        src="https://sdk.mercadopago.com/js/v2"
+        strategy="beforeInteractive"
+      />
+
       {children}
     </>
   );

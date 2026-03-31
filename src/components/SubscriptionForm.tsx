@@ -48,7 +48,7 @@ function isValidCnpj(value: string) {
   const baseTwelve = digits.substring(0, 12);
   const weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
   const weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  
+
   const d1 = calcCheckDigit(baseTwelve, weights1);
   const d2 = calcCheckDigit(baseTwelve + d1.toString(), weights2);
 
@@ -63,40 +63,40 @@ const VALIDATION_RULES = {
     error: {
       min: "Número do cartão deve ter 16 dígitos",
       max: "Número do cartão deve ter no máximo 16 dígitos",
-      invalid: "Número do cartão inválido"
-    }
+      invalid: "Número do cartão inválido",
+    },
   },
   expiry: {
     min: 5, // MM/AA
     max: 5,
-    error: "Data de validade inválida (MM/AA)"
+    error: "Data de validade inválida (MM/AA)",
   },
   cvv: {
     min: 3,
     max: 3,
-    error: "CVV deve ter 3 dígitos"
+    error: "CVV deve ter 3 dígitos",
   },
   cpf: {
     min: 14, // 11 digits + formatting (###.###.###-##)
     max: 14,
     error: {
       min: "CPF deve ter 11 dígitos",
-      invalid: "CPF inválido"
-    }
+      invalid: "CPF inválido",
+    },
   },
   cnpj: {
     min: 18, // 14 digits + formatting (##.###.###/####-##)
     max: 18,
     error: {
       min: "CNPJ deve ter 14 dígitos",
-      invalid: "CNPJ inválido"
-    }
-  }
+      invalid: "CNPJ inválido",
+    },
+  },
 };
 
 // Helper function to validate expiry date
 const isValidExpiry = (expiry: string): boolean => {
-  const [monthStr, yearStr] = expiry.split('/');
+  const [monthStr, yearStr] = expiry.split("/");
   if (!monthStr || !yearStr) return false;
 
   const month = parseInt(monthStr, 10);
@@ -114,19 +114,26 @@ const isValidExpiry = (expiry: string): boolean => {
 const cardSchema = z.object({
   holderName: z.string().min(1, "Informe o nome do titular"),
   email: z.string().email("E-mail inválido"),
-  cardNumber: z.string()
+  cardNumber: z
+    .string()
     .min(VALIDATION_RULES.cardNumber.min, VALIDATION_RULES.cardNumber.error.min)
     .max(VALIDATION_RULES.cardNumber.max, VALIDATION_RULES.cardNumber.error.max)
-    .refine(val => /^\d{4} \d{4} \d{4} \d{4}$/.test(val),
-      VALIDATION_RULES.cardNumber.error.invalid),
-  expiry: z.string()
+    .refine(
+      (val) => /^\d{4} \d{4} \d{4} \d{4}$/.test(val),
+      VALIDATION_RULES.cardNumber.error.invalid,
+    ),
+  expiry: z
+    .string()
     .length(VALIDATION_RULES.expiry.min, VALIDATION_RULES.expiry.error)
-    .refine(val => /^\d{2}\/\d{2}$/.test(val) && isValidExpiry(val),
-      "Data de validade inválida ou expirada"),
-  cvv: z.string()
+    .refine(
+      (val) => /^\d{2}\/\d{2}$/.test(val) && isValidExpiry(val),
+      "Data de validade inválida ou expirada",
+    ),
+  cvv: z
+    .string()
     .min(VALIDATION_RULES.cvv.min, VALIDATION_RULES.cvv.error)
     .max(VALIDATION_RULES.cvv.max, VALIDATION_RULES.cvv.error)
-    .refine(val => /^\d{3,4}$/.test(val), "CVV inválido"),
+    .refine((val) => /^\d{3,4}$/.test(val), "CVV inválido"),
   documentType: z.enum(["CPF", "CNPJ"]),
   document: z.string().superRefine((val, ctx) => {
     // @ts-ignore - parent exists at runtime but not in type definition
@@ -149,14 +156,14 @@ const cardSchema = z.object({
             type: "string",
             inclusive: true,
             message: VALIDATION_RULES.cpf.error.min,
-            origin: "string"
+            origin: "string",
           });
         }
       } else if (digitsOnly.length === requiredLength && !isValidCpf(val)) {
         // Validar apenas quando tiver o tamanho completo
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: VALIDATION_RULES.cpf.error.invalid
+          message: VALIDATION_RULES.cpf.error.invalid,
         });
       }
     } else if (documentType === "CNPJ") {
@@ -175,24 +182,23 @@ const cardSchema = z.object({
             type: "string",
             inclusive: true,
             message: VALIDATION_RULES.cnpj.error.min,
-            origin: "string"
+            origin: "string",
           });
         }
       } else if (digitsOnly.length === requiredLength && !isValidCnpj(val)) {
         // Validar apenas quando tiver o tamanho completo
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: VALIDATION_RULES.cnpj.error.invalid
+          message: VALIDATION_RULES.cnpj.error.invalid,
         });
       }
     }
-  })
+  }),
 });
-
 
 export interface CartItem {
   id: string;
-  type: 'course';
+  type: "course";
   title: string;
   price: number;
 }
@@ -206,17 +212,22 @@ interface UserSession {
 
 interface SessionData {
   user?: UserSession;
-  status: 'authenticated' | 'unauthenticated' | 'loading';
+  status: "authenticated" | "unauthenticated" | "loading";
 }
 
 interface SubscriptionFormProps {
   amount: number;
   items: CartItem[];
   subscriptionPlanId?: string; // ID do plano de assinatura (opcional)
-  period?: 'MONTHLY' | 'YEARLY'; // Período da assinatura
+  period?: "MONTHLY" | "YEARLY"; // Período da assinatura
 }
 
-export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: SubscriptionFormProps) {
+export function SubscriptionForm({
+  amount,
+  items,
+  subscriptionPlanId,
+  period,
+}: SubscriptionFormProps) {
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
@@ -305,69 +316,53 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
       return;
     }
 
+    // @ts-ignore
+    if (!window.MercadoPago) {
+      toast.error(
+        "SDK do Mercado Pago não carregado. Por favor, recarregue a página.",
+      );
+      return;
+    }
+
+    // Inicializa a SDK v2 (Idealmente isso ficaria fora da função, mas mantive aqui para facilitar)
+    // @ts-ignore
+    const mp = new window.MercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY);
+
     setProcessing(true);
+
     try {
-      // @ts-ignore
-      if (!window.MercadoPago) {
-        throw new Error("SDK do Mercado Pago não carregado. Por favor, recarregue a página.");
-      }
-
-      // --- 1. OBTENÇÃO DOS IDs DE PAGAMENTO (BANDERA E EMISSOR) ---
-      const cardNumberClean = data.cardNumber.replace(/\s/g, '');
-      const bin = cardNumberClean.substring(0, 6);
-
-      // Busca o ID do meio de pagamento (payment_method_id)
-      // @ts-ignore
-      const paymentMethods = await window.MercadoPago.getPaymentMethods({
-        bin: bin,
-      });
-
-      if (!paymentMethods || paymentMethods.length === 0) {
-        throw new Error("Bandeira do cartão não identificada. Verifique os dados.");
-      }
-
-      const paymentMethodId = paymentMethods[0].id; // Ex: 'visa', 'mastercard'
-
-      // Busca o ID do emissor (issuer_id) para a transação
-      const amountInReais = amount / 100; // Total em R$
-      // @ts-ignore
-      const installmentInfo = await window.MercadoPago.getInstallments({
-        amount: amountInReais,
-        bin: bin,
-        payment_method_id: paymentMethodId,
-      });
-
-      // Verifica se há informação de emissor e pega o ID
-      const issuerId = installmentInfo.length > 0 && installmentInfo[0].issuer
-        ? installmentInfo[0].issuer.id
-        : null;
-
-      // --- 2. CRIAÇÃO DO TOKEN NO FRONTEND (DIRETO PARA O MP) ---
-
-      // Parse da data de validade (MM/AA)
-      const [expiryMonth, expiryYear] = data.expiry.split('/');
+      // 1. LIMPEZA DE DADOS
+      const cardNumberClean = data.cardNumber.replace(/\s/g, "");
+      const [expiryMonth, expiryYear] = data.expiry.split("/");
       const expiryYearFull = `20${expiryYear}`;
+      const cpfClean = data.document.replace(/\D/g, "");
 
-      const cardData = {
+      // 2. CRIAÇÃO DO TOKEN DO CARTÃO (SDK v2)
+      const tokenResponse = await mp.createCardToken({
         cardNumber: cardNumberClean,
         cardholderName: data.holderName,
         cardExpirationMonth: expiryMonth,
         cardExpirationYear: expiryYearFull,
         securityCode: data.cvv,
-        identificationType: data.documentType,
-        identificationNumber: data.document.replace(/\D/g, ''),
-      };
+        identificationType: data.documentType, // 'CPF' ou 'CNPJ'
+        identificationNumber: cpfClean,
+      });
 
-      // @ts-ignore
-      const tokenResponse = await window.MercadoPago.createCardToken(cardData);
-      const token = tokenResponse.id;
-
-      if (!token) {
-        throw new Error("Erro ao gerar o token do cartão. Verifique os dados inseridos.");
+      if (!tokenResponse.id) {
+        throw new Error(
+          "Erro ao gerar o token do cartão. Verifique se os dados estão corretos.",
+        );
       }
 
-      // --- 3. ENVIO PARA O BACKEND (AGORA COM TODOS OS PARÂMETROS CORRETOS) ---
+      const token = tokenResponse.id;
 
+      // 3. IDENTIFICAÇÃO DO MEIO DE PAGAMENTO (Para enviar ao backend)
+      // Na v2, buscamos pelo BIN para saber se é 'visa', 'mastercard', etc.
+      const bin = cardNumberClean.substring(0, 6);
+      const paymentMethods = await mp.getPaymentMethods({ bin });
+      const paymentMethodId = paymentMethods.results?.[0]?.id || "credit_card";
+
+      // 4. ENVIO PARA O BACKEND
       const payerName = session.user.name || data.holderName;
       const payerEmail = session.user.email || data.email;
 
@@ -375,49 +370,50 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
         throw new Error("E-mail é obrigatório para o pagamento");
       }
 
+      // Device ID para Antifraude
       // @ts-ignore
-      const deviceId = window.MP_DEVICE_SESSION_ID;
+      const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
-      // Criar assinatura
-      const subscriptionResponse = await fetch("/api/mercado-pago/subscription/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-meli-session-id": deviceId, // Device ID para Antifraude
+      const subscriptionResponse = await fetch(
+        "/api/mercado-pago/subscription/create",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-meli-session-id": deviceId,
+          },
+          body: JSON.stringify({
+            token: token,
+            method: paymentMethodId,
+            installments: 1,
+            payer: {
+              email: payerEmail,
+              firstName: payerName.split(" ")[0] || "",
+              lastName: payerName.split(" ").slice(1).join(" ") || "",
+              name: payerName,
+              cpf: cpfClean,
+            },
+            userId: session.user.id,
+            items: items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              quantity: 1,
+            })),
+            total: amount,
+            subscriptionPlanId: subscriptionPlanId,
+            frequencyType: "months",
+            frequency: period === "YEARLY" ? 12 : 1,
+            cardData: {
+              lastFour: cardNumberClean.slice(-4),
+              holderName: data.holderName,
+              expiryMonth: expiryMonth,
+              expiryYear: expiryYear,
+              brand: paymentMethodId,
+            },
+          }),
         },
-        body: JSON.stringify({
-          token: token, // Token do cartão para checkout transparente
-          method: paymentMethodId, // ID da bandeira (Ex: 'visa')
-          installments: 1, // Assinatura recorrente sempre em 1x
-          payer: {
-            email: payerEmail,
-            firstName: payerName.split(' ')[0] || '',
-            lastName: payerName.split(' ').slice(1).join(' ') || '',
-            name: payerName,
-            cpf: data.document.replace(/\D/g, ''),
-          },
-          userId: session.user.id,
-          items: items.map(item => ({
-            id: item.id,
-            title: item.title,
-            price: item.price,
-            quantity: 1,
-          })),
-          total: amount,
-          subscriptionPlanId: subscriptionPlanId, // Passar ID do plano se disponível
-          frequencyType: period === 'YEARLY' ? 'months' : 'months',
-          frequency: period === 'YEARLY' ? 12 : 1, // Anual = 12 meses, Mensal = 1 mês
-          // Dados do cartão para salvar no banco
-          cardData: {
-            cardNumber: cardNumberClean,
-            holderName: data.holderName,
-            expiry: data.expiry,
-            expiryMonth: expiryMonth,
-            expiryYear: expiryYear,
-            brand: paymentMethodId,
-          },
-        }),
-      });
+      );
 
       const subscriptionResult = await subscriptionResponse.json();
 
@@ -425,22 +421,27 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
         throw new Error(subscriptionResult.error || "Erro ao criar assinatura");
       }
 
-      // Se for transparente e já autorizado, redirecionar para sucesso
-      if (subscriptionResult.isTransparent && subscriptionResult.status === 'authorized') {
-        toast.success("Assinatura criada e autorizada com sucesso!");
+      // 5. TRATAMENTO DO RESULTADO
+      if (
+        subscriptionResult.status === "authorized" ||
+        subscriptionResult.status === "active"
+      ) {
+        toast.success(
+          "Assinatura confirmada! Bem-vindo(a) ao Francês com Clara.",
+        );
         router.push(`/assinar/sucesso?payment_id=${subscriptionResult.id}`);
-      } else if (subscriptionResult.requiresRedirect && subscriptionResult.init_point) {
-        // Redirecionar para checkout do Mercado Pago
+      } else if (subscriptionResult.init_point) {
+        // Caso precise de redirecionamento (Checkout Pro/3DS)
         window.location.href = subscriptionResult.init_point;
       } else {
-        // Assinatura pendente
-        toast.success("Assinatura criada! Aguardando autorização.");
+        toast.success("Assinatura em processamento!");
         router.push(`/assinar/sucesso?payment_id=${subscriptionResult.id}`);
       }
     } catch (error: any) {
-      console.error('Erro ao criar assinatura:', error);
-      // Exibe a mensagem de erro específica, se disponível
-      toast.error(error.message || "Ocorreu um erro ao processar sua assinatura. Por favor, tente novamente.");
+      console.error("Erro no checkout:", error);
+      toast.error(
+        error.message || "Erro ao processar pagamento. Tente novamente.",
+      );
     } finally {
       setProcessing(false);
     }
@@ -455,7 +456,8 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-gray-900">Assinatura</h2>
         <p className="text-xs text-gray-500">
-          Complete sua assinatura mensal. O pagamento será cobrado automaticamente todo mês.
+          Complete sua assinatura mensal. O pagamento será cobrado
+          automaticamente todo mês.
         </p>
       </div>
 
@@ -464,276 +466,289 @@ export function SubscriptionForm({ amount, items, subscriptionPlanId, period }: 
         className="space-y-4 rounded-md"
       >
         <p className="text-xs text-gray-500">
-          Valor total: <span className="font-semibold">{formatPrice(amount)}</span>
+          Valor total:{" "}
+          <span className="font-semibold">{formatPrice(amount)}</span>
         </p>
 
+        <div className="relative w-full">
+          <input
+            type="text"
+            maxLength={19}
+            onKeyDown={handleKeyDown}
+            {...register("cardNumber", {
+              onChange: (e) => {
+                const masked = formatCardNumber(e.target.value);
+                e.target.value = masked;
+                trigger("cardNumber");
+              },
+            })}
+            className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cardNumber ? "border-red-400" : ""}`}
+            placeholder=" "
+          />
+          <label
+            className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
+          >
+            Número do cartão
+          </label>
+          {errors.cardNumber && (
+            <span className="text-xs text-red-500">
+              {errors.cardNumber.message}
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-3">
           <div className="relative w-full">
             <input
               type="text"
-              maxLength={19}
+              maxLength={5}
               onKeyDown={handleKeyDown}
-              {...register("cardNumber", {
+              {...register("expiry", {
                 onChange: (e) => {
-                  const masked = formatCardNumber(e.target.value);
-                  e.target.value = masked;
-                  trigger("cardNumber");
+                  const v = formatExpiry(e.target.value);
+                  e.target.value = v;
+                  setValue("expiry", v, { shouldValidate: true });
                 },
               })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cardNumber ? "border-red-400" : ""}`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.expiry ? "border-red-400" : ""}`}
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cardNumber ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
             >
-              Número do cartão
+              Validade (MM/AA)
             </label>
-            {errors.cardNumber && (
-              <span className="text-xs text-red-500">{errors.cardNumber.message}</span>
+            {errors.expiry && (
+              <span className="text-xs text-red-500">
+                {errors.expiry.message}
+              </span>
             )}
-          </div>
-
-          <div className="flex gap-3">
-            <div className="relative w-full">
-              <input
-                type="text"
-                maxLength={5}
-                onKeyDown={handleKeyDown}
-                {...register("expiry", {
-                  onChange: (e) => {
-                    const v = formatExpiry(e.target.value);
-                    e.target.value = v;
-                    setValue("expiry", v, { shouldValidate: true });
-                  },
-                })}
-                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.expiry ? "border-red-400" : ""}`}
-                placeholder=" "
-              />
-              <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.expiry ? "text-red-400" : "text-gray-300"}`}
-              >
-                Validade (MM/AA)
-              </label>
-              {errors.expiry && (
-                <span className="text-xs text-red-500">{errors.expiry.message}</span>
-              )}
-            </div>
-
-            <div className="relative w-full">
-              <input
-                type="text"
-                maxLength={3}
-                onKeyDown={handleKeyDown}
-                {...register("cvv", {
-                  onChange: (e) => {
-                    const v = formatCVV(e.target.value);
-                    e.target.value = v;
-                    trigger("cvv");
-                  },
-                })}
-                className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cvv ? "border-red-400" : ""}`}
-                placeholder=" "
-              />
-              <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
-              >
-                CVV
-              </label>
-              {errors.cvv && (
-                <span className="text-xs text-red-500">{errors.cvv.message}</span>
-              )}
-            </div>
           </div>
 
           <div className="relative w-full">
             <input
               type="text"
+              maxLength={3}
               onKeyDown={handleKeyDown}
-              {...register("holderName", {
+              {...register("cvv", {
                 onChange: (e) => {
-                  e.target.value = e.target.value.toUpperCase();
+                  const v = formatCVV(e.target.value);
+                  e.target.value = v;
+                  trigger("cvv");
                 },
               })}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.holderName ? "border-red-400" : ""}`}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.cvv ? "border-red-400" : ""}`}
               placeholder=" "
             />
             <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.cvv ? "text-red-400" : "text-gray-300"}`}
             >
-              Nome do titular (como no cartão)
+              CVV
             </label>
-            {errors.holderName && (
-              <span className="text-xs text-red-500">{errors.holderName.message}</span>
+            {errors.cvv && (
+              <span className="text-xs text-red-500">{errors.cvv.message}</span>
             )}
           </div>
+        </div>
 
-          <div className="relative w-full">
-            <input
-              type="email"
+        <div className="relative w-full">
+          <input
+            type="text"
+            onKeyDown={handleKeyDown}
+            {...register("holderName", {
+              onChange: (e) => {
+                e.target.value = e.target.value.toUpperCase();
+              },
+            })}
+            className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.holderName ? "border-red-400" : ""}`}
+            placeholder=" "
+          />
+          <label
+            className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
+          >
+            Nome do titular (como no cartão)
+          </label>
+          {errors.holderName && (
+            <span className="text-xs text-red-500">
+              {errors.holderName.message}
+            </span>
+          )}
+        </div>
+
+        <div className="relative w-full">
+          <input
+            type="email"
+            onKeyDown={handleKeyDown}
+            {...register("email")}
+            className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.email ? "border-red-400" : ""}`}
+            placeholder=" "
+          />
+          <label
+            className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.email ? "text-red-400" : "text-gray-300"}`}
+          >
+            E-mail
+          </label>
+          {errors.email && (
+            <span className="text-xs text-red-500">{errors.email.message}</span>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <div className="relative w-1/3">
+            <select
               onKeyDown={handleKeyDown}
-              {...register("email")}
-              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.email ? "border-red-400" : ""}`}
-              placeholder=" "
-            />
-            <label
-              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.email ? "text-red-400" : "text-gray-300"}`}
+              {...register("documentType", {
+                onChange: (e) => {
+                  const value = e.target.value as "CPF" | "CNPJ";
+                  // Limpar o input quando trocar de tipo
+                  setValue("document", "", { shouldValidate: false });
+                  // Limpar erros do documento anterior
+                  trigger("document");
+                },
+              })}
+              className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.documentType ? "border-red-400" : ""}`}
             >
-              E-mail
+              <option value="CPF" className="text-black">
+                CPF
+              </option>
+              <option value="CNPJ" className="text-black">
+                CNPJ
+              </option>
+            </select>
+            <div className="pointer-events-none absolute left-3 top-1/3 -translate-y-1/2 text-xs text-black">
+              {documentType}
+            </div>
+            <label
+              className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-focus:text-pink-500 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
+            >
+              Documento
             </label>
-            {errors.email && (
-              <span className="text-xs text-red-500">{errors.email.message}</span>
-            )}
           </div>
 
-          <div className="flex gap-3">
-            <div className="relative w-1/3">
-              <select
-                onKeyDown={handleKeyDown}
-                {...register("documentType", {
-                  onChange: (e) => {
-                    const value = e.target.value as "CPF" | "CNPJ";
-                    // Limpar o input quando trocar de tipo
-                    setValue("document", "", { shouldValidate: false });
-                    // Limpar erros do documento anterior
-                    trigger("document");
-                  },
-                })}
-                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm text-transparent outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.documentType ? "border-red-400" : ""}`}
-              >
-                <option value="CPF" className="text-black">CPF</option>
-                <option value="CNPJ" className="text-black">CNPJ</option>
-              </select>
-              <div className="pointer-events-none absolute left-3 top-1/3 -translate-y-1/2 text-xs text-black">
-                {documentType}
-              </div>
-              <label
-                className={`pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-focus:text-pink-500 ${errors.documentType ? "text-red-400" : "text-[#99A1AF]"}`}
-              >
-                Documento
-              </label>
-            </div>
+          <div className="relative w-2/3">
+            <input
+              type="text"
+              maxLength={documentType === "CPF" ? 14 : 18}
+              onKeyDown={handleKeyDown}
+              {...register("document", {
+                onChange: (e) => {
+                  const value = e.target.value;
+                  let maskedValue = "";
+                  if (documentType === "CPF") {
+                    maskedValue = maskCpf(value);
+                  } else {
+                    maskedValue = maskCnpj(value);
+                  }
+                  e.target.value = maskedValue;
 
-            <div className="relative w-2/3">
-              <input
-                type="text"
-                maxLength={documentType === "CPF" ? 14 : 18}
-                onKeyDown={handleKeyDown}
-                {...register("document", {
-                  onChange: (e) => {
-                    const value = e.target.value;
-                    let maskedValue = "";
+                  const digitsOnly = maskedValue.replace(/\D/g, "");
+                  const requiredLength = documentType === "CPF" ? 11 : 14;
+                  const isComplete = digitsOnly.length === requiredLength;
+
+                  // Atualizar o valor
+                  setValue("document", maskedValue, {
+                    shouldValidate: false,
+                  });
+
+                  // Validar manualmente quando o campo estiver completo
+                  if (isComplete) {
+                    let isValid = false;
+                    let errorMessage = "";
+
                     if (documentType === "CPF") {
-                      maskedValue = maskCpf(value);
+                      isValid = isValidCpf(maskedValue);
+                      if (!isValid) {
+                        errorMessage = VALIDATION_RULES.cpf.error.invalid;
+                      }
                     } else {
-                      maskedValue = maskCnpj(value);
+                      isValid = isValidCnpj(maskedValue);
+                      if (!isValid) {
+                        errorMessage = VALIDATION_RULES.cnpj.error.invalid;
+                      }
                     }
-                    e.target.value = maskedValue;
-                    
-                    const digitsOnly = maskedValue.replace(/\D/g, "");
+
+                    if (!isValid) {
+                      setError("document", {
+                        type: "manual",
+                        message: errorMessage,
+                      });
+                    } else {
+                      clearErrors("document");
+                    }
+                  } else {
+                    // Limpar erros enquanto está digitando
+                    clearErrors("document");
+                  }
+                },
+                onBlur: () => {
+                  // Validar novamente ao sair do campo
+                  const currentValue = watch("document");
+                  if (currentValue) {
+                    const digitsOnly = currentValue.replace(/\D/g, "");
                     const requiredLength = documentType === "CPF" ? 11 : 14;
-                    const isComplete = digitsOnly.length === requiredLength;
-                    
-                    // Atualizar o valor
-                    setValue("document", maskedValue, { 
-                      shouldValidate: false 
-                    });
-                    
-                    // Validar manualmente quando o campo estiver completo
-                    if (isComplete) {
+                    if (digitsOnly.length === requiredLength) {
                       let isValid = false;
                       let errorMessage = "";
-                      
+
                       if (documentType === "CPF") {
-                        isValid = isValidCpf(maskedValue);
+                        isValid = isValidCpf(currentValue);
                         if (!isValid) {
                           errorMessage = VALIDATION_RULES.cpf.error.invalid;
                         }
                       } else {
-                        isValid = isValidCnpj(maskedValue);
+                        isValid = isValidCnpj(currentValue);
                         if (!isValid) {
                           errorMessage = VALIDATION_RULES.cnpj.error.invalid;
                         }
                       }
-                      
+
                       if (!isValid) {
                         setError("document", {
                           type: "manual",
-                          message: errorMessage
+                          message: errorMessage,
                         });
                       } else {
                         clearErrors("document");
                       }
-                    } else {
-                      // Limpar erros enquanto está digitando
-                      clearErrors("document");
                     }
-                  },
-                  onBlur: () => {
-                    // Validar novamente ao sair do campo
-                    const currentValue = watch("document");
-                    if (currentValue) {
-                      const digitsOnly = currentValue.replace(/\D/g, "");
-                      const requiredLength = documentType === "CPF" ? 11 : 14;
-                      if (digitsOnly.length === requiredLength) {
-                        let isValid = false;
-                        let errorMessage = "";
-                        
-                        if (documentType === "CPF") {
-                          isValid = isValidCpf(currentValue);
-                          if (!isValid) {
-                            errorMessage = VALIDATION_RULES.cpf.error.invalid;
-                          }
-                        } else {
-                          isValid = isValidCnpj(currentValue);
-                          if (!isValid) {
-                            errorMessage = VALIDATION_RULES.cnpj.error.invalid;
-                          }
-                        }
-                        
-                        if (!isValid) {
-                          setError("document", {
-                            type: "manual",
-                            message: errorMessage
-                          });
-                        } else {
-                          clearErrors("document");
-                        }
-                      }
-                    }
-                  },
-                })}
-                className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.document ? "border-red-400" : ""}`}
-                placeholder=" "
-              />
-              <label
-                className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.document ? "text-red-400" : "text-gray-300"}`}
-              >
-                {documentType === "CPF" ? "CPF" : "CNPJ"}
-              </label>
-              <div className="mt-1 flex items-center justify-between">
-                <div className="text-xs text-gray-500">
-                  {(() => {
-                    const currentValue = watch("document") || "";
-                    const digitsOnly = currentValue.replace(/\D/g, "");
-                    const requiredLength = documentType === "CPF" ? 11 : 14;
-                    const currentLength = digitsOnly.length;
-                    return `${currentLength}/${requiredLength} caracteres`;
-                  })()}
-                </div>
-                {errors.document && (
-                  <span className="text-xs text-red-500">{errors.document.message}</span>
-                )}
+                  }
+                },
+              })}
+              className={`peer h-10 w-full rounded-md border px-3 py-2 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.document ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label
+              className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.document ? "text-red-400" : "text-gray-300"}`}
+            >
+              {documentType === "CPF" ? "CPF" : "CNPJ"}
+            </label>
+            <div className="mt-1 flex items-center justify-between">
+              <div className="text-xs text-gray-500">
+                {(() => {
+                  const currentValue = watch("document") || "";
+                  const digitsOnly = currentValue.replace(/\D/g, "");
+                  const requiredLength = documentType === "CPF" ? 11 : 14;
+                  const currentLength = digitsOnly.length;
+                  return `${currentLength}/${requiredLength} caracteres`;
+                })()}
               </div>
+              {errors.document && (
+                <span className="text-xs text-red-500">
+                  {errors.document.message}
+                </span>
+              )}
             </div>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={processing}
-            className="mt-2 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
-          >
-            {processing ? "Processando..." : "Assinar agora"}
-          </button>
-        </form>
+        <button
+          type="submit"
+          disabled={processing}
+          className="mt-2 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+        >
+          {processing ? "Processando..." : "Assinar agora"}
+        </button>
+      </form>
     </section>
   );
 }
