@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/ui/loading";
+import { toast } from "react-hot-toast";
 
 interface Lesson {
   id: string;
@@ -83,40 +84,42 @@ export default function NewTopicPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.content) return;
-
     setLoading(true);
+
     try {
-      let attachmentUrl = "";
+      let attachmentUrl = null;
 
       if (file) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `posts/${fileName}`;
-
-        const uploadData = new FormData();
-        uploadData.append("file", file);
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
 
         const uploadRes = await fetch("/api/forum/upload", {
           method: "POST",
-          body: uploadData,
+          body: uploadFormData,
         });
-        const { url } = await uploadRes.json();
-        attachmentUrl = url;
+
+        if (!uploadRes.ok) throw new Error("Falha no upload da imagem");
+
+        const uploadData = await uploadRes.json();
+        attachmentUrl = uploadData.url;
       }
 
       const res = await fetch("/api/forum/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, attachmentUrl }),
+        body: JSON.stringify({
+          ...formData,
+          attachmentUrl: attachmentUrl,
+        }),
       });
 
-      if (res.ok) {
-        router.push("/forum");
-        router.refresh();
-      }
-    } catch (err) {
-      console.error("Erro ao criar post");
+      if (!res.ok) throw new Error("Erro ao criar o tópico");
+
+      toast.success("Tópico publicado com sucesso!");
+      router.push("/forum");
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao publicar");
     } finally {
       setLoading(false);
     }

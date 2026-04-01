@@ -9,27 +9,32 @@ export async function GET(request: Request) {
 
   try {
     const posts = await prisma.forumPost.findMany({
-      where: query 
+      where: query
         ? {
             OR: [
-              { title: { contains: query, mode: 'insensitive' } },
+              { title: { contains: query, mode: "insensitive" } },
               {
                 author: {
-                  name: { contains: query, mode: 'insensitive' }
-                }
-              }
+                  name: { contains: query, mode: "insensitive" },
+                },
+              },
             ],
           }
         : {},
       include: {
         author: {
-          select: { name: true, username: true, image: true }
+          select: { name: true, username: true, image: true },
         },
         _count: {
-          select: { comments: true }
-        }
+          select: { comments: true },
+        },
+        comments: {
+          take: 2,
+          orderBy: { createdAt: "desc" },
+          include: { author: true },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(posts);
@@ -42,28 +47,31 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
-    console.log("SESSÃO ATUAL:", session?.user);
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Sessão sem ID de usuário" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Sessão sem ID de usuário" },
+        { status: 401 },
+      );
     }
-
-    const { title, content, lessonId } = await request.json();
+    9;
+    const { title, content, lessonId, attachmentUrl } = await request.json();
 
     const post = await prisma.forumPost.create({
       data: {
         title,
         content,
+        attachmentUrl: attachmentUrl || null,
         author: {
-          connect: { id: session.user.id }
+          connect: { id: session.user.id },
         },
-        ...(lessonId && lessonId !== "" && {
-          lesson: {
-            connect: { id: lessonId }
-          }
-        }),
-      }
+        ...(lessonId &&
+          lessonId !== "" && {
+            lesson: {
+              connect: { id: lessonId },
+            },
+          }),
+      },
     });
 
     return NextResponse.json(post);

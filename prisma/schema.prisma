@@ -28,6 +28,8 @@ model User {
   enrollments       Enrollment[]
   forumComments     ForumComment[]
   forumPosts        ForumPost[]
+  commentLikes      CommentLike[]
+  commentReports    CommentReport[]
   lessonProgresses  LessonProgress[]
   payments          Payment[]
   paymentMethods    PaymentMethod[]
@@ -234,13 +236,14 @@ model FlashcardTemplate {
 }
 
 model ForumPost {
-  id        String   @id @default(cuid())
-  authorId  String
-  title     String
-  content   Json
-  trackId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  authorId      String
+  title         String
+  content       Json
+  attachmentUrl String?
+  trackId       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   author   User           @relation(fields: [authorId], references: [id])
   track    Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
@@ -260,6 +263,29 @@ model ForumComment {
   createdAt DateTime  @default(now())
   author    User      @relation(fields: [authorId], references: [id])
   post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  likes   CommentLike[]
+  reports CommentReport[]
+}
+
+model CommentLike {
+  id        String       @id @default(cuid())
+  userId    String
+  commentId String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId]) // Impede 2 likes da mesma pessoa
+}
+
+model CommentReport {
+  id        String       @id @default(cuid())
+  reason    String       @db.Text
+  userId    String
+  commentId String
+  user      User         @relation(fields: [userId], references: [id])
+  comment   ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
 }
 
 model Payment {

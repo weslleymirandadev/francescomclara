@@ -157,104 +157,128 @@ export default function ForumPage() {
           </div>
         </div>
 
-        <Card className="border-none shadow-2xl overflow-hidden bg-white rounded-md md:rounded-[2.5rem]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[55%]">Discussão</TableHead>
-                <TableHead>Categoria / Aula</TableHead>
-                <TableHead className="text-center">Respostas</TableHead>
-                <TableHead className="text-right md:px-10">Data</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    className="text-center py-20 animate-pulse font-black uppercase text-xs text-slate-400 tracking-widest"
-                  >
-                    A carregar conversas...
-                  </TableCell>
-                </TableRow>
-              ) : (
-                posts.map((post: any) => (
-                  <TableRow
-                    key={post.id}
-                    className="group hover:bg-slate-50 transition-colors"
-                  >
-                    <TableCell className="py-6 pl-10">
-                      <Link href={`/forum/post/${post.id}`}>
-                        {post.attachmentUrl && (
-                          <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-100 bg-slate-200 shrink-0">
-                            <img
-                              src={post.attachmentUrl}
-                              className="w-full h-full object-cover"
-                              alt="Anexo"
-                            />
-                          </div>
-                        )}
+        <div className="space-y-6">
+          {loading ? (
+            <div className="bg-white rounded-[2.5rem] p-20 text-center animate-pulse font-black uppercase text-xs text-slate-400 tracking-widest shadow-2xl">
+              A carregar conversas...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {filteredPosts.map((post: any) => (
+                <Card
+                  key={post.id}
+                  className="p-6 border-none shadow-2xl hover:shadow-indigo-500/10 transition-all bg-white rounded-[2rem] group overflow-hidden"
+                >
+                  <div className="flex flex-col md:flex-row gap-8 items-start">
+                    {post.attachmentUrl && (
+                      <Link
+                        href={`/forum/post/${post.id}`}
+                        className="shrink-0 w-full md:w-100"
+                      >
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-200 shadow-inner group-hover:scale-[1.02] transition-transform duration-500">
+                          <img
+                            src={post.attachmentUrl}
+                            className="w-full h-full object-cover"
+                            alt={post.title}
+                          />
+                        </div>
+                      </Link>
+                    )}
 
-                        <h4 className="text-base font-bold text-slate-900 group-hover:text-(--clara-rose) transition-colors mb-1">
-                          {post.title}
-                        </h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <div className="flex-1 w-full flex flex-col min-h-40">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="px-3 py-1 bg-slate-100 text-[9px] font-black rounded-lg uppercase tracking-widest text-slate-600 border border-slate-200">
+                            {post.lesson
+                              ? `Aula: ${post.lesson.title}`
+                              : "Discussão Geral"}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            {new Date(post.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        <Link href={`/forum/post/${post.id}`}>
+                          <h4 className="text-2xl font-black text-slate-900 group-hover:text-(--clara-rose) transition-colors mb-3 leading-tight tracking-tight">
+                            {post.title}
+                          </h4>
+                        </Link>
+
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                           Por{" "}
-                          <span className="text-slate-700 font-black">
+                          <span className="text-slate-900 font-black underline decoration-(--clara-rose)/30">
                             {post.author?.name || "Usuário"}
                           </span>
-                          <span className="ml-2 text-(--clara-rose)">
+                          <span className="opacity-60">
                             @{post.author?.username || "anonimo"}
                           </span>
                         </p>
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <span className="inline-block px-3 py-1 bg-slate-100 text-[9px] font-black rounded-lg uppercase tracking-widest text-slate-600 border border-slate-200 w-fit">
-                          {post.lesson ? `Aula: ${post.lesson.title}` : "Geral"}
-                        </span>
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-2 text-slate-400 font-bold">
-                        <FiMessageSquare size={16} />
-                        <span className="text-sm">
-                          {post._count?.comments || 0}
-                        </span>
+
+                      <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                        {post.comments && post.comments.length > 0 && (
+                          <div className="mt-4 bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="flex -space-x-2">
+                                {post.comments
+                                  .slice(0, 3)
+                                  .map((c: any, i: number) => (
+                                    <div
+                                      key={i}
+                                      className="w-6 h-6 rounded-full border-2 border-white bg-(--clara-rose) text-[8px] flex items-center justify-center font-black text-white uppercase"
+                                    >
+                                      {c.author.name[0]}
+                                    </div>
+                                  ))}
+                              </div>
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                Discussão em alta
+                              </span>
+                            </div>
+
+                            <div className="space-y-2">
+                              {post.comments.slice(0, 2).map((comment: any) => (
+                                <div
+                                  key={comment.id}
+                                  className="flex gap-2 items-start animate-in slide-in-from-bottom-2 duration-500"
+                                >
+                                  <FiMessageSquare
+                                    className="shrink-0 mt-1 text-(--clara-rose)/50"
+                                    size={12}
+                                  />
+                                  <p className="text-xs text-slate-600 line-clamp-1 italic max-w-50 md:max-w-120">
+                                    "{comment.content}" —{" "}
+                                    <span className="font-bold text-slate-900">
+                                      @{comment.author.username}
+                                    </span>
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {filter === "mine" && (
+                          <div className="flex gap-2">
+                            <Link href={`/forum/meus-posts`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-xl border-slate-200 text-slate-400 hover:text-(--clara-rose)"
+                              >
+                                <FiEdit3 className="mr-2" /> Editar
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-10">
-                      {filter === "mine" ? (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-(--clara-rose)"
-                          >
-                            <FiEdit3 size={16} />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-9 w-9 rounded-xl border-slate-200 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                            onClick={() => post.id}
-                          >
-                            <FiTrash2 size={16} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          {new Date(post.createdAt).toLocaleDateString()}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
