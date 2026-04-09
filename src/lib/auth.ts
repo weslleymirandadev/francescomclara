@@ -9,7 +9,9 @@ import { UserRole } from "@prisma/client";
 import EmailProvider from "next-auth/providers/email";
 import { sendAutomationEmail } from "@/lib/mail";
 
-async function resolveUserRole(email: string): Promise<"USER" | "ADMIN" | "MODERATOR"> {
+async function resolveUserRole(
+  email: string,
+): Promise<"USER" | "ADMIN" | "MODERATOR"> {
   const roleEntry = await prisma.roleEmail.findUnique({
     where: { email },
   });
@@ -18,8 +20,19 @@ async function resolveUserRole(email: string): Promise<"USER" | "ADMIN" | "MODER
 }
 
 // Cria usuário social (Google) sem senha
-async function findOrCreateSocialUser(email: string, name: string, image?: string) {
+async function findOrCreateSocialUser(
+  email: string,
+  name: string,
+  image?: string,
+) {
   let user = await prisma.user.findUnique({ where: { email } });
+
+  const baseUsername = email
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const generatedUsername = `${baseUsername}${randomSuffix}`;
 
   if (!user) {
     user = await prisma.user.create({
@@ -27,8 +40,9 @@ async function findOrCreateSocialUser(email: string, name: string, image?: strin
         email,
         name,
         image,
-        role: await resolveUserRole(email) as UserRole,
-        level: "A1"
+        username: generatedUsername,
+        role: (await resolveUserRole(email)) as UserRole,
+        level: "A1",
       },
     });
   }
@@ -130,7 +144,7 @@ export const authOptions: NextAuthOptions = {
         await sendAutomationEmail(
           email,
           `Seu link de acesso ao ${host}`,
-          `Clique aqui para entrar na sua conta: ${url}`
+          `Clique aqui para entrar na sua conta: ${url}`,
         );
       },
     }),
@@ -139,6 +153,18 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // Antes de criar sessão, trata login social (Google / GitHub)
     async signIn({ user, account, profile }) {
+      const dbUser = await prisma.user.findUnique({
+        where: { email: user.email! },
+        select: { status: true, banReason: true },
+      });
+
+      if (dbUser?.status === "BANNED") {
+        const reason = dbUser.banReason ? `: ${dbUser.banReason}` : "";
+        throw new Error(
+          `Sua conta foi suspensa${reason}. Entre em contato com o suporte.`,
+        );
+      }
+
       if (account?.provider === "google" || account?.provider === "github") {
         const email = user.email ?? profile?.email;
         const name = user.name ?? profile?.name;
@@ -162,7 +188,7 @@ export const authOptions: NextAuthOptions = {
         const dbUser = await findOrCreateSocialUser(
           email,
           name ?? "Usuário",
-          image
+          image,
         );
 
         // Sincroniza ID/role com NextAuth
@@ -175,33 +201,60 @@ export const authOptions: NextAuthOptions = {
 
     // JWT → carrega ID e role do usuário para o token
     async jwt({ token, user, trigger, session }) {
+      if (token.email) {
+        const dbStatus = await prisma.user.findUnique({
+          where: { email: token.email as string },
+          select: { status: true },
+        });
+
+        if (dbStatus?.status === "BANNED") {
+          throw new Error("BANNED_USER");
+        }
+      }
+
       if (user) {
         const dbUser = await prisma.user.findUnique({
           where: { email: user.email! },
           include: {
             _count: {
-              select: { lessonProgresses: true }
-            }
-          }
+              select: { lessonProgresses: true },
+            },
+          },
         });
 
         if (dbUser) {
           token.id = dbUser.id;
           token.role = dbUser.role;
+          token.status = dbUser.status;
           token.username = dbUser.username;
           token.level = dbUser.level;
           token.banner = dbUser.banner;
+          token.image = dbUser.image;
           token.completedLessonsCount = dbUser._count.lessonProgresses;
         }
       }
 
       if (trigger === "update" && session) {
-        token.name = session.name || token.name;
-        token.username = session.username || token.username;
-        token.level = session.level || token.level;
-        token.banner = session.banner || token.banner;
-        token.onboarded = session.onboarded ?? token.onboarded;
-        token.completedLessonsCount = session.completedLessonsCount ?? token.completedLessonsCount;
+        const newUserData = session.user || session;
+
+        if (newUserData.name) token.name = newUserData.name;
+        if (newUserData.username) token.username = newUserData.username;
+        if (newUserData.level) token.level = newUserData.level;
+
+        if (newUserData.image) {
+          token.image = newUserData.image;
+          token.picture = newUserData.image;
+        }
+
+        if (newUserData.banner) token.banner = newUserData.banner;
+
+        if (newUserData.onboarded !== undefined) {
+          token.onboarded = newUserData.onboarded;
+        }
+
+        if (newUserData.completedLessonsCount !== undefined) {
+          token.completedLessonsCount = newUserData.completedLessonsCount;
+        }
       }
 
       return token;
@@ -212,11 +265,14 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).status = (token as any).status;
         (session.user as any).username = (token as any).username;
         (session.user as any).level = token.level;
         (session.user as any).banner = token.banner;
         (session.user as any).onboarded = token.onboarded;
-        (session.user as any).completedLessonsCount = (token as any).completedLessonsCount;
+        (session.user as any).completedLessonsCount = (
+          token as any
+        ).completedLessonsCount;
       }
       return session;
     },
