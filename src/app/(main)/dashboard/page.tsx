@@ -267,20 +267,16 @@ export default function Dashboard() {
                       !hasAccess ? 'cursor-default' : 'cursor-pointer hover:shadow-2xl'
                     }`}
                     onClick={() => {
-                      if (!hasAccess) {
-                        toast.error("Esta trilha não está incluída no seu plano atual.");
-                        router.push('/assinar');
-                        return;
-                      }
                       router.push(`/curso/${track.id}`);
                     }}
                   >
                     <div className="relative h-48 overflow-hidden">
                       <img 
-                        src={track.imageUrl || "/placeholder.png"} 
-                        className={`w-full h-full object-cover transition-all duration-500 ${
+                        src={track.imageUrl || 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80'} 
+                        className={`w-full h-full object-cover transition-transform duration-700 ${
                           !hasAccess ? 'grayscale blur-[2px] opacity-60' : 'group-hover:scale-105'
                         }`} 
+                        alt={track.name}
                       />
                       
                       {!hasAccess && (
