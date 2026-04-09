@@ -15,12 +15,32 @@ export async function GET(
       where: { id },
       include: {
         author: {
-          select: { name: true, username: true, image: true, id: true },
+          select: {
+            name: true,
+            username: true,
+            image: true,
+            banner: true,
+            bio: true,
+            level: true,
+            createdAt: true,
+            id: true,
+          },
         },
+        attachments: true,
+        postLikes: true,
         comments: {
           include: {
             author: {
-              select: { name: true, username: true, image: true, id: true },
+              select: {
+                name: true,
+                username: true,
+                image: true,
+                banner: true,
+                bio: true,
+                level: true,
+                createdAt: true,
+                id: true,
+              },
             },
             _count: {
               select: { likes: true },
@@ -54,6 +74,46 @@ export async function GET(
       { error: "Erro interno no servidor" },
       { status: 500 },
     );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params;
+    const session = await getServerSession(authOptions);
+    const { title, content, attachments } = await request.json();
+
+    if (!session?.user?.id)
+      return new NextResponse("Unauthorized", { status: 401 });
+
+    const updatedPost = await prisma.forumPost.update({
+      where: { id, authorId: session.user.id },
+      data: {
+        title,
+        content,
+        attachments: {
+          deleteMany: {},
+          create: attachments.map((at: any) => ({
+            url: at.url,
+            type: at.type,
+          })),
+        },
+      },
+      include: {
+        attachments: true,
+        author: {
+          select: { name: true, username: true, image: true, id: true },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedPost);
+  } catch (error) {
+    console.error(error);
+    return new NextResponse("Erro ao atualizar post", { status: 500 });
   }
 }
 

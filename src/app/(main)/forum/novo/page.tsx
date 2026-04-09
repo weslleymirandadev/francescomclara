@@ -44,6 +44,8 @@ export default function NewTopicPage() {
   const [lessons, setLessons] = useState<{ id: string; title: string }[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<{ url: string; type: string }[]>([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -75,10 +77,14 @@ export default function NewTopicPage() {
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length > 0) {
+      setFiles((prev) => [...prev, ...selectedFiles]);
+      const newPreviews = selectedFiles.map((f) => ({
+        url: URL.createObjectURL(f),
+        type: f.type.startsWith("video/") ? "VIDEO" : "IMAGE",
+      }));
+      setPreviews((prev) => [...prev, ...newPreviews]);
     }
   };
 
@@ -87,21 +93,20 @@ export default function NewTopicPage() {
     setLoading(true);
 
     try {
-      let attachmentUrl = null;
+      const uploadedAttachments = [];
 
-      if (file) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
-
-        const uploadRes = await fetch("/api/forum/upload", {
+      for (const f of files) {
+        const formData = new FormData();
+        formData.append("file", f);
+        const res = await fetch("/api/forum/upload", {
           method: "POST",
-          body: uploadFormData,
+          body: formData,
         });
-
-        if (!uploadRes.ok) throw new Error("Falha no upload da imagem");
-
-        const uploadData = await uploadRes.json();
-        attachmentUrl = uploadData.url;
+        const data = await res.json();
+        uploadedAttachments.push({
+          url: data.url,
+          type: f.type.startsWith("video/") ? "VIDEO" : "IMAGE",
+        });
       }
 
       const res = await fetch("/api/forum/posts", {
@@ -109,17 +114,16 @@ export default function NewTopicPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          attachmentUrl: attachmentUrl,
+          attachments: uploadedAttachments,
         }),
       });
 
-      if (!res.ok) throw new Error("Erro ao criar o tópico");
-
-      toast.success("Tópico publicado com sucesso!");
-      router.push("/forum");
-      router.refresh();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao publicar");
+      if (res.ok) {
+        toast.success("Post criado!");
+        router.push("/forum");
+      }
+    } catch (error) {
+      toast.error("Erro ao publicar");
     } finally {
       setLoading(false);
     }
@@ -132,7 +136,7 @@ export default function NewTopicPage() {
       <div className="max-w-3xl mx-auto px-6">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-(--clara-rose) transition-colors mb-8"
+          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-(--clara-rose) transition-colors mb-8 cursor-pointer"
         >
           <FiArrowLeft size={16} /> Voltar ao Fórum
         </button>
@@ -147,30 +151,33 @@ export default function NewTopicPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {preview && (
-            <div className="relative mt-4 rounded-2xl overflow-hidden border-2 border-(--clara-rose)">
-              {file?.type.startsWith("image/") ? (
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-full h-auto max-h-64 object-cover"
-                />
-              ) : (
-                <video
-                  src={preview}
-                  className="w-full h-auto max-h-64"
-                  controls
-                />
-              )}
-              <button
-                onClick={() => {
-                  setFile(null);
-                  setPreview(null);
-                }}
-                className="absolute top-2 right-2 bg-white/80 p-2 rounded-full hover:bg-white transition-colors"
-              >
-                <FiX className="text-red-500" />
-              </button>
+          {previews.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-4 mt-4">
+              {previews.map((att, index) => (
+                <div
+                  key={index}
+                  className="relative rounded-2xl overflow-hidden border-2 border-(--clara-rose) h-100"
+                >
+                  {att.type === "IMAGE" ? (
+                    <img src={att.url} className="w-full h-full object-cover" />
+                  ) : (
+                    <video
+                      src={att.url}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFiles((prev) => prev.filter((_, i) => i !== index));
+                      setPreviews((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                    className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md cursor-pointer"
+                  >
+                    <FiX className="text-red-500" size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
           <Card className="p-8 border-none shadow-2xl bg-white rounded-[2.5rem] space-y-8">

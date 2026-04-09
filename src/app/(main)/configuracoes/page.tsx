@@ -6,8 +6,9 @@ import { FiBell, FiLock, FiCheck, FiCreditCard } from "react-icons/fi";
 import { Loading } from "@/components/ui/loading";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { toast } from "react-hot-toast";
-import { useRouter }  from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface FamilyMember {
   id: string;
@@ -18,8 +19,16 @@ interface FamilyMember {
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    notifLessons: false,
+    notifForum: false,
+    notifFlashcards: false,
+  });
 
   useEffect(() => {
     async function fetchUserData() {
@@ -27,8 +36,14 @@ export default function SettingsPage() {
         const res = await fetch("/api/user/me");
         const data = await res.json();
         setUserData(data);
+
+        setFormData({
+          notifLessons: data.notifLessons ?? false,
+          notifForum: data.notifForum ?? false,
+          notifFlashcards: data.notifFlashcards ?? false,
+        });
       } catch (e) {
-        console.error("Erro ao carregar dados", e);
+        console.error("Erro ao carregar", e);
       } finally {
         setLoading(false);
       }
@@ -36,28 +51,46 @@ export default function SettingsPage() {
     fetchUserData();
   }, []);
 
-  const isFamilyPlan = userData?.subscription?.type === 'FAMILY';
-  const members = userData?.family?.members || [];
+  const handleToggle = (key: string, value: boolean) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
 
-  const handleNotificationChange = async (key: string, value: boolean) => {
+  const handleSave = async () => {
+    setIsSaving(true);
     try {
-      setUserData((prev: any) => ({ ...prev, [key]: value }));
-
       const res = await fetch("/api/user/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "UPDATE_NOTIFICATIONS",
-          data: { [key]: value }
+          data: formData,
         }),
       });
 
       if (!res.ok) throw new Error();
-      toast.success("Salvo!");
+
+      setHasChanges(false);
+      toast.success("Alterações salvas com sucesso!");
     } catch (err) {
-      toast.error("Erro ao salvar");
+      toast.error("Erro ao salvar alterações");
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const handleDiscard = () => {
+    setFormData({
+      notifLessons: userData?.notifLessons ?? false,
+      notifForum: userData?.notifForum ?? false,
+      notifFlashcards: userData?.notifFlashcards ?? false,
+    });
+    setHasChanges(false);
+    toast("Alterações descartadas");
+  };
+
+  const isFamilyPlan = userData?.subscription?.type === "FAMILY";
+  const members = userData?.family?.members || [];
 
   const handleDeleteAccount = async () => {
     if (confirm("Tem a certeza? Esta ação é irreversível.")) {
@@ -77,11 +110,18 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-(--slate-50) pt-24 pb-20 animate-in fade-in duration-700">
+      <SaveChangesBar
+        hasChanges={hasChanges}
+        loading={isSaving}
+        onSave={handleSave}
+        onDiscard={handleDiscard}
+      />
+
       <div className="max-w-4xl mx-auto px-6">
-        
         <div className="mb-12">
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-            Configurações <span className="text-(--interface-accent)">da Conta</span>
+            Configurações{" "}
+            <span className="text-(--interface-accent)">da Conta</span>
           </h1>
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-2">
             Gere a tua segurança e preferências de sistema
@@ -89,32 +129,36 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-8">
-          
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem]">
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
-              <FiLock className="text-(--interface-accent)" /> Segurança e Acesso
+              <FiLock className="text-(--interface-accent)" /> Segurança e
+              Acesso
             </h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">E-mail de Login</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                  E-mail de Login
+                </label>
                 <div className="relative">
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     disabled
                     value={session?.user?.email || ""}
                     className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-400 font-bold text-sm cursor-not-allowed"
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-50 text-emerald-500 px-2 py-1 rounded-lg flex items-center gap-1">
                     <FiCheck size={10} />
-                    <span className="text-[8px] font-black uppercase">Ativo</span>
+                    <span className="text-[8px] font-black uppercase">
+                      Ativo
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex items-end gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="w-full h-14 rounded-2xl border-rose-100 text-rose-500 font-black uppercase text-[10px] tracking-widest hover:bg-rose-50 transition-all active:scale-95"
                 >
@@ -128,21 +172,32 @@ export default function SettingsPage() {
             <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-8 border-b border-slate-50 pb-4">
               <FiBell className="text-(--clara-rose)" /> Notificações de Estudo
             </h2>
-            
+
             <div className="space-y-4">
               {[
-                { label: "Lembretes diários de flashcards", key: "notifFlashcards" },
-                { label: "Novas aulas disponíveis na trilha", key: "notifLessons" },
-                { label: "Alertas de respostas no fórum", key: "notifForum" }
+                {
+                  label: "Lembretes diários de flashcards",
+                  key: "notifFlashcards",
+                },
+                {
+                  label: "Novas aulas disponíveis na trilha",
+                  key: "notifLessons",
+                },
+                { label: "Alertas de respostas no fórum", key: "notifForum" },
               ].map((item) => (
-                <div key={item.key} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-none">
-                  <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">{item.label}</span>
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between py-3 border-b border-slate-50 last:border-none"
+                >
+                  <span className="text-sm font-bold text-slate-600 uppercase tracking-tight">
+                    {item.label}
+                  </span>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={!!userData?.[item.key]}
-                      onChange={(e) => handleNotificationChange(item.key, e.target.checked)} 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={!!formData[item.key as keyof typeof formData]}
+                      onChange={(e) => handleToggle(item.key, e.target.checked)}
                     />
                     <div className="w-12 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-(--interface-accent) after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                   </label>
@@ -155,41 +210,53 @@ export default function SettingsPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
                 <h2 className="flex items-center gap-3 text-sm font-black text-slate-800 uppercase tracking-widest mb-2">
-                  <FiCreditCard className="text-(--interface-accent)" /> O Teu Plano
+                  <FiCreditCard className="text-(--interface-accent)" /> O Teu
+                  Plano
                 </h2>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  Status: <span className="text-emerald-500">Ativo</span> • {userData?.subscription?.name || "Plano Gratuito"}
+                  Status: <span className="text-emerald-500">Ativo</span> •{" "}
+                  {userData?.subscription?.name || "Plano Gratuito"}
                 </p>
               </div>
               <Button
                 typeof="button"
                 className="bg-slate-900 hover:bg-slate-800 text-white px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest"
-                onClick={() => router.push('/assinar')}
+                onClick={() => router.push("/assinar")}
               >
                 {userData?.subscription ? "Gerir Assinatura" : "Fazer Upgrade"}
               </Button>
             </div>
           </Card>
 
-           {isFamilyPlan && (
+          {isFamilyPlan && (
             <div className="mt-10 pt-8 border-t border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
                   Membros do Plano ({members.length}/3)
                 </h3>
               </div>
-              
+
               <div className="space-y-3">
                 {members.map((member: FamilyMember) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-slate-200" />
-                      <span className="text-sm font-bold text-slate-700">{member.email}</span>
+                      <span className="text-sm font-bold text-slate-700">
+                        {member.email}
+                      </span>
                     </div>
-                    <Button variant="ghost" className="text-rose-500 text-[10px] font-black uppercase">Remover</Button>
+                    <Button
+                      variant="ghost"
+                      className="text-rose-500 text-[10px] font-black uppercase"
+                    >
+                      Remover
+                    </Button>
                   </div>
                 ))}
-                
+
                 {members.length < 3 && (
                   <button className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-(--interface-accent) hover:text-(--interface-accent) transition-all">
                     + Convidar Membro
@@ -204,10 +271,11 @@ export default function SettingsPage() {
             </h2>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed max-w-md">
-                Ao eliminar a tua conta, perderás acesso a todos os cursos, progresso e conquistas. Esta ação é irreversível.
+                Ao eliminar a tua conta, perderás acesso a todos os cursos,
+                progresso e conquistas. Esta ação é irreversível.
               </p>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="text-rose-500 hover:bg-rose-50 text-[10px] font-black uppercase tracking-widest px-6"
                 onClick={handleDeleteAccount}
               >

@@ -7,26 +7,12 @@ import {
   FiPlus,
   FiMessageSquare,
   FiSearch,
-  FiStar,
-  FiBookOpen,
-  FiUsers,
-  FiChevronRight,
-  FiFilter,
   FiEdit3,
-  FiTrash2,
+  FiStar,
 } from "react-icons/fi";
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { ForumPost } from "@prisma/client";
 import { Loading } from "@/components/ui/loading";
 
@@ -49,13 +35,9 @@ export default function ForumPage() {
         const res = await fetch(`/api/forum/posts?search=${search}`);
         const data = await res.json();
 
-        if (Array.isArray(data)) {
-          setPosts(data);
-        } else {
-          setPosts([]);
-        }
+        setPosts(data.posts || []);
       } catch (err) {
-        console.error("Erro ao carregar fórum");
+        console.error(err);
         setPosts([]);
       } finally {
         setLoading(false);
@@ -164,118 +146,194 @@ export default function ForumPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6">
-              {filteredPosts.map((post: any) => (
-                <Card
-                  key={post.id}
-                  className="p-6 border-none shadow-2xl hover:shadow-indigo-500/10 transition-all bg-white rounded-[2rem] group overflow-hidden"
-                >
-                  <div className="flex flex-col md:flex-row gap-8 items-start">
-                    {post.attachmentUrl && (
-                      <Link
-                        href={`/forum/post/${post.id}`}
-                        className="shrink-0 w-full md:w-100"
-                      >
-                        <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-200 shadow-inner group-hover:scale-[1.02] transition-transform duration-500">
-                          <img
-                            src={post.attachmentUrl}
-                            className="w-full h-full object-cover"
-                            alt={post.title}
-                          />
-                        </div>
-                      </Link>
-                    )}
-
-                    <div className="flex-1 w-full flex flex-col min-h-40">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-4">
-                          <span className="px-3 py-1 bg-slate-100 text-[9px] font-black rounded-lg uppercase tracking-widest text-slate-600 border border-slate-200">
-                            {post.lesson
-                              ? `Aula: ${post.lesson.title}`
-                              : "Discussão Geral"}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            {new Date(post.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-
-                        <Link href={`/forum/post/${post.id}`}>
-                          <h4 className="text-2xl font-black text-slate-900 group-hover:text-(--clara-rose) transition-colors mb-3 leading-tight tracking-tight">
-                            {post.title}
-                          </h4>
+              {filteredPosts.map((post: any) => {
+                const hasLiked = post.postLikes?.some(
+                  (l: any) => l.userId === session?.user?.id,
+                );
+                return (
+                  <Card
+                    key={post.id}
+                    className="p-6 border-none shadow-2xl hover:shadow-indigo-500/10 transition-all bg-white rounded-[2rem] group overflow-hidden"
+                  >
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                      {post.attachments && post.attachments.length > 0 && (
+                        <Link
+                          href={`/forum/post/${post.id}`}
+                          className="shrink-0 w-full md:w-100"
+                        >
+                          <div className="aspect-video w-full rounded-2xl overflow-hidden border border-slate-100 bg-slate-200 shadow-inner group-hover:scale-[1.02] transition-transform duration-500">
+                            {post.attachments[0].type === "VIDEO" ? (
+                              <video
+                                src={post.attachments[0].url}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={post.attachments[0].url}
+                                className="w-full h-full object-cover"
+                                alt={post.title}
+                              />
+                            )}
+                          </div>
                         </Link>
+                      )}
 
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          Por{" "}
-                          <span className="text-slate-900 font-black underline decoration-(--clara-rose)/30">
-                            {post.author?.name || "Usuário"}
-                          </span>
-                          <span className="opacity-60">
-                            @{post.author?.username || "anonimo"}
-                          </span>
-                        </p>
-                      </div>
+                      <div className="flex-1 w-full flex flex-col min-h-40">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-4">
+                            <span className="px-3 py-1 bg-slate-100 text-[9px] font-black rounded-lg uppercase tracking-widest text-slate-600 border border-slate-200">
+                              {post.lesson
+                                ? `Aula: ${post.lesson.title}`
+                                : "Discussão Geral"}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                              {new Date(post.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
 
-                      <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                        {post.comments && post.comments.length > 0 && (
-                          <div className="mt-4 bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="flex -space-x-2">
-                                {post.comments
-                                  .slice(0, 3)
-                                  .map((c: any, i: number) => (
-                                    <div
-                                      key={i}
-                                      className="w-6 h-6 rounded-full border-2 border-white bg-(--clara-rose) text-[8px] flex items-center justify-center font-black text-white uppercase"
-                                    >
-                                      {c.author.name[0]}
+                          <Link href={`/forum/post/${post.id}`}>
+                            <h4 className="text-2xl font-black text-slate-900 group-hover:text-(--clara-rose) transition-colors mb-3 leading-tight tracking-tight wrap-break-word max-w-2xl">
+                              {post.title}
+                            </h4>
+                          </Link>
+
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            Por{" "}
+                            <span className="text-slate-900 font-black underline decoration-(--clara-rose)/30">
+                              {post.author?.name || "Usuário"}
+                            </span>
+                            <span className="opacity-60 text-[8px]">
+                              @{post.author?.username || "anonimo"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-4 mt-4">
+                          <div className="flex items-center gap-1.5 text-slate-400 group-hover:text-amber-500 transition-colors">
+                            <FiStar
+                              size={16}
+                              className={
+                                post._count?.postLikes > 0
+                                  ? "fill-amber-500 text-amber-500"
+                                  : ""
+                              }
+                            />
+                            <span className="text-xs font-black uppercase tracking-tighter">
+                              {post._count?.postLikes || 0}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <FiMessageSquare size={16} />
+                            <span className="text-xs font-black uppercase tracking-tighter">
+                              {post._count?.comments || 0}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                          {post.comments && (
+                            <Link
+                              href={`/forum/post/${post.id}`}
+                              className="mt-4 bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50"
+                            >
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="flex items-center gap-3">
+                                  {post.comments.length > 0 ? (
+                                    <div className="flex -space-x-2">
+                                      {post.comments
+                                        .slice(0, 3)
+                                        .map((c: any, i: number) => (
+                                          <div
+                                            key={i}
+                                            className="w-6 h-6 rounded-full border-2 border-white bg-(--clara-rose) text-[8px] flex items-center justify-center font-black text-white uppercase overflow-hidden"
+                                          >
+                                            {c.author.image ? (
+                                              <img
+                                                src={c.author.image}
+                                                alt="Avatar"
+                                                className="w-full h-full object-cover"
+                                                referrerPolicy="no-referrer"
+                                              />
+                                            ) : (
+                                              <span>
+                                                {c.author.username
+                                                  ? c.author.username[0]
+                                                  : "U"}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ))}
                                     </div>
-                                  ))}
-                              </div>
-                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                Discussão em alta
-                              </span>
-                            </div>
-
-                            <div className="space-y-2">
-                              {post.comments.slice(0, 2).map((comment: any) => (
-                                <div
-                                  key={comment.id}
-                                  className="flex gap-2 items-start animate-in slide-in-from-bottom-2 duration-500"
-                                >
-                                  <FiMessageSquare
-                                    className="shrink-0 mt-1 text-(--clara-rose)/50"
-                                    size={12}
-                                  />
-                                  <p className="text-xs text-slate-600 line-clamp-1 italic max-w-50 md:max-w-120">
-                                    "{comment.content}" —{" "}
-                                    <span className="font-bold text-slate-900">
-                                      @{comment.author.username}
-                                    </span>
-                                  </p>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400">
+                                        <span className="text-[10px]">+</span>
+                                      </div>
+                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                        Nenhum comentário.{" "}
+                                        <span className="text-(--clara-rose)">
+                                          Seja o primeiro!
+                                        </span>
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
 
-                        {filter === "mine" && (
-                          <div className="flex gap-2">
-                            <Link href={`/forum/meus-posts`}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-xl border-slate-200 text-slate-400 hover:text-(--clara-rose)"
-                              >
-                                <FiEdit3 className="mr-2" /> Editar
-                              </Button>
+                                {post.comments.length > 0 && (
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                    Discussão em alta
+                                  </span>
+                                )}
+                              </div>
+
+                              {post.comments.length > 0 && (
+                                <div className="space-y-2">
+                                  {post.comments
+                                    .slice(0, 2)
+                                    .map((comment: any) => (
+                                      <div
+                                        key={comment.id}
+                                        className="flex gap-2 items-start animate-in slide-in-from-bottom-2 duration-500"
+                                      >
+                                        <FiMessageSquare
+                                          className="shrink-0 mt-1 text-(--clara-rose)/50"
+                                          size={12}
+                                        />
+                                        <p className="text-xs text-slate-600 line-clamp-1 italic max-w-50 md:max-w-120">
+                                          "{comment.content}" —{" "}
+                                          <span className="font-bold text-slate-900">
+                                            @
+                                            {comment.author.username ||
+                                              "usuario"}
+                                          </span>
+                                        </p>
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
                             </Link>
-                          </div>
-                        )}
+                          )}
+
+                          {filter === "mine" && (
+                            <div className="flex gap-2">
+                              <Link href={`/forum/meus-posts`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-xl border-slate-200 text-slate-400 hover:text-(--clara-rose)"
+                                >
+                                  <FiEdit3 className="mr-2" /> Editar
+                                </Button>
+                              </Link>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

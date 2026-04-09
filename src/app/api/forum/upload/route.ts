@@ -1,52 +1,34 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+// api/forum/upload/route.ts
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
-    if (!file) {
-      return NextResponse.json(
-        { error: "Nenhum arquivo enviado" },
-        { status: 400 },
-      );
-    }
-
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
+    const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options),
-              );
-            } catch {}
-          },
-        },
-      },
     );
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    console.log("Usuário tentando upload:", user?.id || "Ninguém logado");
-
     const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random()}.${fileExt}`;
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
     const filePath = `posts/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from("forum-attachments")
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        contentType: file.type,
+        upsert: true,
+      });
 
     if (error) throw error;
 
@@ -57,6 +39,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: publicUrl });
   } catch (error) {
     console.error("Erro no upload:", error);
-    return NextResponse.json({ error: "Erro no servidor" }, { status: 500 });
+    return NextResponse.json({ error: "Falha no servidor" }, { status: 500 });
   }
 }
