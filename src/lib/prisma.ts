@@ -1,5 +1,6 @@
 // src/lib/prisma.ts corrigido
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
@@ -9,8 +10,16 @@ const globalForPrisma = global as unknown as {
 };
 
 const url = process.env.DATABASE_URL || "";
+const isAccelerate = url.startsWith("prisma://");
 
 const createPrismaClient = () => {
+  if (isAccelerate) {
+    return new PrismaClient({
+      // @ts-ignore
+      datasources: { db: { url } },
+    }).$extends(withAccelerate());
+  }
+
   if (!globalForPrisma.pgPool) {
     globalForPrisma.pgPool = new pg.Pool({
       connectionString: url,
@@ -25,6 +34,8 @@ const createPrismaClient = () => {
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
 
 export default prisma;
