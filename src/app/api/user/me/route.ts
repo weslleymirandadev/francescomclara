@@ -30,6 +30,12 @@ export async function GET() {
         take: 5,
         include: {
           attachments: true,
+          _count: {
+            select: {
+              comments: true,
+              postLikes: true,
+            },
+          },
         },
       },
       payments: {
@@ -78,14 +84,7 @@ export async function GET() {
     }
   }
 
-  const formattedPosts =
-    user?.forumPosts.map((post: any) => ({
-      ...post,
-      _count: {
-        comments: post.comments?.length || 0,
-        postLikes: post.postLikes?.length || 0,
-      },
-    })) || [];
+  const formattedPosts = user?.forumPosts || [];
 
   return NextResponse.json({
     profile: {

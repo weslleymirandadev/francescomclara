@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   try {
@@ -11,39 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
-    const { action, data, currentPassword, newPassword } = body;
+    const { action, data } = body;
 
     switch (action) {
-      case "CHANGE_PASSWORD":
-        const user = await prisma.user.findUnique({
-          where: { id: session.user.id },
-        });
-        console.log("Usuário encontrado no banco:", user ? "Sim" : "Não");
-
-        if (!user || !user.password) {
-          return NextResponse.json(
-            { error: "Usuário não encontrado" },
-            { status: 404 },
-          );
-        }
-
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-          return NextResponse.json(
-            { error: "Senha atual incorreta" },
-            { status: 400 },
-          );
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        await prisma.user.update({
-          where: { id: session.user.id },
-          data: { password: hashedPassword },
-        });
-
-        return NextResponse.json({ message: "Senha alterada com sucesso!" });
-
       case "UPDATE_PROFILE":
         return NextResponse.json(
           await prisma.user.update({

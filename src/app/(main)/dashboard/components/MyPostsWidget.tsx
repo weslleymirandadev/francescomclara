@@ -106,7 +106,7 @@ export function MyPostsWidget() {
                     </div>
                     <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
                       <FiStar size={12} className="text-amber-400" />{" "}
-                      {post._count?.likes || 0}
+                      {post._count?.postLikes || 0}
                     </div>
                   </div>
                 </div>
