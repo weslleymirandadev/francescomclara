@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("search") || "";
@@ -25,16 +27,25 @@ export async function GET(request: Request) {
       include: {
         author: { select: { name: true, username: true, image: true } },
         attachments: true,
-        _count: { select: { comments: true, postLikes: true } },
-      },
-      comments: {
-        take: 2,
-        orderBy: {
-          commentLikes: { _count: "desc" },
+        _count: {
+          select: {
+            comments: true,
+            postLikes: true,
+          },
         },
-        include: {
-          author: { select: { username: true, image: true } },
-          _count: { select: { commentLikes: true } },
+        comments: {
+          take: 2,
+          orderBy: {
+            likes: {
+              _count: "desc",
+            },
+          },
+          include: {
+            author: { select: { username: true, image: true } },
+            _count: {
+              select: { likes: true },
+            },
+          },
         },
       },
       orderBy: { createdAt: "desc" },

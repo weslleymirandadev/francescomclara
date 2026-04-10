@@ -1,33 +1,25 @@
+// src/lib/prisma.ts corrigido
 import { PrismaClient } from "@prisma/client";
-import { withAccelerate } from '@prisma/extension-accelerate';
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-const globalForPrisma = global as unknown as { prisma: any };
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient;
+  pgPool: pg.Pool;
+};
+
+const url = process.env.DATABASE_URL || "";
 
 const createPrismaClient = () => {
-  const url = process.env.DATABASE_URL || "";
-  const isAccelerate = url.startsWith("prisma://");
-
-  if (isAccelerate) {
-    return new PrismaClient({
-      // @ts-ignore
-      datasources: {
-        db: {
-          url: url,
-        },
-      },
-    }).$extends(withAccelerate());
+  if (!globalForPrisma.pgPool) {
+    globalForPrisma.pgPool = new pg.Pool({
+      connectionString: url,
+      max: 10,
+      idleTimeoutMillis: 30000,
+    });
   }
 
-  const pool = new pg.Pool({ 
-    connectionString: url,
-    max: 10,
-    idleTimeoutMillis: 30000,
-  });
-  
-  const adapter = new PrismaPg(pool);
-  
+  const adapter = new PrismaPg(globalForPrisma.pgPool);
   return new PrismaClient({ adapter });
 };
 
