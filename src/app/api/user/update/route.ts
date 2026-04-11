@@ -176,8 +176,8 @@ export async function POST(req: Request) {
           }
 
           const postFiles: string[] = [];
-          userWithMedia.forumPosts.forEach((post) => {
-            post.attachments.forEach((att) => postFiles.push(att.url));
+          userWithMedia.forumPosts.forEach((post: any) => {
+            post.attachments.forEach((att: any) => postFiles.push(att.url));
           });
 
           if (postFiles.length > 0) {
