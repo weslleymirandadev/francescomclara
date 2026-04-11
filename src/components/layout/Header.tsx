@@ -105,15 +105,11 @@ export function Header({ settings }: HeaderProps) {
             >
               Clara
               <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
-                {settings?.siteIcon?.startsWith("/") ? (
-                  <img
-                    src={settings?.siteIcon}
-                    alt="Icon"
-                    className="w-4 h-4 object-contain"
-                  />
-                ) : (
-                  <span>{settings?.siteIcon || "🌸"}</span>
-                )}
+                <img
+                  src={settings?.siteIcon}
+                  alt="Icon"
+                  className="w-4 h-4 object-contain"
+                />
               </span>
             </span>
           </span>

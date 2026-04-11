@@ -24,12 +24,34 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 };
 
+async function getSiteSettings() {
+  try {
+    // Em server-side, podemos chamar a API diretamente ou usar o prisma
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
+
+    return {
+      siteIcon: settings?.siteIcon || '/static/flower.svg',
+      highlightColor: settings?.highlightColor || '--clara-rose'
+    };
+  } catch (error) {
+    console.error('Erro ao buscar configurações:', error);
+    // Configurações padrão
+    return {
+      siteIcon: '/static/flower.svg',
+      highlightColor: '--clara-rose'
+    };
+  }
+}
+
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const session = await getServerSession(authOptions);
+  const settings = await getSiteSettings();
   
   if (!session?.user || session.user.role !== 'ADMIN') {
     redirect('/auth/login');
@@ -37,7 +59,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-[calc(100dvh-60px)] bg-third">
-      <Header />
+      <Header settings={settings} />
       <div className='mt-12 flex flex-1'>
         <AdminSidebar />
         <div className="flex-1 overflow-x-hidden">
