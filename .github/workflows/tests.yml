@@ -3,8 +3,8 @@ name: CI & Deploy to Vercel
 on:
   push:
     branches:
-      - 'feature/**'
-      - 'feat/**'
+      - "feature/**"
+      - "feat/**"
       - develop
       - main
 
@@ -23,13 +23,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: pnpm install
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
 
       - name: Generate Prisma Client
         run: pnpm prisma generate
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
 
       - name: Install Vercel CLI
         run: pnpm add -g vercel
@@ -45,3 +49,4 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
