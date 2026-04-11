@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
 const globalForPrisma = global as unknown as {
-  prisma: PrismaClient;
+  prisma: any;
   pgPool: pg.Pool;
 };
 
@@ -13,6 +13,10 @@ const url = process.env.DATABASE_URL || "";
 const isAccelerate = url.startsWith("prisma://");
 
 const createPrismaClient = () => {
+  if (!url) {
+    return new PrismaClient();
+  }
+
   if (isAccelerate) {
     return new PrismaClient({
       // @ts-ignore
