@@ -5,6 +5,7 @@ import { triggerConfetti } from "@/lib/utils";
 import Script from "next/script";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { SentenceBlock, ActiveTooltipProvider } from "@/components/course/SentenceBlock";
 
 export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: any) {
   if (!activeLesson) return null;
@@ -89,12 +90,28 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
 
         {activeLesson.type === "READING" ? (
           <div className="w-full">
-            <div className="text-lg text-slate-600 leading-relaxed wrap-break-word">
-              {content?.description || content?.text || ""}
-            </div>
+            {content?.sentences && Array.isArray(content.sentences) ? (
+              <ActiveTooltipProvider>
+                <div className="space-y-4">
+                  {content.sentences.map((sentence: any, index: number) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <span className="shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mt-1">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1">
+                        <SentenceBlock sentence={sentence} index={index} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ActiveTooltipProvider>
+            ) : (
+              <div className="text-lg text-slate-600 leading-relaxed wrap-break-word">
+                {content?.description || content?.text || ""}
+              </div>
+            )}
           </div>
         ) : (
-
           <div className="w-full">
             <div className="text-lg text-slate-600 leading-relaxed wrap-break-word">
               <ReactMarkdown

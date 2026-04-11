@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "../actions";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { CEFRLevel } from "@prisma/client";
 
 export default function ResultCard({ questions, answers }: any) {
   const [isSaving, setIsSaving] = useState(false);
@@ -18,7 +19,7 @@ export default function ResultCard({ questions, answers }: any) {
   
   // Lógica de cálculo de nível
   const percent = (score / questions.length) * 100;
-  let finalLevel = "A1";
+  let finalLevel: CEFRLevel = "A1";
   let levelName = "Iniciante";
 
   if (percent > 85) {
@@ -35,7 +36,7 @@ export default function ResultCard({ questions, answers }: any) {
   const handleFinish = async () => {
     setIsSaving(true);
     try {
-      const result = await completeOnboarding(finalLevel);
+      const result = await completeOnboarding(finalLevel as CEFRLevel);
       
       if (result.success) {
         await update({
