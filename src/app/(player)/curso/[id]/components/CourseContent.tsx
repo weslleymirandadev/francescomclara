@@ -6,6 +6,8 @@ import Script from "next/script";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { SentenceBlock, ActiveTooltipProvider } from "@/components/course/SentenceBlock";
+import { CompletionLesson } from "@/components/lesson/CompletionLesson";
+import { SpeakingLesson } from "@/components/lesson/SpeakingLesson";
 
 export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: any) {
   if (!activeLesson) return null;
@@ -70,7 +72,7 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
       </header>
 
       <div className="space-y-8">
-        {(activeLesson.type === 'CLASS' || activeLesson.type === 'STORY') && content?.videoUrl && (
+        {(activeLesson.type === 'CLASS' || activeLesson.type === 'STORY' || activeLesson.type === 'COMPLETION' || activeLesson.type === 'SPEAKING') && content?.videoUrl && (
           <div className="aspect-video w-full rounded-3xl overflow-hidden bg-slate-900 shadow-lg">
             <iframe
               id="youtube-player"
@@ -110,6 +112,32 @@ export function CourseContent({ activeLesson, moduleTitle, onLessonComplete }: a
                 {content?.description || content?.text || ""}
               </div>
             )}
+          </div>
+        ) : activeLesson.type === "COMPLETION" ? (
+          <div className="w-full">
+            <CompletionLesson 
+              content={content} 
+              lessonId={activeLesson.id}
+              onComplete={() => {
+                triggerConfetti();
+                if (onLessonComplete) {
+                  onLessonComplete(activeLesson.id);
+                }
+              }}
+            />
+          </div>
+        ) : activeLesson.type === "SPEAKING" ? (
+          <div className="w-full">
+            <SpeakingLesson 
+              content={content} 
+              lessonId={activeLesson.id}
+              onComplete={() => {
+                triggerConfetti();
+                if (onLessonComplete) {
+                  onLessonComplete(activeLesson.id);
+                }
+              }}
+            />
           </div>
         ) : (
           <div className="w-full">
