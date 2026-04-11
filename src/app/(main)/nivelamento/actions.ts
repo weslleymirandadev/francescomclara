@@ -4,8 +4,9 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { CEFRLevel } from "@prisma/client";
 
-export async function completeOnboarding(finalLevel: string) {
+export async function completeOnboarding(finalLevel: CEFRLevel) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -16,7 +17,7 @@ export async function completeOnboarding(finalLevel: string) {
     await prisma.user.update({
       where: { email: session.user.email! },
       data: { 
-        level: finalLevel,
+        level: finalLevel as CEFRLevel,
         onboarded: true 
       }
     });
