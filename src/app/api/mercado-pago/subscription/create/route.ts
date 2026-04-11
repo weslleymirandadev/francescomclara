@@ -69,14 +69,6 @@ export async function POST(req: Request) {
         );
       }
 
-      // Usar dados do plano se disponível
-      // Se period foi passado explicitamente, usar ele; senão tentar usar do plano
-      if (period) {
-        finalPeriod = period;
-      } else if (subscriptionPlan.period) {
-        finalPeriod = subscriptionPlan.period;
-      }
-
       if (finalPeriod === "MONTHLY") {
         frequencyType = "months";
         frequency = 1;
@@ -377,24 +369,27 @@ export async function POST(req: Request) {
 
     // Conceder acesso
     if (isAuthorized) {
-      await Promise.all(
-        enrichedItems.map((item) =>
-          prisma.enrollment.upsert({
-            where: {
-              userId_trackId: { userId, trackId: item.id },
-            },
-            create: {
-              userId,
-              trackId: item.id,
-              startDate: new Date(),
-              endDate: enrollmentEndDate,
-            },
-            update: {
-              endDate: enrollmentEndDate,
-            },
-          }),
-        ),
-      );
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          userId,
+          planId: subscriptionPlanId,
+        },
+      });
+
+      await prisma.enrollment.upsert({
+        where: {
+          id: existingEnrollment?.id || "new-id",
+        },
+        create: {
+          userId,
+          planId: subscriptionPlanId,
+          startDate: new Date(),
+          endDate: enrollmentEndDate,
+        },
+        update: {
+          endDate: enrollmentEndDate,
+        },
+      });
     }
 
     return NextResponse.json({
@@ -404,7 +399,6 @@ export async function POST(req: Request) {
       sandbox_init_point: subscriptionResponse.sandbox_init_point,
       external_reference: externalReference,
       isTransparent: isTransparent,
-      // Se for transparente e já autorizado, não precisa redirecionar
       requiresRedirect:
         !isTransparent || subscriptionResponse.status !== "authorized",
     });

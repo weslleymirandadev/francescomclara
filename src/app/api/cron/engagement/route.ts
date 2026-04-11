@@ -31,12 +31,14 @@ export async function GET(req: Request) {
     });
 
     for (const user of inactiveUsers) {
-      const success = await sendAutomationEmail(
-        user.email,
-        "Sentimos sua falta!",
-        settings.inactivityMessage,
-      );
-      if (success) inactivitySent++;
+      if (user.email) {
+        const success = await sendAutomationEmail(
+          user.email,
+          "Sentimos sua falta!",
+          settings.inactivityMessage,
+        );
+        if (success) inactivitySent++;
+      }
     }
   }
 
@@ -49,20 +51,23 @@ export async function GET(req: Request) {
     });
 
     for (const user of newUsers) {
-      const success = await sendAutomationEmail(
-        user.email!,
-        `Bem-vindo(a) ao ${settings.siteName || "Francês com Clara"}!`,
-        settings.welcomeMessage,
-      );
-      if (success) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { welcomeEmailSent: true },
-        });
-        welcomeSent++;
+      if (user.email) {
+        const success = await sendAutomationEmail(
+          user.email,
+          `Bem-vindo(a) ao ${settings.siteName || "Francês com Clara"}!`,
+          settings.welcomeMessage,
+        );
+        if (success) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { welcomeEmailSent: true },
+          });
+          welcomeSent++;
+        }
       }
     }
   }
+
   const usersWithCards = await prisma.user.findMany({
     where: {
       notifFlashcards: true,
