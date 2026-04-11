@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  TrendingUp, 
-  DollarSign, 
-  ArrowUpRight, 
+import {
+  TrendingUp,
+  DollarSign,
   Download,
   Target,
   ArrowRight,
   Loader2,
-  FileText
+  FileText,
 } from "lucide-react";
 import { formatPrice } from "@/lib/price";
-import { Loading } from '@/components/ui/loading'
-import Link from "next/link";
+import { Loading } from "@/components/ui/loading";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 interface AnalyticsData {
   users: { total: number; active: number };
-  plans: { individual: number; family: number; monthly: number; yearly: number };
+  plans: {
+    individual: number;
+    family: number;
+    monthly: number;
+    yearly: number;
+  };
   revenue: { monthly: number; total: number };
   churnRate?: string;
   recentStudents: Array<{
@@ -31,14 +34,15 @@ interface AnalyticsData {
 }
 
 export default function AdminAnalytics() {
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const response = await fetch('/api/admin/stats');
-        if (!response.ok) throw new Error('Erro ao buscar dados');
+        const response = await fetch("/api/admin/stats");
+        if (!response.ok) throw new Error("Erro ao buscar dados");
         const stats = await response.json();
         setData(stats);
       } catch (err) {
@@ -54,31 +58,31 @@ export default function AdminAnalytics() {
     if (!data) return;
 
     const doc = new jsPDF();
-    
+
     doc.setFont("helvetica", "bold");
     doc.text("FLUXO DE CAIXA E VENDAS - FRANCÊS COM CLARA", 14, 20);
-    
+
     autoTable(doc, {
       startY: 30,
-      head: [['Indicador', 'Valor']],
+      head: [["Indicador", "Valor"]],
       body: [
-        ['Faturamento Mensal', formatPrice(data.revenue.monthly)],
-        ['Faturamento Total', formatPrice(data.revenue.total)],
-        ['Alunos Totais', data.users.total.toString()],
-        ['Taxa de Churn', `${data.churnRate || '0.0'}%`],
-        ['LTV Médio', ltvValue],
+        ["Faturamento Mensal", formatPrice(data.revenue.monthly)],
+        ["Faturamento Total", formatPrice(data.revenue.total)],
+        ["Alunos Totais", data.users.total.toString()],
+        ["Taxa de Churn", `${data.churnRate || "0.0"}%`],
+        ["LTV Médio", ltvValue],
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [244, 63, 94] }
+      theme: "striped",
+      headStyles: { fillColor: [244, 63, 94] },
     });
 
     autoTable(doc, {
       startY: (doc as any).lastAutoTable.finalY + 10,
-      head: [['Data', 'Aluno', 'Trilha/Plano']],
-      body: data.recentStudents.map(s => [
-        new Date(s.createdAt).toLocaleDateString('pt-BR'),
+      head: [["Data", "Aluno", "Trilha/Plano"]],
+      body: data.recentStudents.map((s) => [
+        new Date(s.createdAt).toLocaleDateString("pt-BR"),
         s.name,
-        s.planType || "N/A"
+        s.planType || "N/A",
       ]),
     });
 
@@ -87,21 +91,26 @@ export default function AdminAnalytics() {
 
   if (loading) return <Loading />;
 
-  const ltvValue = data?.users.total 
-    ? formatPrice(data.revenue.total / data.users.total) 
+  const ltvValue = data?.users.total
+    ? formatPrice(data.revenue.total / data.users.total)
     : "R$ 0,00";
 
   return (
     <div className="min-h-screen bg-white animate-in fade-in duration-700">
       <div className="p-4 md:p-10 max-w-6xl mx-auto w-full space-y-8">
-        
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-(--slate-100) pb-6 md:pb-8 gap-4">
           <div className="w-full sm:w-auto">
             <h1 className="text-3xl md:text-5xl font-bold font-frenchpress text-(--interface-accent) uppercase tracking-tighter flex items-center gap-2">
-              Analytiques 
-              <img src="/static/flower.svg" alt="Flor" className="w-8 h-8 object-contain pointer-events-none"/>
+              Analytiques
+              <img
+                src="/static/flower.svg"
+                alt="Flor"
+                className="w-8 h-8 object-contain pointer-events-none"
+              />
             </h1>
-            <p className="text-(--slate-500) text-xs md:text-sm font-medium mt-1 italic">Saúde financeira em tempo real</p>
+            <p className="text-(--slate-500) text-xs md:text-sm font-medium mt-1 italic">
+              Saúde financeira em tempo real
+            </p>
           </div>
           <button
             type="button"
@@ -113,7 +122,6 @@ export default function AdminAnalytics() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          
           <div className="bg-linear-to-br from-(--clara-rose) to-[#b83d75] text-white rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 shadow-md relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-4 md:mb-6">
@@ -124,8 +132,12 @@ export default function AdminAnalytics() {
                   Ao Vivo
                 </span>
               </div>
-              <p className="text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-1">Receita Mensal</p>
-              <h2 className="text-3xl md:text-4xl font-black tracking-tighter">{formatPrice(data?.revenue.monthly || 0)}</h2>
+              <p className="text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-1">
+                Receita Mensal
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tighter">
+                {formatPrice(data?.revenue.monthly || 0)}
+              </h2>
             </div>
           </div>
 
@@ -134,16 +146,20 @@ export default function AdminAnalytics() {
               <div className="p-2.5 bg-rose-50 text-rose-500 rounded-xl">
                 <Target size={20} />
               </div>
-              <span className="text-[9px] font-black text-(--slate-400) uppercase tracking-widest italic">Meta &lt; 3%</span>
+              <span className="text-[9px] font-black text-(--slate-400) uppercase tracking-widest italic">
+                Meta &lt; 3%
+              </span>
             </div>
-            <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">Taxa de Churn</p>
+            <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">
+              Taxa de Churn
+            </p>
             <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">
               {data?.churnRate || "2.4"}%
             </h2>
             <div className="mt-4 md:mt-6 h-1 w-full bg-(--slate-50) rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-rose-500" 
-                style={{ width: `${data?.churnRate || "0.0"}%` }} 
+              <div
+                className="h-full bg-rose-500"
+                style={{ width: `${data?.churnRate || "0.0"}%` }}
               />
             </div>
           </div>
@@ -154,8 +170,12 @@ export default function AdminAnalytics() {
                 <TrendingUp size={20} />
               </div>
             </div>
-            <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">LTV Médio</p>
-            <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">{ltvValue}</h2>
+            <p className="text-[9px] font-black text-(--slate-400) uppercase tracking-[0.2em] mb-1">
+              LTV Médio
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-(--slate-900) tracking-tighter">
+              {ltvValue}
+            </h2>
             <div className="absolute top-0 right-0 w-1 h-full flex flex-col opacity-40">
               <div className="flex-1 bg-blue-600" />
               <div className="flex-1 bg-white" />
@@ -167,13 +187,19 @@ export default function AdminAnalytics() {
         <div className="bg-white border border-(--slate-100) rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-sm">
           <div className="p-5 md:p-8 border-b border-(--slate-50) flex items-center gap-2">
             <FileText size={18} className="text-(--interface-accent)" />
-            <h3 className="text-lg font-bold font-frenchpress text-(--slate-800) uppercase tracking-tight">Flux de Trésorerie</h3>
+            <h3 className="text-lg font-bold font-frenchpress text-(--slate-800) uppercase tracking-tight">
+              Flux de Trésorerie
+            </h3>
           </div>
-          
+
           <div className="divide-y divide-(--slate-50)">
             {data?.recentStudents && data.recentStudents.length > 0 ? (
               data.recentStudents.map((student) => (
-                <div key={student.id} className="flex items-center justify-between p-4 md:p-6 md:px-10 hover:bg-(--slate-50)/30 transition-all group">
+                <div
+                  key={student.id}
+                  onClick={() => setSelectedUserId(student.id)}
+                  className="flex items-center justify-between p-4 md:p-6 md:px-10 hover:bg-(--slate-50)/30 transition-all group cursor-pointer"
+                >
                   <div className="flex items-center gap-3 md:gap-6">
                     <div className="w-10 h-10 md:w-14 md:h-14 bg-white border border-(--slate-100) rounded-xl flex items-center justify-center shrink-0 shadow-sm">
                       <span className="text-[12px] md:text-xl font-black text-(--slate-900)">
@@ -189,29 +215,133 @@ export default function AdminAnalytics() {
                       </p>
                     </div>
                   </div>
-                  
-                  <Link 
-                    href={`/admin/users/${student.id}`} 
-                    key={student.id} 
-                    className="flex items-center justify-between p-4 md:p-6 md:px-10 hover:bg-(--slate-50)/30 transition-all group cursor-pointer"
-                  >
-                    <div className="text-right shrink-0 flex items-center gap-4">
-                      <div>
-                        <p className="font-black text-(--slate-900) text-[9px] md:text-sm tracking-widest">ATIVO</p>
-                        <p className="text-[8px] md:text-[10px] font-bold text-(--slate-400) italic">
-                          {new Date(student.createdAt).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-                      <ArrowRight size={16} className="text-(--slate-200) group-hover:text-(--interface-accent)" />
+
+                  <div className="text-right shrink-0 flex items-center gap-4">
+                    <div>
+                      <p className="font-black text-(--slate-900) text-[9px] md:text-sm tracking-widest">
+                        ATIVO
+                      </p>
+                      <p className="text-[8px] md:text-[10px] font-bold text-(--slate-400) italic">
+                        {new Date(student.createdAt).toLocaleDateString(
+                          "pt-BR",
+                        )}
+                      </p>
                     </div>
-                  </Link>
+                    <div className="text-right shrink-0 flex items-center gap-4">
+                      <ArrowRight
+                        size={16}
+                        className="text-(--slate-200) group-hover:text-(--interface-accent)"
+                      />
+                    </div>
+                  </div>
                 </div>
               ))
             ) : (
-              <div className="p-12 text-center text-(--slate-400) text-xs font-bold italic">Nenhum registro encontrado.</div>
+              <div className="p-12 text-center text-(--slate-400) text-xs font-bold italic">
+                Nenhum registro encontrado.
+              </div>
+            )}
+
+            {selectedUserId && (
+              <UserQuickView
+                userId={selectedUserId}
+                onClose={() => setSelectedUserId(null)}
+              />
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function UserQuickView({
+  userId,
+  onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUser() {
+      const res = await fetch(`/api/admin/users/${userId}`);
+      const data = await res.json();
+      setUser(data);
+      setLoading(false);
+    }
+    fetchUser();
+  }, [userId]);
+
+  return (
+    <div className="fixed inset-0 z-100 flex justify-end animate-in fade-in duration-300">
+      <div
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div className="relative w-full max-w-md bg-white h-full shadow-2xl p-8 flex flex-col animate-in slide-in-from-right duration-500">
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+        >
+          <ArrowRight className="rotate-180" size={20} />
+        </button>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="animate-spin text-rose-500" />
+          </div>
+        ) : (
+          <div className="space-y-8 mt-10">
+            <header>
+              <h2 className="text-3xl font-black uppercase tracking-tighter text-slate-900">
+                {user.profile.name}
+              </h2>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">
+                {user.profile.email}
+              </p>
+            </header>
+
+            <div className="space-y-3">
+              <div
+                className={`p-4 rounded-2xl border ${user.reportsReceived > 0 ? "bg-rose-50 border-rose-100 text-rose-600" : "bg-green-50 border-green-100 text-green-600"}`}
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1">
+                  Alertas da Comunidade
+                </p>
+                <p className="text-sm font-bold">
+                  {user.reportsReceived > 0
+                    ? `${user.reportsReceived} posts deste usuário foram denunciados`
+                    : "Nenhum post denunciado"}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50 text-slate-500">
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1">
+                  Atividade de Moderação
+                </p>
+                <p className="text-sm font-bold">
+                  {user.reportsCreated} denúncias enviadas pelo usuário
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.3em]">
+                Ações Rápidas
+              </h3>
+              <button className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-rose-600 transition-colors cursor-pointer">
+                Banir Usuário
+              </button>
+              <button className="w-full py-4 border-2 border-slate-100 text-slate-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:border-slate-200 cursor-pointer">
+                Resetar Acesso
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -9,12 +9,12 @@ export async function GET() {
         include: {
           objective: true,
           modules: {
-            orderBy: { order: 'asc' },
+            orderBy: { order: "asc" },
             include: {
-              lessons: { orderBy: { order: 'asc' } }
-            }
-          }
-        }
+              lessons: { orderBy: { order: "asc" } },
+            },
+          },
+        },
       }),
       prisma.subscriptionPlan.findMany({
         where: { active: true },
@@ -32,11 +32,8 @@ export async function GET() {
             },
           },
         },
-        orderBy: [
-          { type: 'asc' },
-          { monthlyPrice: 'asc' },
-        ],
-      })
+        orderBy: [{ type: "asc" }, { monthlyPrice: "asc" }],
+      }),
     ]);
 
     const sortedTracks = tracks.sort((a: any, b: any) => {
@@ -48,7 +45,7 @@ export async function GET() {
     const formattedPlans = plans.map((plan: any) => ({
       id: plan.id,
       name: plan.name,
-      description: plan.description || '',
+      description: plan.description || "",
       monthlyPrice: plan.monthlyPrice,
       yearlyPrice: plan.yearlyPrice,
       discountPrice: plan.discountPrice,
@@ -67,15 +64,15 @@ export async function GET() {
       active: plan.active,
     }));
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       tracks: sortedTracks,
-      plans: formattedPlans 
+      plans: formattedPlans,
     });
   } catch (error) {
     console.error("Erro na API de conteúdo unificado:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar conteúdo" }, 
-      { status: 500 }
+      { error: "Erro ao buscar conteúdo" },
+      { status: 500 },
     );
   }
 }

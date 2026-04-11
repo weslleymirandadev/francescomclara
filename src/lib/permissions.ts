@@ -13,17 +13,21 @@ export function isStaff(user: { role: UserRole } | undefined) {
   return !!user && (user.role === "ADMIN" || user.role === "MODERATOR");
 }
 
-export async function hasTrackAccess(userId: string, trackId: string) {
-  const now = new Date();
-  
+async function hasTrackAccess(
+  userId: string,
+  trackId: string,
+): Promise<boolean> {
   const enrollment = await prisma.enrollment.findFirst({
     where: {
-      userId,
-      trackId,
-      OR: [
-        { endDate: null },
-        { endDate: { gte: now } }
-      ]
+      userId: userId,
+      plan: {
+        tracks: {
+          some: {
+            id: trackId,
+          },
+        },
+      },
+      OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
     },
   });
 
@@ -72,12 +76,12 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
       parentId: true,
       payments: {
         where: {
-          status: { in: ['APPROVED', 'authorized', 'AUTHORIZED'] },
-          subscriptionPlanId: { not: null }
+          status: { in: ["APPROVED", "authorized", "AUTHORIZED"] },
+          subscriptionPlanId: { not: null },
         },
-        take: 1
-      }
-    }
+        take: 1,
+      },
+    },
   });
 
   if (user?.payments.length && user.payments.length > 0) return true;
@@ -88,13 +92,13 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
       select: {
         payments: {
           where: {
-            status: { in: ['APPROVED', 'authorized', 'AUTHORIZED'] },
+            status: { in: ["APPROVED", "authorized", "AUTHORIZED"] },
             subscriptionPlanId: { not: null },
-            plan: { type: 'FAMILY' }
+            subscriptionPlan: { type: "FAMILY" },
           },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     });
 
     if (parent?.payments.length && parent.payments.length > 0) return true;
@@ -108,22 +112,24 @@ export async function getPlanFeatures(userId: string) {
     where: { id: userId },
     include: {
       payments: {
-        where: { status: 'APPROVED' },
-        include: { plan: true },
-        take: 1
+        where: { status: "APPROVED" },
+        include: { subscriptionPlan: true },
+        take: 1,
       },
       parent: {
         include: {
           payments: {
-            where: { status: 'APPROVED', plan: { type: 'FAMILY' } },
-            include: { plan: true },
-            take: 1
-          }
-        }
-      }
-    }
+            where: { status: "APPROVED", subscriptionPlan: { type: "FAMILY" } },
+            include: { subscriptionPlan: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
 
-  const plan = user?.payments[0]?.plan || user?.parent?.payments[0]?.plan;
+  const plan =
+    user?.payments[0]?.subscriptionPlan ||
+    user?.parent?.payments[0]?.subscriptionPlan;
   return plan?.features ? (plan.features as any) : {};
 }

@@ -2,47 +2,25 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { hasActiveSubscription } from "@/lib/permissions";
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
-
-    const userWithPlan = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        enrollments: {
-          where: { 
-            OR: [{ endDate: null }, { endDate: { gte: new Date() } }] 
-          },
-          include: { plan: true }
-        },
-        parent: {
-          include: {
-            enrollments: {
-              where: { 
-                OR: [{ endDate: null }, { endDate: { gte: new Date() } }] 
-              },
-              include: { plan: true }
-            }
-          }
-        }
-      }
-    });
-
-    const activeEnrollment = userWithPlan?.enrollments[0] || userWithPlan?.parent?.enrollments[0];
-    const planFeatures = (activeEnrollment?.plan?.features as string[]) || [];
-    const hasAllAccess = planFeatures.includes('all_tracks');
+    const hasSubscription = await hasActiveSubscription(userId);
 
     const tracks = await prisma.track.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+      },
       include: {
-        objective: { select: { id: true, name: true, icon: true, color: true } },
+        objective: { select: { name: true } },
         modules: {
           include: {
             lessons: {
@@ -51,20 +29,56 @@ export async function GET() {
                 title: true,
                 type: true,
                 order: true,
+                isPremium: true,
               },
-              orderBy: { order: 'asc' },
+              orderBy: { order: "asc" },
             },
           },
-          orderBy: { order: 'asc' },
+          orderBy: { order: "asc" },
         },
       },
-      orderBy: { order: 'asc' },
+      orderBy: { order: "asc" },
     });
 
     const filteredTracks = tracks.map((track: any) => {
-      const hasAccess = hasAllAccess || planFeatures.includes(`track:${track.id}`);
-      
-      const totalLessonsCount = track.modules.reduce((sum: number, m: any) => sum + m.lessons.length, 0);
+      const hasAccess = hasSubscription;
+
+      if (!hasAccess) {
+        const freeLessonsCount = track.modules.reduce(
+          (sum: number, m: any) =>
+            sum + m.lessons.filter((l: any) => !l.isPremium).length,
+          0,
+        );
+        const totalLessonsCount = track.modules.reduce(
+          (sum: number, m: any) => sum + m.lessons.length,
+          0,
+        );
+
+        return {
+          id: track.id,
+          name: track.name,
+          description: track.description,
+          imageUrl: track.imageUrl,
+          order: track.order,
+          objective: track.objective,
+          modules: track.modules.map((module: any) => {
+            const freeLessons = module.lessons.filter(
+              (lesson: any) => !lesson.isPremium,
+            );
+            const hasFreeLessons = freeLessons.length > 0;
+
+            return {
+              ...module,
+              lessons: freeLessons.slice(0, 3),
+              isLocked: module.isPremium || !hasFreeLessons,
+              isPremium: module.isPremium,
+            };
+          }),
+          isLocked: true,
+          freeLessonsCount,
+          totalLessonsCount,
+        };
+      }
 
       return {
         id: track.id,
@@ -75,32 +89,66 @@ export async function GET() {
         objective: track.objective,
         modules: track.modules.map((module: any) => ({
           ...module,
-          isLocked: !hasAccess, 
+          lessons: module.lessons,
+          isLocked: false,
+          isPremium: false,
         })),
-        isLocked: !hasAccess,
-        hasAccess: hasAccess,
-        totalLessonsCount
+        isLocked: false,
+        hasAccess: true,
       };
     });
 
     const progress = await prisma.lessonProgress.findMany({
-      where: { userId, completed: true },
-      select: { lessonId: true }
+      where: {
+        userId,
+        completed: true,
+      },
+      select: {
+        lessonId: true,
+      },
     });
 
-    const completedLessonIds = progress.map((p: { lessonId: string }) => p.lessonId);
+    const completedLessonIds = new Set(
+      progress.map((p: { lessonId: string }) => p.lessonId),
+    );
+
+    const tracksWithProgress = filteredTracks.map((track: any) => {
+      const total = track.modules.reduce(
+        (sum: number, m: any) => sum + m.lessons.length,
+        0,
+      );
+      const completed = track.modules.reduce(
+        (sum: number, m: any) =>
+          sum +
+          m.lessons.filter((l: any) => completedLessonIds.has(l.id)).length,
+        0,
+      );
+
+      return {
+        ...track,
+        progressPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+        isCompleted: total > 0 && completed === total,
+      };
+    });
+
+    const trackToResume =
+      tracksWithProgress.find(
+        (t: any) => t.progressPercent > 0 && t.progressPercent < 100,
+      ) ||
+      tracksWithProgress.find((t: any) => t.progressPercent === 0) ||
+      tracksWithProgress[0];
 
     return NextResponse.json({
-      tracks: filteredTracks,
-      hasActiveSubscription: !!activeEnrollment,
-      completedLessonIds
+      tracks: tracksWithProgress,
+      trackToResume,
+      hasActiveSubscription: hasSubscription,
+      completedLessonIds: Array.from(completedLessonIds),
     });
-
   } catch (error) {
-    console.error('Error fetching study content:', error);
+    console.error("Error fetching study content:", error);
     return NextResponse.json(
-      { error: 'An error occurred' },
-      { status: 500 }
+      { error: "An error occurred while fetching study content" },
+      { status: 500 },
     );
   }
 }

@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react"; // Adicionado useEffect
 import { Lesson, LessonType } from "@prisma/client";
-import { ChevronLeft, Video, FileText, BookOpen, BrainCircuit, Lock, LockOpen } from "lucide-react";
+import {
+  ChevronLeft,
+  Video,
+  FileText,
+  BookOpen,
+  BrainCircuit,
+  Lock,
+  LockOpen,
+} from "lucide-react";
 import Link from "next/link";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { FlashcardEditor } from "./_components/FlashcardEditor";
@@ -21,7 +29,10 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
   const [lesson, setLesson] = useState(initialData);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [availableLessons, setAvailableLessons] = useState<{id: string, title: string}[]>([]);
+  const [availableLessons, setAvailableLessons] = useState<
+    { id: string; title: string }[]
+  >([]);
+  const [isNotifying, setIsNotifying] = useState(false);
 
   useEffect(() => {
     const fetchModuleLessons = async () => {
@@ -41,29 +52,36 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
   const getIcon = (type: LessonType) => {
     switch (type) {
-      case 'CLASS': return <Video size={20} />;
-      case 'STORY': return <BookOpen size={20} />;
-      case 'READING': return <FileText size={20} />;
-      case 'FLASHCARD': return <BrainCircuit size={20} />;
+      case "CLASS":
+        return <Video size={20} />;
+      case "STORY":
+        return <BookOpen size={20} />;
+      case "READING":
+        return <FileText size={20} />;
+      case "FLASHCARD":
+        return <BrainCircuit size={20} />;
     }
   };
 
   const handleUpdate = (updates: Partial<Lesson>) => {
-    setLesson(prev => ({ ...prev, ...updates }));
+    setLesson((prev) => ({ ...prev, ...updates }));
     setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/admin/modules/${moduleId}/lessons/${lesson.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...lesson,
-          content: lesson.content 
-        }),
-      });
+      const res = await fetch(
+        `/api/admin/modules/${moduleId}/lessons/${lesson.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...lesson,
+            content: lesson.content,
+          }),
+        },
+      );
 
       if (res.ok) {
         setHasUnsavedChanges(false);
@@ -82,9 +100,30 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
     setHasUnsavedChanges(false);
   };
 
+  const handleNotify = async () => {
+    setIsNotifying(true);
+    try {
+      const res = await fetch(`/api/admin/notify-lesson`, {
+        method: "POST",
+        body: JSON.stringify({
+          lessonId: lesson.id,
+          lessonTitle: lesson.title,
+          moduleId: moduleId,
+          lessonType: lesson.type,
+        }),
+      });
+
+      if (res.ok) toast.success("Notificações enviadas!");
+    } catch (e) {
+      toast.error("Falha ao notificar.");
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white pb-32">
-      <SaveChangesBar 
+      <SaveChangesBar
         hasChanges={hasUnsavedChanges}
         loading={isSaving}
         onSave={handleSave}
@@ -94,10 +133,13 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
       <div className="max-w-4xl mx-auto p-4 sm:p-8 md:p-12">
         <header className="flex flex-col gap-6 mb-8">
           <div className="flex items-center gap-4">
-            <Link href={`/admin/content/modules/${moduleId}`} className="p-2 hover:bg-s-50 rounded-xl shrink-0">
+            <Link
+              href={`/admin/content/modules/${moduleId}`}
+              className="p-2 hover:bg-s-50 rounded-xl shrink-0"
+            >
               <ChevronLeft size={24} />
             </Link>
-            <input 
+            <input
               value={lesson.title}
               onChange={(e) => handleUpdate({ title: e.target.value })}
               className="text-2xl sm:text-4xl font-black uppercase tracking-tighter outline-none w-full bg-transparent"
@@ -106,51 +148,80 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex flex-wrap gap-1 bg-s-50 p-1.5 rounded-[22px] border w-fit">
-              {(['CLASS', 'STORY', 'READING', 'FLASHCARD'] as LessonType[]).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => handleUpdate({ type })}
-                  className={`p-3 rounded-2xl transition-all flex items-center gap-2 ${
-                    lesson.type === type 
-                    ? "bg-s-900 text-white shadow-md" 
-                    : "text-s-500 hover:bg-s-200"
-                  }`}
-                >
-                  {getIcon(type)}
-                  {lesson.type === type && <span className="text-[10px] font-black uppercase tracking-widest">{type}</span>}
-                </button>
-              ))}
+              {(["CLASS", "STORY", "READING", "FLASHCARD"] as LessonType[]).map(
+                (type) => (
+                  <button
+                    key={type}
+                    onClick={() => handleUpdate({ type })}
+                    className={`p-3 rounded-2xl transition-all flex items-center gap-2 ${
+                      lesson.type === type
+                        ? "bg-s-900 text-white shadow-md"
+                        : "text-s-500 hover:bg-s-200"
+                    }`}
+                  >
+                    {getIcon(type)}
+                    {lesson.type === type && (
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        {type}
+                      </span>
+                    )}
+                  </button>
+                ),
+              )}
             </div>
 
-            <button 
+            <button
               onClick={() => handleUpdate({ isPremium: !lesson.isPremium })}
               className={`flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all sm:ml-auto ${
-                lesson.isPremium 
-                ? "bg-amber-500 border-amber-600 text-white" 
-                : "bg-white border-s-100 text-s-500"
+                lesson.isPremium
+                  ? "bg-amber-500 border-amber-600 text-white"
+                  : "bg-white border-s-100 text-s-500"
               }`}
             >
               {lesson.isPremium ? <Lock size={14} /> : <LockOpen size={14} />}
               {lesson.isPremium ? "Premium" : "Gratuita"}
             </button>
+
+            <button
+              onClick={handleNotify}
+              disabled={isNotifying || hasUnsavedChanges}
+              className="px-4 py-3 bg-interface-accent text-white rounded-xl font-bold text-xs uppercase disabled:opacity-50"
+            >
+              {isNotifying ? "Enviando..." : "Notificar Alunos"}
+            </button>
           </div>
         </header>
 
         <main>
-           <div className="bg-white border-2 border-dashed rounded-[32px] sm:rounded-[40px] p-4 sm:p-8 md:p-10 flex flex-col items-center justify-center relative min-h-[400px]">
-              {lesson.type === 'CLASS' && <ClassEditor content={lesson.content} onChange={(val) => handleUpdate({ content: val })} />}
-              
-              {lesson.type === 'FLASHCARD' && (
-                <FlashcardEditor 
-                  content={lesson.content} 
-                  availableLessons={availableLessons} 
-                  onChange={(val) => handleUpdate({ content: val })} 
-                />
-              )}
-              
-              {lesson.type === 'READING' && <ReadingEditor content={lesson.content} onChange={(val) => handleUpdate({ content: val })} />}
-              {lesson.type === 'STORY' && <StoryEditor content={lesson.content} onChange={(val) => handleUpdate({ content: val })} />}
-           </div>
+          <div className="bg-white border-2 border-dashed rounded-[32px] sm:rounded-[40px] p-4 sm:p-8 md:p-10 flex flex-col items-center justify-center relative min-h-[400px]">
+            {lesson.type === "CLASS" && (
+              <ClassEditor
+                content={lesson.content}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+
+            {lesson.type === "FLASHCARD" && (
+              <FlashcardEditor
+                content={lesson.content}
+                availableLessons={availableLessons}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+
+            {lesson.type === "READING" && (
+              <ReadingEditor
+                content={lesson.content}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+            {lesson.type === "STORY" && (
+              <StoryEditor
+                content={lesson.content}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+          </div>
         </main>
       </div>
     </div>

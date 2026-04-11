@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma db push --accept-data-loss && next build",
+    "postinstall": "prisma generate",
     "start": "next start"
   },
   "dependencies": {
@@ -29,6 +30,9 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.101.0",
     "@tailwindcss/postcss": "^4.1.17",
     "@upstash/redis": "^1.36.1",
     "bcryptjs": "^3.0.3",
@@ -37,6 +41,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.25",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
@@ -70,6 +76,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.22",
+    "baseline-browser-mapping": "^2.10.17",
     "postcss": "^8.5.6",
     "prisma": "^7.1.0",
     "tailwindcss": "^4.1.17",

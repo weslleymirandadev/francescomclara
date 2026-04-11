@@ -22,18 +22,26 @@ model User {
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   role              UserRole         @default(USER)
+  status            UserStatus       @default(ACTIVE)
+  banReason         String?          @db.Text
+  bannedAt          DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   accounts          Account[]
   enrollments       Enrollment[]
   forumComments     ForumComment[]
   forumPosts        ForumPost[]
+  postLikes         PostLike[]
+  reports           PostReport[]
+  commentLikes      CommentLike[]
+  commentReports    CommentReport[]
   lessonProgresses  LessonProgress[]
   payments          Payment[]
   paymentMethods    PaymentMethod[]
   sessions          Session[]
   flashcards        Flashcard[]
   emailVerified     DateTime?
+  welcomeEmailSent  Boolean          @default(false)
   notifFlashcards   Boolean          @default(true)
   notifLessons      Boolean          @default(true)
   notifForum        Boolean          @default(true)
@@ -43,6 +51,12 @@ enum UserRole {
   USER
   MODERATOR
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+  INACTIVE
 }
 
 model VerificationToken {
@@ -234,13 +248,14 @@ model FlashcardTemplate {
 }
 
 model ForumPost {
-  id        String   @id @default(cuid())
-  authorId  String
-  title     String
-  content   Json
-  trackId   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String            @id @default(cuid())
+  authorId    String
+  title       String
+  content     Json
+  attachments ForumAttachment[]
+  trackId     String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   author   User           @relation(fields: [authorId], references: [id])
   track    Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
@@ -248,6 +263,9 @@ model ForumPost {
 
   lessonId String?
   lesson   Lesson? @relation(fields: [lessonId], references: [id])
+
+  postLikes PostLike[]
+  reports   PostReport[]
 
   @@index([trackId])
 }
@@ -260,6 +278,56 @@ model ForumComment {
   createdAt DateTime  @default(now())
   author    User      @relation(fields: [authorId], references: [id])
   post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  likes   CommentLike[]
+  reports CommentReport[]
+}
+
+model PostLike {
+  userId String
+  postId String
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+model ForumAttachment {
+  id     String    @id @default(cuid())
+  url    String
+  type   String // "IMAGE" ou "VIDEO"
+  postId String
+  post   ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model PostReport {
+  id        String    @id @default(cuid())
+  reason    String    @db.Text
+  userId    String
+  postId    String
+  user      User      @relation(fields: [userId], references: [id])
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+}
+
+model CommentLike {
+  id        String       @id @default(cuid())
+  userId    String
+  commentId String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId]) // Impede 2 likes da mesma pessoa
+}
+
+model CommentReport {
+  id        String       @id @default(cuid())
+  reason    String       @db.Text
+  userId    String
+  commentId String
+  user      User         @relation(fields: [userId], references: [id])
+  comment   ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
 }
 
 model Payment {
@@ -414,7 +482,7 @@ model SiteSettings {
   daysToNotifyExpiring Int     @default(7)
   expiringMessage      String? @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
   inactivityMessage    String? @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
-  welcomeMessage       String? @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura connosco.")
+  welcomeMessage       String? @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura conosco.")
 
   updatedAt DateTime @updatedAt
 }

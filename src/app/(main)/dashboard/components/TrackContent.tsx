@@ -83,6 +83,7 @@ export function TrackContent({ track, completedIds }: TrackContentProps) {
               <div className="grid gap-4">
                 {module.lessons?.map((lesson: any) => {
                   const isCompleted = completedIds?.includes(lesson.id) || false;
+                  //const isLocked = track.isLocked && lesson.isPremium;
                   const isLocked = track.isLocked && lesson.isPremium;
 
                   return (

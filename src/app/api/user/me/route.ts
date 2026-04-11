@@ -5,71 +5,86 @@ import { NextResponse } from "next/server";
 import { Enrollment, Track } from "@prisma/client";
 
 interface EnrollmentWithTrack extends Enrollment {
-  track: Pick<Track, 'id' | 'name' | 'imageUrl'>;
+  track: Pick<Track, "id" | "name" | "imageUrl">;
 }
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
       children: { select: { id: true, email: true, name: true } },
       enrollments: {
-        where: { 
-          OR: [
-            { endDate: null }, 
-            { endDate: { gte: new Date() } }
-          ] 
+        where: {
+          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
         },
         include: {
-          plan: true 
-        }
+          plan: true,
+        },
+      },
+      forumPosts: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: {
+          attachments: true,
+          _count: {
+            select: {
+              comments: true,
+              postLikes: true,
+            },
+          },
+        },
       },
       payments: {
-        where: { 
-          status: { equals: "approved", mode: 'insensitive' }
+        where: {
+          status: { equals: "approved", mode: "insensitive" },
         },
         include: { subscriptionPlan: true },
         orderBy: { createdAt: "desc" },
-        take: 1
+        take: 1,
       },
       parent: {
         include: {
           payments: {
-            where: { 
-              status: { equals: "approved", mode: 'insensitive' }, 
-              subscriptionPlan: { type: "FAMILY" } 
+            where: {
+              status: { equals: "approved", mode: "insensitive" },
+              subscriptionPlan: { type: "FAMILY" },
             },
             include: { subscriptionPlan: true },
-            take: 1
-          }
-        }
-      }
-    }
+            take: 1,
+          },
+        },
+      },
+    },
   });
 
-  const activePlan = user?.payments[0]?.subscriptionPlan || user?.parent?.payments[0]?.subscriptionPlan;
+  const activePlan =
+    user?.payments[0]?.subscriptionPlan ||
+    user?.parent?.payments[0]?.subscriptionPlan;
   let tracks: any[] = [];
   if (activePlan) {
-    const features = activePlan.features as string[] || [];
-    if (features.includes('all_tracks')) {
-      tracks = await prisma.track.findMany({ 
+    const features = (activePlan.features as string[]) || [];
+    if (features.includes("all_tracks")) {
+      tracks = await prisma.track.findMany({
         where: { active: true },
-        select: { id: true, name: true, imageUrl: true }
+        select: { id: true, name: true, imageUrl: true },
       });
     } else {
       const specificTrackIds = features
-        .filter(f => f.startsWith('track:'))
-        .map(f => f.split(':')[1]);
-        
+        .filter((f) => f.startsWith("track:"))
+        .map((f) => f.split(":")[1]);
+
       tracks = await prisma.track.findMany({
         where: { id: { in: specificTrackIds } },
-        select: { id: true, name: true, imageUrl: true }
+        select: { id: true, name: true, imageUrl: true },
       });
     }
   }
+
+  const formattedPosts = user?.forumPosts || [];
 
   return NextResponse.json({
     profile: {
@@ -78,17 +93,21 @@ export async function GET() {
       username: user?.username,
       level: user?.level,
       image: user?.image,
-      bio: user?.bio
+      bio: user?.bio,
     },
-    subscription: activePlan ? {
-      name: activePlan.name,
-      type: activePlan.type,
-      features: activePlan.features
-    } : null,
+    posts: formattedPosts,
+    subscription: activePlan
+      ? {
+          name: activePlan.name,
+          type: activePlan.type,
+          features: activePlan.features,
+          endDate: user?.enrollments?.[0]?.endDate || null,
+        }
+      : null,
     family: {
-      isParent: !!activePlan && activePlan.type === 'FAMILY' && !user?.parentId,
-      members: user?.children || []
+      isParent: !!activePlan && activePlan.type === "FAMILY" && !user?.parentId,
+      members: user?.children || [],
     },
-    enrollments: tracks
+    enrollments: tracks,
   });
 }
