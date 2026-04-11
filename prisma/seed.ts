@@ -239,6 +239,94 @@ async function main() {
     }
   }
 
+  // 5. Adicionar lição de exemplo com sentences interativas
+  console.log("📝 Criando lição com sentences...");
+  
+  // Buscar o primeiro módulo disponível
+  const firstModule = await prisma.module.findFirst({
+    orderBy: { order: 'asc' }
+  });
+
+  if (firstModule) {
+    const sentencesLesson = await prisma.lesson.upsert({
+      where: { id: "lesson-sentences-exemplo" },
+      update: {
+        title: "Saudações e Apresentações Interativas",
+        type: LessonType.READING,
+        content: {
+          sentences: [
+            {
+              frase: "Bonjour à tous!",
+              traducao: "Bom dia a todos!",
+              explicacao: "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral."
+            },
+            {
+              frase: "Comment ça va?",
+              traducao: "Como vai?",
+              explicacao: "Expressão informal. O 'ça' é um pronome demonstrativo neutro."
+            },
+            {
+              frase: "Je m'appelle Marie.",
+              traducao: "Eu me chamo Marie.",
+              explicacao: "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo."
+            },
+            {
+              frase: "J'habite à Paris.",
+              traducao: "Eu moro em Paris.",
+              explicacao: "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização."
+            },
+            {
+              frase: "Quelle heure est-il?",
+              traducao: "Que horas são?",
+              explicacao: "Formal para perguntar as horas. 'Il' refere-se ao tempo."
+            }
+          ]
+        },
+        order: 999,
+        isPremium: false,
+      },
+      create: {
+        id: "lesson-sentences-exemplo",
+        title: "Saudações e Apresentações Interativas",
+        type: LessonType.READING,
+        content: {
+          sentences: [
+            {
+              frase: "Bonjour à tous!",
+              traducao: "Bom dia a todos!",
+              explicacao: "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral."
+            },
+            {
+              frase: "Comment ça va?",
+              traducao: "Como vai?",
+              explicacao: "Expressão informal. O 'ça' é um pronome demonstrativo neutro."
+            },
+            {
+              frase: "Je m'appelle Marie.",
+              traducao: "Eu me chamo Marie.",
+              explicacao: "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo."
+            },
+            {
+              frase: "J'habite à Paris.",
+              traducao: "Eu moro em Paris.",
+              explicacao: "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização."
+            },
+            {
+              frase: "Quelle heure est-il?",
+              traducao: "Que horas são?",
+              explicacao: "Formal para perguntar as horas. 'Il' refere-se ao tempo."
+            }
+          ]
+        },
+        order: 999,
+        isPremium: false,
+        moduleId: firstModule.id,
+      },
+    });
+
+    console.log(`✅ Lição com sentences criada: ${sentencesLesson.title}`);
+  }
+
   console.log("✅ Seed finalizado com sucesso!");
 }
 
