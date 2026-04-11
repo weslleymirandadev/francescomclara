@@ -6,8 +6,11 @@ import prisma from "@/lib/prisma";
 import { MercadoPagoConfig, Payment as MPPayment } from "mercadopago";
 import { getMercadoPagoToken } from "@/lib/mercadopago";
 
-const token = await getMercadoPagoToken();
-const client = new MercadoPagoConfig({ accessToken: token });
+async function getMPClient() {
+  const token = await getMercadoPagoToken();
+  const client = new MercadoPagoConfig({ accessToken: token });
+  return { client, token };
+}
 
 type PaymentStatus =
   | "PENDING"
@@ -70,6 +73,7 @@ async function sendOK(obj: any = { ok: true }) {
  */
 async function getPayment(mpPaymentId: string) {
   try {
+    const { client } = await getMPClient(); // Inicializa aqui
     const payment = await new MPPayment(client).get({ id: mpPaymentId });
     return payment;
   } catch (err) {
@@ -97,6 +101,7 @@ async function revokeUserAccess(userId: string, planId: string) {
  */
 async function getSubscription(subscriptionId: string) {
   try {
+    const { token } = await getMPClient();
     const mpApiUrl = process.env.MP_API_URL || "https://api.mercadopago.com";
     const response = await fetch(`${mpApiUrl}/preapproval/${subscriptionId}`, {
       method: "GET",
@@ -238,6 +243,10 @@ async function processRecurringPayment(
 }
 
 export async function POST(req: Request) {
+  if (process.env.NEXT_PHASE === "phase-production-build") {
+    return new Response("OK", { status: 200 });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const xSignature = req.headers.get("x-signature");
