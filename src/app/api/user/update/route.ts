@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -25,61 +26,98 @@ export async function POST(req: Request) {
           }),
         );
 
-      case "SET_LEVEL":
+      case "SET_LEVEL": {
         const requirements: Record<string, number> = {
           A2: 20,
           B1: 50,
           B2: 100,
           C1: 200,
         };
+
         const userProgress = await prisma.user.findUnique({
           where: { id: session.user.id },
-          select: { _count: { select: { completedLessons: true } } },
+          select: {
+            _count: {
+              select: { lessonProgresses: true },
+            },
+          },
         });
+
+        if (!userProgress) {
+          return NextResponse.json(
+            { error: "Usuário não encontrado" },
+            { status: 404 },
+          );
+        }
+
+        const completedCount = userProgress._count.lessonProgresses;
+        const targetLevel = data.level as string;
+
         if (
-          requirements[data.level] &&
-          (userProgress?._count.completedLessons || 0) <
-            requirements[data.level]
+          requirements[targetLevel] &&
+          completedCount < requirements[targetLevel]
         ) {
           return NextResponse.json(
-            { error: "Requisitos não atingidos" },
+            {
+              error: `Você precisa de ${requirements[targetLevel]} lições para o nível ${targetLevel}. (Atual: ${completedCount})`,
+            },
             { status: 403 },
           );
         }
+
         return NextResponse.json(
           await prisma.user.update({
             where: { id: session.user.id },
-            data: { level: data.level },
+            data: { level: targetLevel as any },
           }),
         );
+      }
 
-      case "ADD_FAMILY_MEMBER":
+      case "ADD_FAMILY_MEMBER": {
         const owner = await prisma.user.findUnique({
           where: { id: session.user.id },
           include: {
             children: true,
             payments: {
               where: { status: "APPROVED" },
-              include: { plan: true },
+              include: {
+                subscriptionPlan: true,
+              },
               take: 1,
             },
           },
         });
-        if (
-          owner?.payments[0]?.plan?.type !== "FAMILY" ||
-          owner.children.length >= 3
-        ) {
+
+        if (!owner)
+          return NextResponse.json(
+            { error: "Dono não encontrado" },
+            { status: 404 },
+          );
+
+        const lastPayment = owner.payments?.[0];
+        const planType = lastPayment?.subscriptionPlan?.type;
+        const childrenCount = owner.children?.length || 0;
+
+        if (planType !== "FAMILY" || childrenCount >= 3) {
           return NextResponse.json(
             { error: "Ação não permitida ou limite atingido" },
             { status: 403 },
           );
         }
-        return NextResponse.json(
-          await prisma.user.update({
+
+        try {
+          const updatedMember = await prisma.user.update({
             where: { email: data.email.toLowerCase().trim() },
             data: { parentId: session.user.id },
-          }),
-        );
+          });
+          return NextResponse.json(updatedMember);
+        } catch (error) {
+          return NextResponse.json(
+            { error: "Membro não encontrado" },
+            { status: 404 },
+          );
+        }
+      }
 
       case "REMOVE_FAMILY_MEMBER":
         return NextResponse.json(
@@ -108,38 +146,80 @@ export async function POST(req: Request) {
           }),
         );
 
-      case "DELETE_ACCOUNT":
+      case "DELETE_ACCOUNT": {
         const userId = session.user.id;
 
-        // 1. Tabelas de Autenticação e Sessão
+        const userWithMedia = await prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            forumPosts: {
+              include: { attachments: true },
+            },
+          },
+        });
+
+        if (!userWithMedia)
+          return NextResponse.json(
+            { error: "User not found" },
+            { status: 404 },
+          );
+
+        try {
+          const userFiles = [userWithMedia.image, userWithMedia.banner].filter(
+            Boolean,
+          ) as string[];
+          if (userFiles.length > 0) {
+            const userPaths = userFiles
+              .map((url) => url.split("/").pop())
+              .filter(Boolean) as string[];
+            await supabase.storage.from("user-uploads").remove(userPaths);
+          }
+
+          const postFiles: string[] = [];
+          userWithMedia.forumPosts.forEach((post) => {
+            post.attachments.forEach((att) => postFiles.push(att.url));
+          });
+
+          if (postFiles.length > 0) {
+            const postPaths = postFiles
+              .map((url) => {
+                const fileName = url.split("/").pop();
+                return fileName ? `posts/${fileName}` : null;
+              })
+              .filter(Boolean) as string[];
+            await supabase.storage.from("forum-attachments").remove(postPaths);
+          }
+        } catch (storageError) {
+          console.error("Erro ao limpar Storage:", storageError);
+        }
+
         await prisma.account.deleteMany({ where: { userId } });
         await prisma.session.deleteMany({ where: { userId } });
 
-        // 2. Conteúdo do Fórum (Cuidado: aqui os campos variam no seu schema)
+        await prisma.forumAttachment.deleteMany({
+          where: { post: { authorId: userId } },
+        });
+
+        await prisma.postLike.deleteMany({ where: { userId } });
         await prisma.commentLike.deleteMany({ where: { userId } });
         await prisma.commentReport.deleteMany({ where: { userId } });
         await prisma.forumComment.deleteMany({ where: { authorId: userId } });
         await prisma.forumPost.deleteMany({ where: { authorId: userId } });
-
-        // 3. Estudo e Progresso
         await prisma.flashcard.deleteMany({ where: { userId } });
         await prisma.lessonProgress.deleteMany({ where: { userId } });
-        await prisma.enrollment.deleteMany({ where: { userId } });
 
-        // 4. Financeiro (No seu schema a relação é userId)
-        await prisma.paymentMethod.deleteMany({ where: { userId } });
+        await prisma.enrollment.deleteMany({ where: { userId } });
         await prisma.payment.deleteMany({ where: { userId } });
 
-        // 5. Família (Se você for o "parent", remove o vínculo dos filhos)
         await prisma.user.updateMany({
           where: { parentId: userId },
           data: { parentId: null },
         });
 
-        // 6. Finalmente o Usuário
         await prisma.user.delete({ where: { id: userId } });
 
-        return NextResponse.json({ message: "Conta eliminada com sucesso" });
+        return NextResponse.json({ message: "Conta e arquivos deletados!" });
+      }
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });

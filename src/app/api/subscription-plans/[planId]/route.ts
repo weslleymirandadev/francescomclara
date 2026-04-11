@@ -8,7 +8,7 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ planId: string }> }
+  { params }: { params: Promise<{ planId: string }> },
 ) {
   try {
     const { planId } = await params;
@@ -16,13 +16,16 @@ export async function GET(
     if (planId === "default") {
       const defaultPlan = await prisma.subscriptionPlan.findFirst({
         where: { active: true },
-        orderBy: { monthlyPrice: 'asc' }
+        orderBy: { monthlyPrice: "asc" },
       });
 
       if (!defaultPlan) {
-        return NextResponse.json({ error: "Nenhum plano disponível" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Nenhum plano disponível" },
+          { status: 404 },
+        );
       }
-      return NextResponse.json(defaultPlan); 
+      return NextResponse.json(defaultPlan);
     }
 
     const plan = await prisma.subscriptionPlan.findUnique({
@@ -46,15 +49,14 @@ export async function GET(
     if (!plan) {
       return NextResponse.json(
         { error: "Plano de assinatura não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Formatar resposta para compatibilidade com o frontend
     return NextResponse.json({
       id: plan.id,
       name: plan.name,
-      description: plan.description || '',
+      description: plan.description || "",
       monthlyPrice: plan.monthlyPrice,
       yearlyPrice: plan.yearlyPrice,
       discountPrice: plan.discountPrice,
@@ -78,7 +80,7 @@ export async function GET(
     console.error("Error fetching subscription plan:", error);
     return NextResponse.json(
       { error: "Erro ao buscar plano de assinatura" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -89,16 +91,13 @@ export async function GET(
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ planId: string }> }
+  { params }: { params: Promise<{ planId: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -106,10 +105,13 @@ export async function PATCH(
       select: { role: true },
     });
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem atualizar planos." },
-        { status: 403 }
+        {
+          error:
+            "Acesso negado. Apenas administradores podem atualizar planos.",
+        },
+        { status: 403 },
       );
     }
 
@@ -130,7 +132,6 @@ export async function PATCH(
       isBestValue,
     } = body;
 
-    // Verificar se o plano existe
     const existingPlan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId },
     });
@@ -138,57 +139,69 @@ export async function PATCH(
     if (!existingPlan) {
       return NextResponse.json(
         { error: "Plano de assinatura não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Preparar dados de atualização
     const updateData: any = {};
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (monthlyPrice !== undefined) {
       updateData.monthlyPrice = Math.round(monthlyPrice);
-      // Se yearlyPrice também foi fornecido, validar
-      const finalYearlyPrice = yearlyPrice !== undefined ? Math.round(yearlyPrice) : existingPlan.yearlyPrice;
+      const finalYearlyPrice =
+        yearlyPrice !== undefined
+          ? Math.round(yearlyPrice)
+          : (existingPlan.yearlyPrice ?? 0);
       const yearlyMonthlyPrice = Math.round(finalYearlyPrice / 12);
       if (yearlyMonthlyPrice >= updateData.monthlyPrice) {
         return NextResponse.json(
-          { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
-          { status: 400 }
+          {
+            error:
+              "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)",
+          },
+          { status: 400 },
         );
       }
     }
     if (yearlyPrice !== undefined) {
       updateData.yearlyPrice = Math.round(yearlyPrice);
-      // Se monthlyPrice também foi fornecido, validar
-      const finalMonthlyPrice = monthlyPrice !== undefined ? Math.round(monthlyPrice) : existingPlan.monthlyPrice;
+      const finalMonthlyPrice =
+        monthlyPrice !== undefined
+          ? Math.round(monthlyPrice)
+          : (existingPlan.monthlyPrice ?? 0);
       const yearlyMonthlyPrice = Math.round(updateData.yearlyPrice / 12);
       if (yearlyMonthlyPrice >= finalMonthlyPrice) {
         return NextResponse.json(
-          { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
-          { status: 400 }
+          {
+            error:
+              "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)",
+          },
+          { status: 400 },
         );
       }
     }
-    
-    if (discountPrice !== undefined) updateData.discountPrice = discountPrice ? Math.round(discountPrice) : null;
-    if (discountEnabled !== undefined) updateData.discountEnabled = discountEnabled;
+
+    if (discountPrice !== undefined)
+      updateData.discountPrice = discountPrice
+        ? Math.round(discountPrice)
+        : null;
+    if (discountEnabled !== undefined)
+      updateData.discountEnabled = discountEnabled;
     if (isBestValue !== undefined) updateData.isBestValue = isBestValue;
     if (type !== undefined) {
-      if (!['INDIVIDUAL', 'FAMILY'].includes(type)) {
+      if (!["INDIVIDUAL", "FAMILY"].includes(type)) {
         return NextResponse.json(
           { error: "Tipo deve ser INDIVIDUAL ou FAMILY" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updateData.type = type;
     }
-    
+
     if (features !== undefined) updateData.features = features;
     if (active !== undefined) updateData.active = active;
 
-    // Atualizar plano
     const plan = await prisma.subscriptionPlan.update({
       where: { id: planId },
       data: updateData,
@@ -208,14 +221,11 @@ export async function PATCH(
       },
     });
 
-    // Atualizar trilhas se fornecido
     if (trackIds !== undefined && Array.isArray(trackIds)) {
-      // Remover todas as trilhas atuais
       await prisma.subscriptionPlanTrack.deleteMany({
         where: { subscriptionPlanId: planId },
       });
 
-      // Adicionar novas trilhas
       if (trackIds.length > 0) {
         await prisma.subscriptionPlanTrack.createMany({
           data: trackIds.map((trackId: string) => ({
@@ -225,7 +235,6 @@ export async function PATCH(
         });
       }
 
-      // Buscar plano atualizado com trilhas
       const updatedPlan = await prisma.subscriptionPlan.findUnique({
         where: { id: planId },
         include: {
@@ -252,7 +261,7 @@ export async function PATCH(
     console.error("Error updating subscription plan:", error);
     return NextResponse.json(
       { error: "Erro ao atualizar plano de assinatura" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -263,16 +272,13 @@ export async function PATCH(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ planId: string }> }
+  { params }: { params: Promise<{ planId: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
@@ -280,16 +286,17 @@ export async function DELETE(
       select: { role: true },
     });
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
       return NextResponse.json(
-        { error: "Acesso negado. Apenas administradores podem deletar planos." },
-        { status: 403 }
+        {
+          error: "Acesso negado. Apenas administradores podem deletar planos.",
+        },
+        { status: 403 },
       );
     }
 
     const { planId } = await params;
 
-    // Verificar se o plano existe
     const existingPlan = await prisma.subscriptionPlan.findUnique({
       where: { id: planId },
     });
@@ -297,22 +304,23 @@ export async function DELETE(
     if (!existingPlan) {
       return NextResponse.json(
         { error: "Plano de assinatura não encontrado" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Deletar plano (cascata deleta os cursos relacionados)
     await prisma.subscriptionPlan.delete({
       where: { id: planId },
     });
 
-    return NextResponse.json({ success: true, message: "Plano deletado com sucesso" });
+    return NextResponse.json({
+      success: true,
+      message: "Plano deletado com sucesso",
+    });
   } catch (error) {
     console.error("Error deleting subscription plan:", error);
     return NextResponse.json(
       { error: "Erro ao deletar plano de assinatura" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
