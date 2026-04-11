@@ -3,6 +3,7 @@ import { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
 import { prisma } from "@/lib/prisma";
+import { Header } from "@/components/layout/Header";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -30,15 +31,39 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+async function getSiteSettings() {
+  try {
+    // Em server-side, podemos chamar a API diretamente ou usar o prisma
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: "settings" }
+    });
+
+    return {
+      siteIcon: settings?.siteIcon || '/static/flower.svg',
+      highlightColor: settings?.highlightColor || '--clara-rose'
+    };
+  } catch (error) {
+    console.error('Erro ao buscar configurações:', error);
+    // Configurações padrão
+    return {
+      siteIcon: '/static/flower.svg',
+      highlightColor: '--clara-rose'
+    };
+  }
+}
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const settings = await getSiteSettings();
+  
   return (
     <html lang="pt-BR">
       <body className="antialiased">
         <Providers>
+          <Header settings={settings} />
           <Toaster position="top-center" />
           {children}
         </Providers>
