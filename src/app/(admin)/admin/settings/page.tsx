@@ -3,8 +3,12 @@ import AdminSettings from "./AdminSettings";
 
 export default async function Page() {
   const settings = await prisma.siteSettings.findUnique({
-    where: { id: "settings" }
+    where: { id: "settings" },
   });
+
+  if (!settings) {
+    return <AdminSettings initialSettings={{} as any} />;
+  }
 
   return <AdminSettings initialSettings={settings} />;
 }
