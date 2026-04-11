@@ -195,7 +195,7 @@ export default function ContentList({ tracks, configs, plans }: { tracks: any[],
         setHasChanges(false);
         router.refresh();
       } else {
-        toast.error(result.error || "Erro ao salvar");
+        toast.error("Erro ao salvar");
       }
     } catch (error) {
       console.error(error);
