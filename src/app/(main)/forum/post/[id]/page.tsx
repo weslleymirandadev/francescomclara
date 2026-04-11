@@ -114,26 +114,37 @@ export default function PostDetailPage() {
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = async (postId: string) => {
+    if (!session?.user?.id) return toast.error("Faça login para curtir");
+
+    const previousPost = { ...post };
+    const isCurrentlyLiked = post.postLikes?.some(
+      (l: any) => l.userId === session.user.id,
+    );
+
+    setPost((prev: any) => ({
+      ...prev,
+      postLikes: isCurrentlyLiked
+        ? prev.postLikes.filter((l: any) => l.userId !== session.user.id)
+        : [...(prev.postLikes || []), { userId: session.user.id }],
+      _count: {
+        ...prev._count,
+        postLikes: isCurrentlyLiked
+          ? Math.max(0, (prev._count?.postLikes || 0) - 1)
+          : (prev._count?.postLikes || 0) + 1,
+      },
+    }));
+
     try {
-      const res = await fetch(`/api/forum/post/${id}/like`, { method: "POST" });
+      const res = await fetch(`/api/forum/posts/${postId}/like`, {
+        method: "POST",
+      });
+
       if (!res.ok) throw new Error();
 
       const data = await res.json();
-
-      setPost((prev: any) => ({
-        ...prev,
-        postLikes: data.liked
-          ? [...(prev.postLikes || []), { userId: session?.user?.id }]
-          : prev.postLikes.filter((l: any) => l.userId !== session?.user?.id),
-        _count: {
-          ...prev._count,
-          postLikes: data.liked
-            ? prev._count.postLikes + 1
-            : prev._count.postLikes - 1,
-        },
-      }));
     } catch (error) {
+      setPost(previousPost);
       toast.error("Erro ao processar curtida");
     }
   };
@@ -486,17 +497,43 @@ export default function PostDetailPage() {
             )}
           </div>
 
-          <button
-            onClick={handleLike}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl transition-all shadow-sm text-xs font-black uppercase tracking-tighter ${
-              isLiked
-                ? "bg-(--interface-accent) text-white scale-105"
-                : "bg-white border border-slate-100 text-slate-400 hover:bg-slate-50"
-            }`}
-          >
-            <FiStar className={isLiked ? "fill-white" : ""} size={16} />
-            {post._count?.postLikes || 0} Curtidas
-          </button>
+          <div className="flex w-full justify-end">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLike(post.id);
+              }}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 active:scale-90 cursor-pointer
+                ${
+                  post.postLikes?.some(
+                    (l: any) => l.userId === session?.user?.id,
+                  )
+                    ? "bg-rose-100 text-(--clara-rose) shadow-sm"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }
+              `}
+            >
+              <FiStar
+                className={`
+                  transition-transform duration-300
+                  ${
+                    post.postLikes?.some(
+                      (l: any) => l.userId === session?.user?.id,
+                    )
+                      ? "fill-current scale-125 rotate-72"
+                      : "scale-100 rotate-0"
+                  }
+                `}
+                size={18}
+              />
+              <span className="font-bold text-sm">
+                {post._count?.postLikes || 0}
+              </span>
+            </button>
+          </div>
 
           {session?.user?.id === post.authorId && (
             <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">

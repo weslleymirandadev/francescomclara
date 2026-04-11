@@ -1,8 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { compare, hash } from "bcryptjs";
 import prisma from "./prisma";
 import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { UserRole } from "@prisma/client";
@@ -82,50 +80,6 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       allowDangerousEmailAccountLinking: true,
-    }),
-
-    // --- Credentials login (email/senha) ---
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Senha", type: "password" },
-      },
-      async authorize(credentials) {
-        const { email, password } = credentials as {
-          email: string;
-          password: string;
-        };
-
-        if (!email || !password) {
-          throw new Error("Preencha e-mail e senha.");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-          include: { passwords: true },
-        });
-
-        if (!user) {
-          throw new Error("Usuário não encontrado");
-        }
-
-        // -------------------------------------
-        // 1) Usuário existe → validar senha
-        // -------------------------------------
-        if (user) {
-          if (!user.passwords) {
-            throw new Error("Conta registrada via login social. Use Google.");
-          }
-
-          const ok = await compare(password, user.passwords.hash);
-          if (!ok) {
-            throw new Error("Senha incorreta.");
-          }
-
-          return user;
-        }
-      },
     }),
 
     // --- Email login ---

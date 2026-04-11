@@ -1,10 +1,11 @@
+// src/lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
 const globalForPrisma = global as unknown as {
-  prisma: any;
+  prisma: PrismaClient;
   pgPool: pg.Pool;
 };
 

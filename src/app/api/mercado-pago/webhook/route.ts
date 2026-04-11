@@ -7,11 +7,16 @@ import { getMercadoPagoToken } from "@/lib/mercadopago";
 const token = await getMercadoPagoToken();
 const client = new MercadoPagoConfig({ accessToken: token });
 
-type PaymentStatus = 'PENDING' | 'APPROVED' | 'REFUNDED' | 'CANCELLED' | 'FAILED';
+type PaymentStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REFUNDED"
+  | "CANCELLED"
+  | "FAILED";
 
 interface PaymentItem {
   id: string;
-  type: 'track';
+  type: "track";
   quantity: number;
   price: number;
   title: string;
@@ -20,22 +25,21 @@ interface PaymentItem {
 }
 
 const paymentStatusMap: Record<string, PaymentStatus> = {
-  'pending': 'PENDING',
-  'approved': 'APPROVED',
-  'refunded': 'REFUNDED',
-  'cancelled': 'CANCELLED',
-  'rejected': 'FAILED',
-  'in_process': 'PENDING',
-  'in_mediation': 'PENDING',
-  'charged_back': 'FAILED'
+  pending: "PENDING",
+  approved: "APPROVED",
+  refunded: "REFUNDED",
+  cancelled: "CANCELLED",
+  rejected: "FAILED",
+  in_process: "PENDING",
+  in_mediation: "PENDING",
+  charged_back: "FAILED",
 };
-
 
 async function ensureUserExists(userId: string) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!user) {
@@ -45,7 +49,7 @@ async function ensureUserExists(userId: string) {
     }
     return user;
   } catch (error) {
-    console.error('Erro ao verificar usuário:', error);
+    console.error("Erro ao verificar usuário:", error);
     throw error;
   }
 }
@@ -72,30 +76,30 @@ async function getPayment(mpPaymentId: string) {
   }
 }
 
-async function revokeUserAccess(userId: string, items: PaymentItem[]) {
-  for (const item of items) {
-    try {
-      await prisma.enrollment.deleteMany({
-        where: { userId, trackId: item.id }
-      });
-      console.log(`Acesso removido da trilha ${item.id} para o usuário ${userId}`);
-    } catch (error) {
-      console.error(`Erro ao remover acesso para a trilha ${item.id}:`, error);
-    }
+async function revokeUserAccess(userId: string, planId: string) {
+  try {
+    await prisma.enrollment.deleteMany({
+      where: {
+        userId: userId,
+        planId: planId,
+      },
+    });
+    console.log(`Acesso ao plano ${planId} removido para o usuário ${userId}`);
+  } catch (error) {
+    console.error(`Erro ao remover acesso ao plano ${planId}:`, error);
   }
 }
-
 
 /**
  * Busca informações de uma assinatura (Preapproval/Subscription) do Mercado Pago
  */
 async function getSubscription(subscriptionId: string) {
   try {
-    const mpApiUrl = process.env.MP_API_URL || 'https://api.mercadopago.com';
+    const mpApiUrl = process.env.MP_API_URL || "https://api.mercadopago.com";
     const response = await fetch(`${mpApiUrl}/preapproval/${subscriptionId}`, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -117,93 +121,66 @@ async function processAuthorizedSubscription(
   subscriptionId: string,
   userId: string,
   items: PaymentItem[],
-  metadata: any
+  metadata: any,
 ) {
   try {
     await ensureUserExists(userId);
 
-    const period = metadata.period || 'MONTHLY';
-    
-    // Calcular data de término baseada no período
-    const endDate = new Date();
-    if (period === 'YEARLY') {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    } else {
-      // Mensal - renovar mensalmente
-      endDate.setMonth(endDate.getMonth() + 1);
-    }
+    const period = metadata.period || "MONTHLY";
+    const subscriptionPlanId = metadata.subscriptionPlanId;
 
-    // Criar ou atualizar pagamento/assinatura
+    const endDate = new Date();
+    period === "YEARLY"
+      ? endDate.setFullYear(endDate.getFullYear() + 1)
+      : endDate.setMonth(endDate.getMonth() + 1);
+
     await prisma.payment.upsert({
       where: { mpPaymentId: subscriptionId },
       create: {
         mpPaymentId: subscriptionId,
         userId,
-        status: 'APPROVED',
+        status: "APPROVED",
         amount: items.reduce((sum, item) => sum + (item.price || 0), 0),
         metadata: {
-          type: 'subscription',
+          type: "subscription",
           ...metadata,
           period: period,
-          refundWindowDays: period === 'YEARLY' ? 30 : 7,
-          items: items.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            price: item.price,
-            quantity: item.quantity
-          })),
-        },
-        items: {
-          create: items.map((item: any) => ({
-            trackId: item.id,
-            price: item.price || 0,
-            quantity: item.quantity || 1,
-            title: item.title || 'Trilha',
-            description: item.description || 'Acesso à trilha',
-          })),
+          items: items,
         },
       },
       update: {
-        status: 'APPROVED',
-        metadata: {
-          type: 'subscription',
-          ...metadata,
-          period: period,
-          refundWindowDays: period === 'YEARLY' ? 30 : 7,
-          items: items.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            price: item.price,
-            quantity: item.quantity
-          })),
-        },
+        status: "APPROVED",
+        metadata: { ...metadata, period },
       },
     });
 
-    // Criar ou atualizar matrículas com data de término baseada na assinatura
-    await Promise.all(
-      items.map((item: any) =>
-        prisma.enrollment.upsert({
-          where: {
-            userId_trackId: { userId, trackId: item.id }
-          },
-          create: {
-            userId,
-            trackId: item.id,
-            startDate: new Date(),
-            endDate: endDate,
-          },
-          update: {
-            // Estender data de término se necessário
-            endDate: endDate,
-          }
-        })
-      )
-    );
+    const existing = await prisma.enrollment.findFirst({
+      where: {
+        userId: userId,
+        planId: subscriptionPlanId,
+      },
+    });
 
-    console.log(`Assinatura ${subscriptionId} autorizada e acesso concedido ao usuário ${userId}`);
+    await prisma.enrollment.upsert({
+      where: {
+        id: existing?.id || "new_enrollment",
+      },
+      create: {
+        userId,
+        planId: subscriptionPlanId,
+        startDate: new Date(),
+        endDate: endDate,
+      },
+      update: {
+        endDate: endDate,
+      },
+    });
+
+    console.log(
+      `Assinatura ${subscriptionId} autorizada para o plano ${subscriptionPlanId}`,
+    );
   } catch (error) {
-    console.error('Erro ao processar assinatura autorizada:', error);
+    console.error("Erro ao processar assinatura:", error);
     throw error;
   }
 }
@@ -214,50 +191,46 @@ async function processAuthorizedSubscription(
 async function processRecurringPayment(
   paymentId: string,
   subscriptionId: string,
-  userId: string
+  userId: string,
 ) {
   try {
-    // Buscar a assinatura no banco
     const subscription = await prisma.payment.findUnique({
       where: { mpPaymentId: subscriptionId },
-      include: { items: true }
     });
 
-    if (!subscription) {
-      console.error(`Assinatura ${subscriptionId} não encontrada no banco`);
+    if (!subscription || !subscription.subscriptionPlanId) {
+      console.error(
+        `Assinatura ${subscriptionId} não encontrada ou sem plano associado`,
+      );
       return;
     }
 
     const metadata = subscription.metadata as any;
-    const period = metadata.period || 'MONTHLY';
+    const period = metadata.period || "MONTHLY";
+    const planId = subscription.subscriptionPlanId;
 
-    // Estender data de término das matrículas baseado no período
     const endDate = new Date();
-    if (period === 'YEARLY') {
+    if (period === "YEARLY") {
       endDate.setFullYear(endDate.getFullYear() + 1);
     } else {
-      // Mensal - renovar mensalmente
       endDate.setMonth(endDate.getMonth() + 1);
     }
 
-    // Atualizar matrículas para estender o acesso
-    await Promise.all(
-      subscription.items.map((item: any) =>
-        prisma.enrollment.updateMany({
-          where: {
-            userId,
-            trackId: item.trackId || ''
-          },
-          data: {
-            endDate: endDate,
-          }
-        })
-      )
-    );
+    await prisma.enrollment.updateMany({
+      where: {
+        userId: userId,
+        planId: planId,
+      },
+      data: {
+        endDate: endDate,
+      },
+    });
 
-    console.log(`Pagamento recorrente ${paymentId} processado para assinatura ${subscriptionId}`);
+    console.log(
+      `Pagamento recorrente ${paymentId} processado: Acesso estendido até ${endDate.toISOString()}`,
+    );
   } catch (error) {
-    console.error('Erro ao processar pagamento recorrente:', error);
+    console.error("Erro ao processar pagamento recorrente:", error);
     throw error;
   }
 }
@@ -272,7 +245,9 @@ export async function POST(req: Request) {
     const secret = process.env.MP_WEBHOOK_SECRET;
 
     if (!xSignature || !secret) {
-      console.error("Segurança: Webhook recebido sem assinatura ou secret não configurado.");
+      console.error(
+        "Segurança: Webhook recebido sem assinatura ou secret não configurado.",
+      );
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -281,14 +256,17 @@ export async function POST(req: Request) {
       let ts = "";
       let hash = "";
 
-      parts.forEach(part => {
+      parts.forEach((part) => {
         const [key, value] = part.split("=");
         if (key.trim() === "ts") ts = value;
         if (key.trim() === "v1") hash = value;
       });
 
       const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-      const hmac = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+      const hmac = crypto
+        .createHmac("sha256", secret)
+        .update(manifest)
+        .digest("hex");
 
       if (hmac !== hash) {
         console.error("Segurança: Tentativa de Webhook falsificado detectada!");
@@ -306,7 +284,7 @@ export async function POST(req: Request) {
 
     // Processar eventos de assinatura (Preapproval/Subscription)
     if (eventType === "preapproval") {
-      console.log('Processando evento de assinatura:', mpId);
+      console.log("Processando evento de assinatura:", mpId);
 
       let subscription;
       try {
@@ -319,7 +297,7 @@ export async function POST(req: Request) {
       // Buscar assinatura no banco
       const dbSubscription = await prisma.payment.findUnique({
         where: { mpPaymentId: mpId.toString() },
-        select: { userId: true, metadata: true, subscriptionPlanId: true }
+        select: { userId: true, metadata: true, subscriptionPlanId: true },
       });
 
       if (!dbSubscription) {
@@ -335,10 +313,10 @@ export async function POST(req: Request) {
       const rawItems = metadata.items || [];
       const items: PaymentItem[] = rawItems.map((item: any) => ({
         id: item.id,
-        type: 'track',
+        type: "track",
         trackId: item.id,
-        title: item.title || 'Trilha',
-        description: item.description || 'Acesso à trilha',
+        title: item.title || "Trilha",
+        description: item.description || "Acesso à trilha",
         quantity: item.quantity || 1,
         price: item.price || 0,
       }));
@@ -350,21 +328,26 @@ export async function POST(req: Request) {
 
       // Processar diferentes status de assinatura
       if (status === "authorized") {
-        await processAuthorizedSubscription(mpId.toString(), userId, items, metadata);
+        await processAuthorizedSubscription(
+          mpId.toString(),
+          userId,
+          items,
+          metadata,
+        );
         return sendOK();
       } else if (status === "cancelled" || status === "paused") {
         // Cancelar assinatura e remover acesso
         await prisma.payment.update({
           where: { mpPaymentId: mpId.toString() },
-          data: { status: 'CANCELLED' }
+          data: { status: "CANCELLED" },
         });
-        await revokeUserAccess(userId, items);
+        await revokeUserAccess(userId, dbSubscription.subscriptionPlanId!);
         return sendOK();
       } else {
         // Atualizar status da assinatura
         await prisma.payment.update({
           where: { mpPaymentId: mpId.toString() },
-          data: { status: status?.toUpperCase() || 'PENDING' }
+          data: { status: status?.toUpperCase() || "PENDING" },
         });
         return sendOK();
       }
@@ -372,7 +355,7 @@ export async function POST(req: Request) {
 
     // Processar eventos de subscription (nova API)
     if (eventType === "subscription") {
-      console.log('Processando evento de subscription:', mpId);
+      console.log("Processando evento de subscription:", mpId);
 
       let subscription;
       try {
@@ -385,7 +368,7 @@ export async function POST(req: Request) {
       // Buscar assinatura no banco
       const dbSubscription = await prisma.payment.findUnique({
         where: { mpPaymentId: mpId.toString() },
-        select: { userId: true, metadata: true, subscriptionPlanId: true }
+        select: { userId: true, metadata: true, subscriptionPlanId: true },
       });
 
       if (!dbSubscription) {
@@ -401,10 +384,10 @@ export async function POST(req: Request) {
       const rawItems = metadata.items || [];
       const items: PaymentItem[] = rawItems.map((item: any) => ({
         id: item.id,
-        type: 'track',
+        type: "track",
         trackId: item.id,
-        title: item.title || 'Trilha',
-        description: item.description || 'Acesso à trilha',
+        title: item.title || "Trilha",
+        description: item.description || "Acesso à trilha",
         quantity: item.quantity || 1,
         price: item.price || 0,
       }));
@@ -416,21 +399,26 @@ export async function POST(req: Request) {
 
       // Processar diferentes status de subscription
       if (status === "authorized" || status === "active") {
-        await processAuthorizedSubscription(mpId.toString(), userId, items, metadata);
+        await processAuthorizedSubscription(
+          mpId.toString(),
+          userId,
+          items,
+          metadata,
+        );
         return sendOK();
       } else if (status === "cancelled" || status === "paused") {
         // Cancelar assinatura e remover acesso
         await prisma.payment.update({
           where: { mpPaymentId: mpId.toString() },
-          data: { status: 'CANCELLED' }
+          data: { status: "CANCELLED" },
         });
-        await revokeUserAccess(userId, items);
+        await revokeUserAccess(userId, dbSubscription.subscriptionPlanId!);
         return sendOK();
       } else {
         // Atualizar status da assinatura
         await prisma.payment.update({
           where: { mpPaymentId: mpId.toString() },
-          data: { status: status?.toUpperCase() || 'PENDING' }
+          data: { status: status?.toUpperCase() || "PENDING" },
         });
         return sendOK();
       }
@@ -438,7 +426,7 @@ export async function POST(req: Request) {
 
     // Processar eventos de pagamento recorrente (apenas para assinaturas)
     if (eventType === "payment") {
-      console.log('Processando evento de pagamento recorrente:', mpId);
+      console.log("Processando evento de pagamento recorrente:", mpId);
 
       let payment;
       try {
@@ -449,21 +437,24 @@ export async function POST(req: Request) {
       }
 
       // Verificar se é um pagamento de assinatura (pode vir como preapproval_id ou subscription_id)
-      const subscriptionId = (payment as any).preapproval_id || (payment as any).subscription_id;
+      const subscriptionId =
+        (payment as any).preapproval_id || (payment as any).subscription_id;
       if (!subscriptionId) {
         // Não é um pagamento de assinatura, ignorar
-        console.log('Pagamento não é de assinatura, ignorando');
+        console.log("Pagamento não é de assinatura, ignorando");
         return sendOK({ ignored: "not_subscription_payment" });
       }
 
       // Buscar assinatura relacionada
       const subscription = await prisma.payment.findUnique({
         where: { mpPaymentId: subscriptionId.toString() },
-        select: { userId: true, metadata: true, items: true }
+        select: { userId: true, metadata: true, items: true },
       });
 
       if (!subscription) {
-        console.error(`Assinatura ${subscriptionId} não encontrada para pagamento ${mpId}`);
+        console.error(
+          `Assinatura ${subscriptionId} não encontrada para pagamento ${mpId}`,
+        );
         return sendOK({ error: "subscription_not_found" });
       }
 
@@ -472,10 +463,10 @@ export async function POST(req: Request) {
       const rawItems = metadata.items || [];
       const items: PaymentItem[] = rawItems.map((item: any) => ({
         id: item.id,
-        type: 'track',
+        type: "track",
         trackId: item.id,
-        title: item.title || 'Trilha',
-        description: item.description || 'Acesso à trilha',
+        title: item.title || "Trilha",
+        description: item.description || "Acesso à trilha",
         quantity: item.quantity || 1,
         price: item.price || 0,
       }));
@@ -484,10 +475,16 @@ export async function POST(req: Request) {
 
       // Se o pagamento foi aprovado, estender acesso
       if (status === "approved") {
-        await processRecurringPayment(mpId.toString(), subscriptionId.toString(), userId);
+        await processRecurringPayment(
+          mpId.toString(),
+          subscriptionId.toString(),
+          userId,
+        );
       } else if (["refunded", "cancelled", "rejected"].includes(status)) {
         // Se o pagamento falhou, pode ser necessário pausar a assinatura
-        console.log(`Pagamento recorrente ${mpId} falhou com status: ${status}`);
+        console.log(
+          `Pagamento recorrente ${mpId} falhou com status: ${status}`,
+        );
         // Nota: Não removemos acesso imediatamente, apenas registramos
       }
 

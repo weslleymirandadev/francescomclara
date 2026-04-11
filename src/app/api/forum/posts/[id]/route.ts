@@ -55,7 +55,10 @@ export async function GET(
           orderBy: { createdAt: "asc" },
         },
         _count: {
-          select: { comments: true },
+          select: {
+            comments: true,
+            postLikes: true,
+          },
         },
       },
     });
