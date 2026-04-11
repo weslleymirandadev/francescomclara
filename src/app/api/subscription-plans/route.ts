@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -12,15 +14,19 @@ import prisma from "@/lib/prisma";
  */
 export async function GET(request: Request) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json([]);
+    }
+
     const { searchParams } = new URL(request.url);
-    const active = searchParams.get('active');
-    const type = searchParams.get('type');
-    const period = searchParams.get('period');
+    const active = searchParams.get("active");
+    const type = searchParams.get("type");
+    const period = searchParams.get("period");
 
     const where: any = {};
 
     if (active !== null) {
-      where.active = active === 'true';
+      where.active = active === "true";
     }
 
     if (type) {
@@ -47,10 +53,7 @@ export async function GET(request: Request) {
           },
         },
       },
-      orderBy: [
-        { type: 'asc' },
-        { monthlyPrice: 'asc' },
-      ],
+      orderBy: [{ type: "asc" }, { monthlyPrice: "asc" }],
     });
 
     return NextResponse.json(plans);
@@ -58,7 +61,7 @@ export async function GET(request: Request) {
     console.error("Error fetching subscription plans:", error);
     return NextResponse.json(
       { error: "Erro ao buscar planos de assinatura" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -72,10 +75,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     // Verificar se é admin (você pode ajustar essa lógica conforme sua necessidade)
@@ -84,10 +84,10 @@ export async function POST(request: Request) {
       select: { role: true },
     });
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "Acesso negado. Apenas administradores podem criar planos." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -106,17 +106,22 @@ export async function POST(request: Request) {
     } = body;
 
     // Validações
-    if (!name || monthlyPrice === undefined || yearlyPrice === undefined || !type) {
+    if (
+      !name ||
+      monthlyPrice === undefined ||
+      yearlyPrice === undefined ||
+      !type
+    ) {
       return NextResponse.json(
         { error: "Campos obrigatórios: name, monthlyPrice, yearlyPrice, type" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (!['INDIVIDUAL', 'FAMILY'].includes(type)) {
+    if (!["INDIVIDUAL", "FAMILY"].includes(type)) {
       return NextResponse.json(
         { error: "Tipo deve ser INDIVIDUAL ou FAMILY" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,8 +129,11 @@ export async function POST(request: Request) {
     const yearlyMonthlyPrice = Math.round(yearlyPrice / 12);
     if (yearlyMonthlyPrice >= monthlyPrice) {
       return NextResponse.json(
-        { error: "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)" },
-        { status: 400 }
+        {
+          error:
+            "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)",
+        },
+        { status: 400 },
       );
     }
 
@@ -168,8 +176,7 @@ export async function POST(request: Request) {
     console.error("Error creating subscription plan:", error);
     return NextResponse.json(
       { error: "Erro ao criar plano de assinatura" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

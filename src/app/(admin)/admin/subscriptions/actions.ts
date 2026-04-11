@@ -1,60 +1,68 @@
-"use server"
+"use server";
 
-import { prisma } from "@/lib/prisma"
-import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function getSubscriptionPlans() {
+  if (!process.env.DATABASE_URL) {
+    console.warn(
+      "Aviso: DATABASE_URL não encontrada. Retornando lista vazia durante o build.",
+    );
+    return [];
+  }
+
   try {
     const plans = await prisma.subscriptionPlan.findMany({
-      orderBy: { monthlyPrice: 'asc' }
-    })
+      orderBy: { monthlyPrice: "asc" },
+    });
     return plans.map((plan: any) => ({
       ...plan,
-      type: plan.type || 'INDIVIDUAL',
+      type: plan.type || "INDIVIDUAL",
       monthlyPrice: plan.monthlyPrice || 0,
       yearlyPrice: plan.yearlyPrice || 0,
-    }))
+    }));
   } catch (error) {
-    console.error("Erro ao buscar planos:", error)
-    return []
+    console.error("Erro ao buscar planos:", error);
+    return [];
   }
 }
 
 export async function upsertSubscriptionPlan(data: any) {
   try {
-    const { id, ...planData } = data
-    
-    if (!planData.type || !['INDIVIDUAL', 'FAMILY'].includes(planData.type)) {
-      planData.type = 'INDIVIDUAL'
+    const { id, ...planData } = data;
+
+    if (!planData.type || !["INDIVIDUAL", "FAMILY"].includes(planData.type)) {
+      planData.type = "INDIVIDUAL";
     }
-    
+
     const monthlyPrice = planData.monthlyPrice || 0;
     const yearlyPrice = planData.yearlyPrice || 0;
-    
+
     if (yearlyPrice > 0) {
       const yearlyMonthlyPrice = Math.round(yearlyPrice / 12);
       if (yearlyMonthlyPrice >= monthlyPrice) {
-        return { 
-          success: false, 
-          error: 'O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)' 
+        return {
+          success: false,
+          error:
+            "O preço anual deve ser mais barato que o mensal (preço anual/12 < preço mensal)",
         };
       }
     }
-    
+
     const updateData: any = {
       name: planData.name,
       monthlyPrice: Math.round(monthlyPrice),
       yearlyPrice: Math.round(yearlyPrice),
       active: planData.active,
       features: planData.features,
-      type: planData.type || 'INDIVIDUAL',
+      type: planData.type || "INDIVIDUAL",
       isBestValue: planData.isBestValue || false,
-      description: planData.description || ''
+      description: planData.description || "",
     };
-    
+
     const trackIds = planData.features
-      .filter((f: string) => f.startsWith('track:'))
-      .map((f: string) => f.replace('track:', ''));
+      .filter((f: string) => f.startsWith("track:"))
+      .map((f: string) => f.replace("track:", ""));
 
     if (id) {
       await prisma.subscriptionPlan.update({
@@ -64,22 +72,25 @@ export async function upsertSubscriptionPlan(data: any) {
           tracks: {
             deleteMany: {},
             create: trackIds.map((trackId: string) => ({
-              trackId: trackId
-            }))
-          }
-        }
+              trackId: trackId,
+            })),
+          },
+        },
       });
-    }else {
+    } else {
       await prisma.subscriptionPlan.create({
-        data: updateData
-      })
+        data: updateData,
+      });
     }
 
-    revalidatePath("/admin/subscriptions")
-    return { success: true }
+    revalidatePath("/admin/subscriptions");
+    return { success: true };
   } catch (error) {
     console.error("Erro ao salvar plano:", error);
-    return { success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erro desconhecido",
+    };
   }
 }
 
@@ -89,33 +100,36 @@ export async function deleteSubscriptionPlan(id: string) {
       where: { id },
       include: {
         payments: true,
-        tracks: true
-      }
-    })
+        tracks: true,
+      },
+    });
 
     if (!plan) {
-      return { success: false, error: "Plano não encontrado" }
+      return { success: false, error: "Plano não encontrado" };
     }
 
     if (plan.payments.length > 0) {
-      return { 
-        success: false, 
-        error: `Não é possível excluir este plano pois há ${plan.payments.length} pagamento(s) associado(s).` 
-      }
+      return {
+        success: false,
+        error: `Não é possível excluir este plano pois há ${plan.payments.length} pagamento(s) associado(s).`,
+      };
     }
 
     await prisma.subscriptionPlan.delete({
-      where: { id }
-    })
-    
-    revalidatePath("/admin/subscriptions")
-    return { success: true }
+      where: { id },
+    });
+
+    revalidatePath("/admin/subscriptions");
+    return { success: true };
   } catch (error) {
-    console.error("Erro ao eliminar plano:", error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Erro desconhecido ao excluir o plano" 
-    }
+    console.error("Erro ao eliminar plano:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Erro desconhecido ao excluir o plano",
+    };
   }
 }
 
@@ -123,11 +137,11 @@ export async function togglePlanStatus(id: string, currentStatus: boolean) {
   try {
     await prisma.subscriptionPlan.update({
       where: { id },
-      data: { active: !currentStatus }
-    })
-    revalidatePath("/admin/subscriptions")
-    return { success: true }
+      data: { active: !currentStatus },
+    });
+    revalidatePath("/admin/subscriptions");
+    return { success: true };
   } catch (error) {
-    return { success: false }
+    return { success: false };
   }
 }
