@@ -2,6 +2,46 @@
 
 import { useState, useEffect } from "react"; // Adicionado useEffect
 import { Lesson, LessonType } from "@prisma/client";
+
+interface CompletionExercise {
+  id: string;
+  french: string;
+  portuguese: string;
+  type: "full" | "blank";
+  blankPosition?: number;
+}
+
+interface SpeakingExercise {
+  id: string;
+  french: string;
+  portuguese: string;
+  difficulty: "easy" | "medium" | "hard";
+  hints: string[];
+}
+
+interface CompletionContent {
+  exercises: CompletionExercise[];
+}
+
+interface SpeakingContent {
+  exercises: SpeakingExercise[];
+}
+
+// Funções helper para tratar content de forma segura
+const getCompletionContent = (content: any): CompletionContent => {
+  if (!content || typeof content !== 'object') {
+    return { exercises: [] };
+  }
+  return content as CompletionContent;
+};
+
+const getSpeakingContent = (content: any): SpeakingContent => {
+  if (!content || typeof content !== 'object') {
+    return { exercises: [] };
+  }
+  return content as SpeakingContent;
+};
+
 import {
   ChevronLeft,
   Video,
@@ -10,6 +50,8 @@ import {
   BrainCircuit,
   Lock,
   LockOpen,
+  Languages,
+  Mic,
 } from "lucide-react";
 import Link from "next/link";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
@@ -17,6 +59,8 @@ import { FlashcardEditor } from "./_components/FlashcardEditor";
 import { ClassEditor } from "./_components/ClassEditor";
 import { ReadingEditor } from "./_components/ReadingEditor";
 import { StoryEditor } from "./_components/StoryEditor";
+import { CompletionEditor } from "./_components/CompletionEditor";
+import { SpeakingEditor } from "./_components/SpeakingEditor";
 import { toast } from "react-hot-toast";
 
 interface LessonEditFormProps {
@@ -60,6 +104,10 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
         return <FileText size={20} />;
       case "FLASHCARD":
         return <BrainCircuit size={20} />;
+      case "COMPLETION":
+        return <Languages size={20} />;
+      case "SPEAKING":
+        return <Mic size={20} />;
     }
   };
 
@@ -148,7 +196,7 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex flex-wrap gap-1 bg-s-50 p-1.5 rounded-[22px] border w-fit">
-              {(["CLASS", "STORY", "READING", "FLASHCARD"] as LessonType[]).map(
+              {(["CLASS", "STORY", "READING", "FLASHCARD", "COMPLETION", "SPEAKING"] as LessonType[]).map(
                 (type) => (
                   <button
                     key={type}
@@ -196,14 +244,14 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
           <div className="bg-white border-2 border-dashed rounded-[32px] sm:rounded-[40px] p-4 sm:p-8 md:p-10 flex flex-col items-center justify-center relative min-h-[400px]">
             {lesson.type === "CLASS" && (
               <ClassEditor
-                content={lesson.content}
+                content={lesson.content || {}}
                 onChange={(val) => handleUpdate({ content: val })}
               />
             )}
 
             {lesson.type === "FLASHCARD" && (
               <FlashcardEditor
-                content={lesson.content}
+                content={lesson.content || {}}
                 availableLessons={availableLessons}
                 onChange={(val) => handleUpdate({ content: val })}
               />
@@ -211,13 +259,25 @@ export function LessonEditForm({ initialData, moduleId }: LessonEditFormProps) {
 
             {lesson.type === "READING" && (
               <ReadingEditor
-                content={lesson.content}
+                content={lesson.content || {}}
                 onChange={(val) => handleUpdate({ content: val })}
               />
             )}
             {lesson.type === "STORY" && (
               <StoryEditor
-                content={lesson.content}
+                content={lesson.content || {}}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+            {lesson.type === "COMPLETION" && (
+              <CompletionEditor
+                content={getCompletionContent(lesson.content)}
+                onChange={(val) => handleUpdate({ content: val })}
+              />
+            )}
+            {lesson.type === "SPEAKING" && (
+              <SpeakingEditor
+                content={getSpeakingContent(lesson.content)}
                 onChange={(val) => handleUpdate({ content: val })}
               />
             )}

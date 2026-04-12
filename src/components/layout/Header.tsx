@@ -104,21 +104,12 @@ export function Header({ settings }: HeaderProps) {
               }}
             >
               Clara
-              <span className="absolute -top-1 -right-3 w-4 h-4 flex items-center justify-center text-sm rotate-35 transition-transform group-hover:rotate-15 pointer-events-none select-none">
-                {settings?.siteIcon?.startsWith("/") ||
-                settings?.siteIcon?.startsWith("http") ? (
-                  <img
-                    src={settings.siteIcon}
-                    alt=""
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <img
-                    src="/static/flower.svg"
-                    alt="Flor"
-                    className="w-full h-full object-contain"
-                  />
-                )}
+              <span className="absolute -top-1 -right-2 text-sm inline-block rotate-35 transition-transform group-hover:rotate-15">
+                <img
+                  src={settings?.siteIcon}
+                  alt="Icon"
+                  className="w-4 h-4 object-contain"
+                />
               </span>
             </span>
           </span>
