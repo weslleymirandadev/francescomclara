@@ -185,30 +185,11 @@ model LessonProgress {
   @@unique([userId, lessonId])
 }
 
-model ExerciseAnswer {
-  id            String   @id @default(cuid())
-  userId        String
-  lessonId      String
-  exerciseIndex Int // Índice do exercício (0-based)
-  userAnswer    String // Resposta do usuário
-  correctAnswer String // Resposta correta
-  isCorrect     Boolean // Se a resposta está correta
-  exerciseType  String // Tipo de exercício: "COMPLETION" ou "SPEAKING"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@unique([userId, lessonId, exerciseIndex, exerciseType])
-  @@index([userId, lessonId])
-  @@index([exerciseType])
-}
-
 enum LessonType {
   CLASS // Aula (vídeo/teoria)
   FLASHCARD // Flashcard do módulo
   STORY // Historinha (vídeos simulando contextos reais)
   READING // Leitura
-  COMPLETION // Exercício de completar frases (tradução)
-  SPEAKING // Exercício de fala com reconhecimento de voz
 }
 
 enum CEFRLevel {

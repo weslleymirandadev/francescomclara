@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { CEFRLevel, LessonType } from "@prisma/client";
-import { ChevronLeft, Lock, LockOpen, GripVertical, Video, FileText, BookOpen, BrainCircuit, Plus, Languages, Mic } from "lucide-react";
+import { ChevronLeft, Lock, LockOpen, GripVertical, Video, FileText, BookOpen, BrainCircuit, Plus } from "lucide-react";
 import { LuPencil, LuTrash2 } from "react-icons/lu";
 import Link from "next/link";
 import * as actions from "../../actions";
@@ -40,11 +40,9 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
     switch (type) {
       case 'CLASS': return <Video size={18} className="text-blue-500" />;
       case 'STORY': return <BookOpen size={18} className="text-purple-500" />;
-      case 'READING': return <FileText size={18} className="text-green-500" />;
-      case 'FLASHCARD': return <BrainCircuit size={18} className="text-orange-500" />;
-      case 'COMPLETION': return <Languages size={18} className="text-cyan-500" />;
-      case 'SPEAKING': return <Mic size={18} className="text-red-500" />;
-      default: return <Video size={18} className="text-gray-500" />;
+      case 'READING': return <FileText size={18} className="text-amber-500" />;
+      case 'FLASHCARD': return <BrainCircuit size={18} className="text-emerald-500" />;
+      default: return <Video size={18} className="text-blue-500" />;
     }
   };
 
@@ -77,8 +75,6 @@ function SortableLessonItem({ lesson, moduleId, onExclude, onTogglePremium, onUp
               <option value="STORY">Story</option>
               <option value="READING">Leitura</option>
               <option value="FLASHCARD">Flashcard</option>
-              <option value="COMPLETION">Completar</option>
-              <option value="SPEAKING">Fala</option>
             </select>
             <button 
               onClick={() => onTogglePremium(lesson.id, lesson.isPremium)}

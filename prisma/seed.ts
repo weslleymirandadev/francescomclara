@@ -241,10 +241,10 @@ async function main() {
 
   // 5. Adicionar lição de exemplo com sentences interativas
   console.log("📝 Criando lição com sentences...");
-
+  
   // Buscar o primeiro módulo disponível
   const firstModule = await prisma.module.findFirst({
-    orderBy: { order: "asc" },
+    orderBy: { order: 'asc' }
   });
 
   if (firstModule) {
@@ -258,34 +258,29 @@ async function main() {
             {
               frase: "Bonjour à tous!",
               traducao: "Bom dia a todos!",
-              explicacao:
-                "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral.",
+              explicacao: "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral."
             },
             {
               frase: "Comment ça va?",
               traducao: "Como vai?",
-              explicacao:
-                "Expressão informal. O 'ça' é um pronome demonstrativo neutro.",
+              explicacao: "Expressão informal. O 'ça' é um pronome demonstrativo neutro."
             },
             {
               frase: "Je m'appelle Marie.",
               traducao: "Eu me chamo Marie.",
-              explicacao:
-                "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo.",
+              explicacao: "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo."
             },
             {
               frase: "J'habite à Paris.",
               traducao: "Eu moro em Paris.",
-              explicacao:
-                "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização.",
+              explicacao: "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização."
             },
             {
               frase: "Quelle heure est-il?",
               traducao: "Que horas são?",
-              explicacao:
-                "Formal para perguntar as horas. 'Il' refere-se ao tempo.",
-            },
-          ],
+              explicacao: "Formal para perguntar as horas. 'Il' refere-se ao tempo."
+            }
+          ]
         },
         order: 999,
         isPremium: false,
@@ -299,34 +294,29 @@ async function main() {
             {
               frase: "Bonjour à tous!",
               traducao: "Bom dia a todos!",
-              explicacao:
-                "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral.",
+              explicacao: "O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral."
             },
             {
               frase: "Comment ça va?",
               traducao: "Como vai?",
-              explicacao:
-                "Expressão informal. O 'ça' é um pronome demonstrativo neutro.",
+              explicacao: "Expressão informal. O 'ça' é um pronome demonstrativo neutro."
             },
             {
               frase: "Je m'appelle Marie.",
               traducao: "Eu me chamo Marie.",
-              explicacao:
-                "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo.",
+              explicacao: "O verbo 's'appeler' é reflexivo, por isso usa 'me' antes do verbo."
             },
             {
               frase: "J'habite à Paris.",
               traducao: "Eu moro em Paris.",
-              explicacao:
-                "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização.",
+              explicacao: "O 'J'' é a contração de 'Je' antes de vogal. 'À Paris' indica localização."
             },
             {
               frase: "Quelle heure est-il?",
               traducao: "Que horas são?",
-              explicacao:
-                "Formal para perguntar as horas. 'Il' refere-se ao tempo.",
-            },
-          ],
+              explicacao: "Formal para perguntar as horas. 'Il' refere-se ao tempo."
+            }
+          ]
         },
         order: 999,
         isPremium: false,

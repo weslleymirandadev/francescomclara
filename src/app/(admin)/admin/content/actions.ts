@@ -170,6 +170,7 @@ export async function createLessonAction(moduleId: string) {
   revalidatePath("/admin/content");
   return newLesson;
 }
+
 export async function deleteObjectiveAction(id: string) {
   const tracks = await prisma.track.findMany({ where: { objectiveId: id } });
   

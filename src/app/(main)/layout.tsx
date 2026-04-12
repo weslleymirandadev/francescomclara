@@ -8,13 +8,13 @@ export default async function MainPageLayout({
   children: React.ReactNode;
 }>) {
   const { settings } = await getGlobalData();
-
+  
   return (
-    <div className="flex flex-col min-h-screen">
+    <div>
       <Header />
-
-      <main className="grow pt-12">{children}</main>
-
+        <main className="pt-12">
+          {children}
+        </main>
       <Footer settings={settings!} />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronRight, Video, BookOpen, FileText, CheckCircle2, Languages, Mic, BrainCircuit } from "lucide-react";
+import { ChevronDown, ChevronRight, Video, BookOpen, FileText, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiX } from "react-icons/fi";
 
@@ -14,9 +14,6 @@ export function CourseSidebar({ data, activeLesson, setActiveLesson, openModules
       case 'CLASS': return <Video {...props} />;
       case 'STORY': return <BookOpen {...props} />;
       case 'READING': return <FileText {...props} />;
-      case 'FLASHCARD': return <BrainCircuit {...props} />;
-      case 'COMPLETION': return <Languages {...props} />;
-      case 'SPEAKING': return <Mic {...props} />;
       default: return <Video {...props} />;
     }
   };
@@ -67,6 +64,7 @@ export function CourseSidebar({ data, activeLesson, setActiveLesson, openModules
               {openModules.includes(module.id) && (
                 <div className="mt-1 space-y-1 px-2">
                   {module.lessons
+                    ?.filter((lesson: any) => lesson.type !== 'FLASHCARD')
                     ?.map((lesson: any) => {
                       const isActive = activeLesson?.id === lesson.id;
                       

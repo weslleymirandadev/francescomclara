@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Volume2, X, Languages, Mic } from 'lucide-react';
+import { Volume2, X } from 'lucide-react';
 
 interface Sentence {
   frase: string;

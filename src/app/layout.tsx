@@ -1,13 +1,14 @@
 import "./globals.css";
 import { Metadata } from "next";
+import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
 import { prisma } from "@/lib/prisma";
-import { Toaster } from "react-hot-toast";
+import { Header } from "@/components/layout/Header";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await prisma.siteSettings.findUnique({
-      where: { id: "settings" },
+      where: { id: "settings" }
     });
 
     const siteName = settings?.siteName || "Francês com Clara";
@@ -16,35 +17,37 @@ export async function generateMetadata(): Promise<Metadata> {
       title: siteName,
       description: "Aprenda francês de forma prática e cultural com a Clara.",
       icons: {
-        icon: settings?.favicon || "/static/favicon.svg",
-        shortcut: settings?.favicon || "/static/favicon.svg",
-        apple: settings?.favicon || "/static/favicon.svg",
+        icon: settings?.favicon || '/static/favicon.svg', 
+        shortcut: settings?.favicon || '/static/favicon.svg',
+        apple: settings?.favicon || '/static/favicon.svg',
       },
     };
   } catch (error) {
     return {
       title: "Francês com Clara",
       description: "Aprenda francês de forma prática e cultural.",
-      icons: { icon: "/static/favicon.svg" },
+      icons: { icon: '/static/favicon.svg' }
     };
   }
 }
 
 async function getSiteSettings() {
   try {
+    // Em server-side, podemos chamar a API diretamente ou usar o prisma
     const settings = await prisma.siteSettings.findUnique({
-      where: { id: "settings" },
+      where: { id: "settings" }
     });
 
     return {
-      siteIcon: settings?.siteIcon || "/static/flower.svg",
-      highlightColor: settings?.highlightColor || "--clara-rose",
+      siteIcon: settings?.siteIcon || '/static/flower.svg',
+      highlightColor: settings?.highlightColor || '--clara-rose'
     };
   } catch (error) {
-    console.error("Erro ao buscar configurações:", error);
+    console.error('Erro ao buscar configurações:', error);
+    // Configurações padrão
     return {
-      siteIcon: "/static/flower.svg",
-      highlightColor: "--clara-rose",
+      siteIcon: '/static/flower.svg',
+      highlightColor: '--clara-rose'
     };
   }
 }
@@ -55,15 +58,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const settings = await getSiteSettings();
-
+  
   return (
     <html lang="pt-BR">
-      <body className="antialiased bg-slate-50">
+      <body className="antialiased">
         <Providers>
+          <Header settings={settings} />
+          <Toaster position="top-center" />
           {children}
-          <main className="flex-1 w-full relative"></main>
         </Providers>
-        <Toaster position="top-center" />
       </body>
     </html>
   );
