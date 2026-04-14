@@ -2,12 +2,6 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getMercadoPagoToken } from "@/lib/mercadopago";
 
-/**
- * Cria uma assinatura recorrente usando a API de Preapproval do Mercado Pago
- * Suporta dois modos:
- * 1. Com token (transparente): autoriza imediatamente sem redirecionamento
- * 2. Sem token: redireciona para checkout do Mercado Pago
- */
 export async function POST(req: Request) {
   const mpAccessToken = await getMercadoPagoToken();
 
@@ -29,7 +23,6 @@ export async function POST(req: Request) {
       cardData,
     } = body;
 
-    // Variáveis mutáveis para frequência (podem ser sobrescritas pelo plano ou period)
     let frequencyType = initialFrequencyType;
     let frequency = initialFrequency;
     let finalPeriod: "MONTHLY" | "YEARLY" = period || "MONTHLY";
@@ -48,7 +41,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Buscar plano de assinatura se fornecido
     let subscriptionPlan = null;
     if (subscriptionPlanId) {
       subscriptionPlan = await prisma.subscriptionPlan.findUnique({
@@ -71,7 +63,6 @@ export async function POST(req: Request) {
         frequency = 12;
       }
     } else if (period) {
-      // Se não tem plano mas tem period, usar period
       finalPeriod = period;
       if (finalPeriod === "MONTHLY") {
         frequencyType = "months";
@@ -83,9 +74,6 @@ export async function POST(req: Request) {
     }
 
     const isTransparent = !!card_token_id;
-    console.log(
-      `Criando assinatura ${isTransparent ? "transparente" : "com redirecionamento"}`,
-    );
 
     interface IncomingItem {
       id: string;
@@ -96,7 +84,6 @@ export async function POST(req: Request) {
       description?: string;
     }
 
-    // Validar que todas as trilhas existem
     const trackIds = items.map((item: IncomingItem) => item.id);
     const existingTracks = await prisma.track.findMany({
       where: { id: { in: trackIds } },
@@ -115,19 +102,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Enriquecer items com dados das trilhas
     const enrichedItems = items.map((item: IncomingItem) => {
       const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
         title: track?.name || item.title,
-        price: item.price || 0, // Trilhas podem não ter preço direto
+        price: item.price || 0,
         quantity: item.quantity || 1,
         imageUrl: item.imageUrl || "",
       };
     });
 
-    // Calcular o total (em centavos) - usar preço do plano baseado no período selecionado
     let calculatedTotalInCents: number;
     if (subscriptionPlan) {
       if (subscriptionPlan.discountEnabled && subscriptionPlan.discountPrice) {
@@ -154,14 +139,14 @@ export async function POST(req: Request) {
         ? `Assinatura: ${enrichedItems[0].title}`
         : `Assinatura: ${enrichedItems.length} trilhas`;
 
-    // Preparar dados para Subscription
     const externalReference = `subscription-${userId}-${Date.now()}`;
 
-    // Calcular data de início (hoje)
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
+    startDate.setMinutes(startDate.getMinutes() + 10);
 
-    // Obter meliSessionId do header (crucial para checkout transparente/antifraude)
+    startDate.setSeconds(0);
+    startDate.setMilliseconds(0);
+
     const meliSessionId = req.headers.get("X-meli-session-id");
 
     const mpApiUrl = process.env.MP_API_URL || "https://api.mercadopago.com";
@@ -178,10 +163,11 @@ export async function POST(req: Request) {
     const subscriptionData: any = {
       reason: "Assinatura Francês com Clara",
       payer_email: payer.email,
+      card_token_id: card_token_id,
       auto_recurring: {
         frequency: frequency,
         frequency_type: frequencyType,
-        transaction_amount: calculatedTotalInReais / 100,
+        transaction_amount: calculatedTotalInReais,
         currency_id: "BRL",
         start_date: startDate.toISOString(),
       },
@@ -190,12 +176,11 @@ export async function POST(req: Request) {
       external_reference: `sub-${userId}-${Date.now()}`,
       payer: {
         email: payer.email,
-        first_name: payer.firstName || payer.name?.split(" ")[0] || "",
-        last_name:
-          payer.lastName || payer.name?.split(" ").slice(1).join(" ") || "",
+        first_name: payer.first_name || payer.firstName,
+        last_name: payer.last_name || payer.lastName,
         identification: {
           type: "CPF",
-          number: payer.cpf?.replace(/\D/g, "") || "",
+          number: payer.cpf?.replace(/\D/g, ""),
         },
       },
     };
@@ -251,7 +236,6 @@ export async function POST(req: Request) {
       init_point: subscriptionResponse.init_point,
     });
 
-    // Calcular data de término para matrículas baseado no período
     const enrollmentEndDate = new Date();
     if (finalPeriod === "YEARLY") {
       enrollmentEndDate.setFullYear(enrollmentEndDate.getFullYear() + 1);

@@ -114,6 +114,8 @@ const isValidExpiry = (expiry: string): boolean => {
 const cardSchema = z.object({
   holderName: z.string().min(1, "Informe o nome do titular"),
   email: z.string().email("E-mail inválido"),
+  firstName: z.string().min(2, "Obrigatório"),
+  lastName: z.string().min(2, "Obrigatório"),
   cardNumber: z
     .string()
     .min(VALIDATION_RULES.cardNumber.min, VALIDATION_RULES.cardNumber.error.min)
@@ -218,8 +220,8 @@ interface SessionData {
 interface SubscriptionFormProps {
   amount: number;
   items: CartItem[];
-  subscriptionPlanId?: string; // ID do plano de assinatura (opcional)
-  period?: "MONTHLY" | "YEARLY"; // Período da assinatura
+  subscriptionPlanId?: string;
+  period?: "MONTHLY" | "YEARLY";
 }
 
 export function SubscriptionForm({
@@ -330,21 +332,24 @@ export function SubscriptionForm({
 
     setProcessing(true);
 
+    const fullName = `${data.firstName} ${data.lastName}`
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+
     try {
-      // 1. LIMPEZA DE DADOS
       const cardNumberClean = data.cardNumber.replace(/\s/g, "");
       const [expiryMonth, expiryYear] = data.expiry.split("/");
       const expiryYearFull = `20${expiryYear}`;
       const cpfClean = data.document.replace(/\D/g, "");
 
-      // 2. CRIAÇÃO DO TOKEN DO CARTÃO (SDK v2)
       const tokenResponse = await mp.createCardToken({
         cardNumber: cardNumberClean,
-        cardholderName: data.holderName,
+        cardholderName: fullName,
         cardExpirationMonth: expiryMonth,
         cardExpirationYear: expiryYearFull,
         securityCode: data.cvv,
-        identificationType: data.documentType, // 'CPF' ou 'CNPJ'
+        identificationType: data.documentType,
         identificationNumber: cpfClean,
       });
 
@@ -361,14 +366,6 @@ export function SubscriptionForm({
       const bin = cardNumberClean.substring(0, 6);
       const paymentMethods = await mp.getPaymentMethods({ bin });
       const paymentMethodId = paymentMethods.results?.[0]?.id || "credit_card";
-
-      // 4. ENVIO PARA O BACKEND
-      const payerName = session.user.name || data.holderName;
-      const payerEmail = session.user.email || data.email;
-
-      if (!payerEmail) {
-        throw new Error("E-mail é obrigatório para o pagamento");
-      }
 
       // Device ID para Antifraude
       // @ts-ignore
@@ -387,10 +384,9 @@ export function SubscriptionForm({
             method: paymentMethodId,
             installments: 1,
             payer: {
-              email: payerEmail,
-              firstName: payerName.split(" ")[0] || "",
-              lastName: payerName.split(" ").slice(1).join(" ") || "",
-              name: payerName,
+              email: data.email,
+              firstName: data.firstName.trim(),
+              lastName: data.lastName.trim(),
               cpf: cpfClean,
             },
             userId: session.user.id,
@@ -406,7 +402,7 @@ export function SubscriptionForm({
             frequency: period === "YEARLY" ? 12 : 1,
             cardData: {
               lastFour: cardNumberClean.slice(-4),
-              holderName: data.holderName,
+              holderName: fullName,
               expiryMonth: expiryMonth,
               expiryYear: expiryYear,
               brand: paymentMethodId,
@@ -551,28 +547,42 @@ export function SubscriptionForm({
           </div>
         </div>
 
-        <div className="relative w-full">
-          <input
-            type="text"
-            onKeyDown={handleKeyDown}
-            {...register("holderName", {
-              onChange: (e) => {
-                e.target.value = e.target.value.toUpperCase();
-              },
-            })}
-            className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.holderName ? "border-red-400" : ""}`}
-            placeholder=" "
-          />
-          <label
-            className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
-          >
-            Nome do titular (como no cartão)
-          </label>
-          {errors.holderName && (
-            <span className="text-xs text-red-500">
-              {errors.holderName.message}
-            </span>
-          )}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* CAMPO NOME */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              {...register("firstName")}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.firstName ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label className="pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500">
+              Nome
+            </label>
+            {errors.firstName && (
+              <span className="text-xs text-red-500">
+                {errors.firstName.message as string}
+              </span>
+            )}
+          </div>
+
+          {/* CAMPO SOBRENOME */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              {...register("lastName")}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.lastName ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label className="pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500">
+              Sobrenome
+            </label>
+            {errors.lastName && (
+              <span className="text-xs text-red-500">
+                {errors.lastName.message as string}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="relative w-full">

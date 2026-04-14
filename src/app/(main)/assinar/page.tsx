@@ -44,7 +44,6 @@ function AssinarPageContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<"MONTHLY" | "YEARLY">(
     "MONTHLY",
   );
-
   const planId = searchParams.get("planId") || "default";
   const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
