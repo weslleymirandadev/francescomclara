@@ -9,24 +9,25 @@ import { getMercadoPagoToken } from "@/lib/mercadopago";
  * 2. Sem token: redireciona para checkout do Mercado Pago
  */
 export async function POST(req: Request) {
-  const token = await getMercadoPagoToken();
+  const mpAccessToken = await getMercadoPagoToken();
 
   try {
+    const body = await req.json();
+
     const {
       payer,
       userId,
       items,
       total,
-      subscriptionPlanId, // ID do plano de assinatura no banco
-      token, // Token do cartão (opcional - se fornecido, cria assinatura transparente)
-      method, // Método de pagamento (opcional - usado apenas com token)
-      installments = 1, // Parcelas (opcional - usado apenas com token)
-      frequencyType: initialFrequencyType = "months", // 'days' ou 'months'
-      frequency: initialFrequency = 1, // Frequência de cobrança (ex: 1 = mensal, 2 = bimestral)
-      period, // Período da assinatura (MONTHLY ou YEARLY)
-      // Dados do cartão para salvar (opcional - usado apenas com token)
+      subscriptionPlanId,
+      token: card_token_id,
+      method,
+      installments = 1,
+      frequencyType: initialFrequencyType = "months",
+      frequency: initialFrequency = 1,
+      period,
       cardData,
-    } = await req.json();
+    } = body;
 
     // Variáveis mutáveis para frequência (podem ser sobrescritas pelo plano ou period)
     let frequencyType = initialFrequencyType;
@@ -36,13 +37,6 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json(
         { error: "ID do usuário é obrigatório" },
-        { status: 400 },
-      );
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: "Nenhum item no carrinho" },
         { status: 400 },
       );
     }
@@ -88,21 +82,31 @@ export async function POST(req: Request) {
       }
     }
 
-    const isTransparent = !!token;
+    const isTransparent = !!card_token_id;
     console.log(
       `Criando assinatura ${isTransparent ? "transparente" : "com redirecionamento"}`,
     );
-    console.log("Items recebidos:", JSON.stringify(items, null, 2));
+
+    interface IncomingItem {
+      id: string;
+      title: string;
+      price: number;
+      quantity: number;
+      imageUrl?: string;
+      description?: string;
+    }
 
     // Validar que todas as trilhas existem
-    const trackIds = items.map((item) => item.id);
+    const trackIds = items.map((item: IncomingItem) => item.id);
     const existingTracks = await prisma.track.findMany({
       where: { id: { in: trackIds } },
       select: { id: true, name: true },
     });
 
     const existingTrackIds = new Set(existingTracks.map((t: any) => t.id));
-    const missingTracks = trackIds.filter((id) => !existingTrackIds.has(id));
+    const missingTracks = trackIds.filter(
+      (id: any) => !existingTrackIds.has(id),
+    );
 
     if (missingTracks.length > 0) {
       return NextResponse.json(
@@ -112,7 +116,7 @@ export async function POST(req: Request) {
     }
 
     // Enriquecer items com dados das trilhas
-    const enrichedItems = items.map((item) => {
+    const enrichedItems = items.map((item: IncomingItem) => {
       const track = existingTracks.find((t: any) => t.id === item.id);
       return {
         ...item,
@@ -129,18 +133,16 @@ export async function POST(req: Request) {
       if (subscriptionPlan.discountEnabled && subscriptionPlan.discountPrice) {
         calculatedTotalInCents = subscriptionPlan.discountPrice;
       } else {
-        // Usar monthlyPrice ou yearlyPrice baseado no período
-        if (finalPeriod === "YEARLY") {
-          calculatedTotalInCents = subscriptionPlan.yearlyPrice || 0;
-        } else {
-          calculatedTotalInCents = subscriptionPlan.monthlyPrice || 0;
-        }
+        calculatedTotalInCents =
+          finalPeriod === "YEARLY"
+            ? subscriptionPlan.yearlyPrice || 0
+            : subscriptionPlan.monthlyPrice || 0;
       }
     } else {
       calculatedTotalInCents =
         total ||
         enrichedItems.reduce(
-          (sum, item) => sum + item.price! * item.quantity,
+          (sum: number, item: any) => sum + item.price * item.quantity,
           0,
         );
     }
@@ -165,7 +167,7 @@ export async function POST(req: Request) {
     const mpApiUrl = process.env.MP_API_URL || "https://api.mercadopago.com";
     const headers: HeadersInit = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${mpAccessToken}`,
       "X-Idempotency-Key": crypto.randomUUID(),
     };
 
@@ -173,19 +175,19 @@ export async function POST(req: Request) {
       headers["X-meli-session-id"] = meliSessionId;
     }
 
-    // Criar Subscription via API REST do Mercado Pago
     const subscriptionData: any = {
-      reason: description,
-      external_reference: externalReference,
+      reason: "Assinatura Francês com Clara",
       payer_email: payer.email,
       auto_recurring: {
         frequency: frequency,
-        frequency_type: frequencyType as "days" | "months",
-        transaction_amount: calculatedTotalInReais,
+        frequency_type: frequencyType,
+        transaction_amount: calculatedTotalInReais / 100,
         currency_id: "BRL",
         start_date: startDate.toISOString(),
       },
       back_url: `${process.env.NEXT_PUBLIC_URL}/assinar/sucesso`,
+      status: isTransparent ? "authorized" : "pending",
+      external_reference: `sub-${userId}-${Date.now()}`,
       payer: {
         email: payer.email,
         first_name: payer.firstName || payer.name?.split(" ")[0] || "",
@@ -198,18 +200,9 @@ export async function POST(req: Request) {
       },
     };
 
-    // Se tiver token, adicionar dados do cartão para checkout transparente
-    if (token) {
-      subscriptionData.card_token_id = token;
-      subscriptionData.status = "authorized"; // Autorizar imediatamente
-      if (method) {
-        subscriptionData.payment_method_id = method;
-      }
-      if (installments > 1) {
-        subscriptionData.installments = installments;
-      }
-    } else {
-      subscriptionData.status = "pending";
+    if (isTransparent) {
+      subscriptionData.card_token_id = card_token_id;
+      if (method) subscriptionData.payment_method_id = method;
     }
 
     const response = await fetch(`${mpApiUrl}/preapproval`, {
@@ -263,18 +256,24 @@ export async function POST(req: Request) {
     if (finalPeriod === "YEARLY") {
       enrollmentEndDate.setFullYear(enrollmentEndDate.getFullYear() + 1);
     } else {
-      // Mensal - renovar mensalmente, então data de término é 1 mês
       enrollmentEndDate.setMonth(enrollmentEndDate.getMonth() + 1);
     }
 
-    // Criar registro de pagamento/assinatura no banco e conceder acesso se autorizado
+    const statusMapping: Record<string, string> = {
+      authorized: "APPROVED",
+      approved: "APPROVED",
+      pending: "PENDING",
+      rejected: "REJECTED",
+      cancelled: "CANCELLED",
+    };
+
+    const finalStatus = statusMapping[subscriptionResponse.status] || "PENDING";
+
     const payment = await prisma.payment.create({
       data: {
         userId,
         mpPaymentId: mpSubscriptionId,
-        status: isAuthorized
-          ? "APPROVED"
-          : subscriptionResponse.status?.toUpperCase() || "PENDING",
+        status: finalStatus,
         amount: calculatedTotalInCents,
         subscriptionPlanId: subscriptionPlan?.id || null,
         metadata: {
@@ -286,7 +285,7 @@ export async function POST(req: Request) {
           frequencyType,
           period: finalPeriod,
           refundWindowDays: finalPeriod === "YEARLY" ? 30 : 7, // Janela de reembolso
-          items: enrichedItems.map((item) => ({
+          items: enrichedItems.map((item: IncomingItem) => ({
             id: item.id,
             title: item.title,
             price: item.price,
@@ -301,7 +300,7 @@ export async function POST(req: Request) {
           }),
         },
         items: {
-          create: enrichedItems.map((item) => ({
+          create: enrichedItems.map((item: IncomingItem) => ({
             trackId: item.id,
             price: item.price,
             quantity: item.quantity,
@@ -313,7 +312,7 @@ export async function POST(req: Request) {
     });
 
     // Se for checkout transparente e tiver dados do cartão, salvar método de pagamento
-    if (isTransparent && token && cardData) {
+    if (isTransparent && mpAccessToken && cardData) {
       try {
         // Verificar se já existe um método padrão para este usuário
         const existingDefault = await prisma.paymentMethod.findFirst({
@@ -346,7 +345,7 @@ export async function POST(req: Request) {
             holderName: cardData.holderName || payer.name || "",
             expiryMonth: expiryMonthNum,
             expiryYear: expiryYearFull,
-            mpCardToken: token,
+            mpCardToken: mpAccessToken,
             isDefault: !existingDefault, // Primeiro cartão é padrão
             isActive: true,
             metadata: {
