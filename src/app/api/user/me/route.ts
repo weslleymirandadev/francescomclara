@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { Enrollment, Track } from "@prisma/client";
+import { getUserPermissions } from "@/lib/permissions";
 
 interface EnrollmentWithTrack extends Enrollment {
   track: Pick<Track, "id" | "name" | "imageUrl">;
@@ -87,6 +88,8 @@ export async function GET() {
     }
   }
 
+  const permissions = await getUserPermissions(session.user.id);
+
   const formattedPosts = user?.forumPosts || [];
 
   return NextResponse.json({
@@ -104,6 +107,7 @@ export async function GET() {
       ? {
           name: activePlan.name,
           type: activePlan.type,
+          permissions: permissions,
           features: activePlan.features || [],
           endDate: user?.enrollments?.[0]?.endDate || null,
         }
