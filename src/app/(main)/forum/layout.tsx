@@ -36,28 +36,34 @@ export default async function ForumLayout({
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      enrollments: {
-        where: {
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
+      payments: {
+        where: { status: { in: ["approved", "APPROVED"] } },
+        include: { subscriptionPlan: true },
+        take: 1,
       },
       parent: {
         include: {
-          enrollments: {
+          payments: {
             where: {
-              OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+              status: { in: ["approved", "APPROVED"] },
+              subscriptionPlan: { type: "FAMILY" },
             },
+            include: { subscriptionPlan: true },
+            take: 1,
           },
         },
       },
     },
   });
 
-  const hasOwnEnrollment = user?.enrollments && user.enrollments.length > 0;
-  const hasParentEnrollment =
-    user?.parent?.enrollments && user.parent.enrollments.length > 0;
+  const activePlan =
+    user?.payments[0]?.subscriptionPlan ||
+    user?.parent?.payments[0]?.subscriptionPlan;
 
-  if (!hasOwnEnrollment && !hasParentEnrollment) {
+  const features = (activePlan?.features as string[]) || [];
+  const hasForumAccess = features.includes("forum_access");
+
+  if (!activePlan || !hasForumAccess) {
     redirect("/assinar");
   }
 

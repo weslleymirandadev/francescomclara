@@ -36,30 +36,37 @@ export default async function FlashcardsLayout({
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      enrollments: {
-        where: {
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
+      payments: {
+        where: { status: { in: ["approved", "APPROVED"] } },
+        include: { subscriptionPlan: true },
+        take: 1,
       },
       parent: {
         include: {
-          enrollments: {
+          payments: {
             where: {
-              OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
+              status: { in: ["approved", "APPROVED"] },
+              subscriptionPlan: { type: "FAMILY" },
             },
+            include: { subscriptionPlan: true },
+            take: 1,
           },
         },
       },
     },
   });
 
-  const hasOwnEnrollment = user?.enrollments && user.enrollments.length > 0;
-  const hasParentEnrollment =
-    user?.parent?.enrollments && user.parent.enrollments.length > 0;
+  const activePlan =
+    user?.payments[0]?.subscriptionPlan ||
+    user?.parent?.payments[0]?.subscriptionPlan;
 
-  if (!hasOwnEnrollment && !hasParentEnrollment) {
+  const features = (activePlan?.features as string[]) || [];
+  const hasFlashcardsAccess = features.includes("flashcards_access");
+
+  if (!activePlan || !hasFlashcardsAccess) {
     redirect("/assinar");
   }
+
   return (
     <div className="min-h-screen bg-(--slate-50) px-3 md:px-6">{children}</div>
   );
