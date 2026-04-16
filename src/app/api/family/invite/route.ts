@@ -31,6 +31,13 @@ export async function POST(req: Request) {
       );
     }
 
+    if (owner.parentId) {
+      return NextResponse.json(
+        { error: "Apenas o titular do plano pode gerenciar membros." },
+        { status: 403 },
+      );
+    }
+
     const activePlan = owner.payments[0]?.subscriptionPlan;
 
     if (activePlan?.type !== "FAMILY") {
@@ -40,10 +47,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const MAX_MEMBERS = 3;
-    if (owner.children.length >= MAX_MEMBERS) {
+    const features = (activePlan.features as string[]) || [];
+    const familyFeature = features.find((f) => f.startsWith("family_slots:"));
+    const MAX_SLOTS = familyFeature ? parseInt(familyFeature.split(":")[1]) : 4;
+    const MAX_INVITES = MAX_SLOTS - 1;
+
+    if (owner.children.length >= MAX_INVITES) {
       return NextResponse.json(
-        { error: "Limite de membros atingido" },
+        { error: `Limite de ${MAX_INVITES} convidados atingido.` },
         { status: 400 },
       );
     }
@@ -54,6 +65,20 @@ export async function POST(req: Request) {
 
     if (!invitedUser) {
       return NextResponse.json(
+        { error: "Usuário não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    if (invitedUser.id === owner.id) {
+      return NextResponse.json(
+        { error: "Você não pode convidar a si mesmo." },
+        { status: 400 },
+      );
+    }
+
+    if (!invitedUser) {
+      return NextResponse.json(
         { error: "Utilizador não encontrado" },
         { status: 404 },
       );
@@ -61,7 +86,7 @@ export async function POST(req: Request) {
 
     if (invitedUser.parentId) {
       return NextResponse.json(
-        { error: "Este utilizador já pertence a uma família" },
+        { error: "Este usuário já pertence a uma família" },
         { status: 400 },
       );
     }

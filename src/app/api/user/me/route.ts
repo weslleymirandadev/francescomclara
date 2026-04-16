@@ -16,7 +16,7 @@ export async function GET() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      children: { select: { id: true, email: true, name: true } },
+      children: { select: { id: true, email: true, name: true, image: true } },
       enrollments: {
         where: {
           OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
@@ -40,7 +40,7 @@ export async function GET() {
       },
       payments: {
         where: {
-          status: { equals: "approved", mode: "insensitive" },
+          status: { in: ["approved", "APPROVED"] },
         },
         include: { subscriptionPlan: true },
         orderBy: { createdAt: "desc" },
@@ -48,9 +48,12 @@ export async function GET() {
       },
       parent: {
         include: {
+          children: {
+            select: { id: true, email: true, name: true, image: true },
+          },
           payments: {
             where: {
-              status: { equals: "approved", mode: "insensitive" },
+              status: { in: ["approved", "APPROVED"] },
               subscriptionPlan: { type: "FAMILY" },
             },
             include: { subscriptionPlan: true },
@@ -95,18 +98,41 @@ export async function GET() {
       image: user?.image,
       bio: user?.bio,
     },
+    parentId: user?.parentId,
     posts: formattedPosts,
     subscription: activePlan
       ? {
           name: activePlan.name,
           type: activePlan.type,
-          features: activePlan.features,
+          features: activePlan.features || [],
           endDate: user?.enrollments?.[0]?.endDate || null,
         }
       : null,
     family: {
-      isParent: !!activePlan && activePlan.type === "FAMILY" && !user?.parentId,
-      members: user?.children || [],
+      owner: user.parentId
+        ? {
+            name: user.parent?.name,
+            email: user.parent?.email,
+            image: user.parent?.image,
+          }
+        : {
+            name: user.name,
+            email: user.email,
+            image: user.image,
+          },
+      members: user.parentId
+        ? [
+            {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+            },
+            ...(user.parent?.children || []).filter(
+              (sibling: any) => sibling.id !== user.id,
+            ),
+          ]
+        : user.children || [],
     },
     enrollments: tracks,
   });
