@@ -11,7 +11,7 @@ interface SubscriptionPlanCardProps {
   isBestValue?: boolean;
   features: string[] | any;
   onSubscribe?: (planId: string) => void;
-  buttonText?: string; 
+  buttonText?: string;
   disabled?: boolean;
   className?: string;
   availableTracks?: any[];
@@ -31,7 +31,17 @@ export function SubscriptionPlanCard({
 }: SubscriptionPlanCardProps) {
   const finalMonthlyPrice = monthlyPrice || 0;
   const finalYearlyPrice = yearlyPrice || 0;
-  const yearlyMonthlyPrice = finalYearlyPrice > 0 ? Math.round(finalYearlyPrice / 12) : 0;
+  const yearlyMonthlyPrice =
+    finalYearlyPrice > 0 ? Math.round(finalYearlyPrice / 12) : 0;
+
+  console.log("data", {
+    id,
+    name,
+    monthlyPrice,
+    yearlyPrice,
+    features,
+    availableTracks,
+  });
 
   const handleClick = () => {
     if (onSubscribe) {
@@ -42,8 +52,19 @@ export function SubscriptionPlanCard({
   const getFeatureLabel = (featureKey: string) => {
     if (featureKey.startsWith("track:")) {
       const trackId = featureKey.split(":")[1];
-      const track = availableTracks.find(t => t.id === trackId);
-      return track ? `Trilha: ${track.name}` : "Trilha não encontrada";
+
+      const trackRelation = availableTracks.find(
+        (t) => t.trackId === trackId || (t.track && t.track.id === trackId),
+      );
+
+      return trackRelation?.track
+        ? `Trilha: ${trackRelation.track.name}`
+        : "Trilha não encontrada";
+    }
+
+    if (featureKey.startsWith("family_slots:")) {
+      const slots = featureKey.split(":")[1];
+      return `Plano Família: até ${slots} acessos (você + ${Number(slots) - 1})`;
     }
 
     const FEATURE_LABELS: Record<string, string> = {
@@ -62,7 +83,9 @@ export function SubscriptionPlanCard({
   };
 
   return (
-    <div className={`relative p-8 rounded-3xl bg-white border ${isBestValue ? "border-blue-500" : "border-(--color-s-200)"} shadow-sm hover:border-blue-500 transition-all group flex flex-col h-full min-h-[600px] ${className}`}>
+    <div
+      className={`relative p-8 rounded-3xl bg-white border ${isBestValue ? "border-blue-500" : "border-(--color-s-200)"} shadow-sm hover:border-blue-500 transition-all group flex flex-col h-full min-h-[600px] ${className}`}
+    >
       {isBestValue && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-tighter shadow-lg">
           Melhor Valor
@@ -78,7 +101,9 @@ export function SubscriptionPlanCard({
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Mensal</p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-2xl font-bold text-s-500">{formatPrice(finalMonthlyPrice)}</span>
+              <span className="text-2xl font-bold text-s-500">
+                {formatPrice(finalMonthlyPrice)}
+              </span>
               <span className="text-s-500 text-sm font-medium">/mês</span>
             </div>
           </div>
@@ -86,14 +111,18 @@ export function SubscriptionPlanCard({
 
         <div className="w-full relative">
           <hr className="border w-full border-(--color-s-200) my-4" />
-          <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">OU</p>
+          <p className="text-xs text-s-500 mb-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-4">
+            OU
+          </p>
         </div>
 
         <div className="w-full">
           <div className="text-center">
             <p className="text-xs text-s-500 mb-1">Plano Anual</p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-3xl font-black text-black">{formatPrice(yearlyMonthlyPrice)}</span>
+              <span className="text-3xl font-black text-black">
+                {formatPrice(yearlyMonthlyPrice)}
+              </span>
               <span className="text-s-500 text-sm font-medium">/mês</span>
             </div>
             <p className="text-[10px] text-s-500 mt-1">
@@ -101,7 +130,8 @@ export function SubscriptionPlanCard({
             </p>
             {finalMonthlyPrice > 0 && yearlyMonthlyPrice > 0 && (
               <p className="text-[10px] text-black font-bold mt-1">
-                Economize {formatPrice(finalMonthlyPrice - yearlyMonthlyPrice)}/mês
+                Economize {formatPrice(finalMonthlyPrice - yearlyMonthlyPrice)}
+                /mês
               </p>
             )}
           </div>
@@ -114,13 +144,13 @@ export function SubscriptionPlanCard({
             features.map((feature: string, i: number) => (
               <li key={i} className="flex items-start gap-3 text-sm text-s-600">
                 <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                <span>
-                  {getFeatureLabel(feature) || feature}
-                </span>
+                <span>{getFeatureLabel(feature) || feature}</span>
               </li>
             ))
           ) : (
-            <li className="text-sm text-s-500 text-center">Nenhuma vantagem definida</li>
+            <li className="text-sm text-s-500 text-center">
+              Nenhuma vantagem definida
+            </li>
           )}
         </ul>
 
