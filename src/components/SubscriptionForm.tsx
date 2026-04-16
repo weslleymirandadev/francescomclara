@@ -233,6 +233,7 @@ export function SubscriptionForm({
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const {
     register,
@@ -284,13 +285,11 @@ export function SubscriptionForm({
     return v;
   }
 
-  // Format and validate card number
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
     return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
   };
 
-  // Format and validate expiry date
   const formatExpiry = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 4);
     if (digits.length > 2) {
@@ -299,7 +298,6 @@ export function SubscriptionForm({
     return digits;
   };
 
-  // Format and validate CVV
   const formatCVV = (value: string) => {
     return value.replace(/\D/g, "").slice(0, 4);
   };
@@ -326,7 +324,6 @@ export function SubscriptionForm({
       return;
     }
 
-    // Inicializa a SDK v2 (Idealmente isso ficaria fora da função, mas mantive aqui para facilitar)
     // @ts-ignore
     const mp = new window.MercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY);
 
@@ -361,13 +358,10 @@ export function SubscriptionForm({
 
       const token = tokenResponse.id;
 
-      // 3. IDENTIFICAÇÃO DO MEIO DE PAGAMENTO (Para enviar ao backend)
-      // Na v2, buscamos pelo BIN para saber se é 'visa', 'mastercard', etc.
       const bin = cardNumberClean.substring(0, 6);
       const paymentMethods = await mp.getPaymentMethods({ bin });
       const paymentMethodId = paymentMethods.results?.[0]?.id || "credit_card";
 
-      // Device ID para Antifraude
       // @ts-ignore
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
@@ -751,12 +745,42 @@ export function SubscriptionForm({
           </div>
         </div>
 
+        <div className="mt-6 flex items-start gap-3">
+          <div className="flex h-5 items-center">
+            <input
+              id="terms"
+              name="terms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-pink-500 focus:ring-pink-500 cursor-pointer"
+              required
+            />
+          </div>
+          <div className="text-xs leading-tight">
+            <label
+              htmlFor="terms"
+              className="font-medium text-gray-700 cursor-pointer"
+            >
+              Li e aceito os{" "}
+              <a href="/privacidade" className="text-pink-600 underline">
+                Termos de Uso e a Política de Privacidade
+              </a>
+              .
+            </label>
+            <p className="text-gray-400 mt-1">
+              Ao confirmar, entendes que tens 7 dias para solicitar reembolso
+              total em caso de desistência.
+            </p>
+          </div>
+        </div>
+
         <button
           type="submit"
-          disabled={processing}
-          className="mt-2 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+          disabled={processing || !acceptedTerms}
+          className="mt-4 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-3 text-sm font-black uppercase tracking-widest text-white transition disabled:opacity-60"
         >
-          {processing ? "Processando..." : "Assinar agora"}
+          {processing ? "Processando..." : "Confirmar Assinatura"}
         </button>
       </form>
     </section>
