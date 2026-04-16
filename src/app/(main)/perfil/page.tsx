@@ -220,7 +220,7 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-(--slate-50) pb-20 animate-in fade-in duration-700">
       <div className="relative h-60 md:h-72 w-full bg-slate-900 group">
-        <div className="absolute inset-0 bg-linear-to-b from-black/20 to-(--slate-50) z-10" />
+        <div className="absolute inset-0 bg-linear-to-b from-black/20 to-(--slate-50) z-10 pointer-events-none" />
 
         <img
           src={`${user?.banner}?t=${new Date().getTime()}`}
@@ -234,15 +234,20 @@ export default function ProfilePage() {
           onChange={handleUploadBanner}
           className="hidden"
           accept="image/*"
+          capture={false}
         />
 
         <button
           type="button"
-          onClick={() => bannerInputRef.current?.click()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            bannerInputRef.current?.click();
+          }}
           className="absolute bottom-6 right-6 p-4 z-20
                      bg-white/10 backdrop-blur-md text-white
                      rounded-2xl border border-white/20
-                     cursor-pointer
+                     cursor-pointer touch-manipulation
                      transition-all duration-200
                      hover:bg-white/20 hover:scale-105
                      active:scale-95
