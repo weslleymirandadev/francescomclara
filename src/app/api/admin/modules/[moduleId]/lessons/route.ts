@@ -3,26 +3,27 @@ import prisma from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ moduleId: string }> }
+  { params }: { params: Promise<{ moduleId: string }> },
 ) {
   try {
     const { moduleId } = await params;
 
     const lessons = await prisma.lesson.findMany({
-      where: { 
+      where: {
         moduleId: moduleId,
         type: {
-          not: 'FLASHCARD'
-        }
+          not: "FLASHCARD",
+        },
       },
-      select: { 
-        id: true, 
+      select: {
+        id: true,
         title: true,
-        order: true 
+        type: true,
+        order: true,
       },
-      orderBy: { 
-        order: 'asc' 
-      }
+      orderBy: {
+        order: "asc",
+      },
     });
 
     return NextResponse.json(lessons);

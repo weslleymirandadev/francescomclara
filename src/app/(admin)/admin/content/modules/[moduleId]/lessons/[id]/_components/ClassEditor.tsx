@@ -3,14 +3,22 @@
 import { Video, Type } from "lucide-react";
 import { MarkdownEditor } from "./MarkdownEditor";
 
-export function ClassEditor({ content, onChange }: { content: any; onChange: (newContent: any) => void }) {
+export function ClassEditor({
+  content,
+  onChangeAction,
+}: {
+  content: any;
+  onChangeAction: (newContent: any) => void;
+}) {
   const data = content || { videoUrl: "", description: "" };
 
   const getEmbedUrl = (url: string) => {
     if (!url) return "";
     let videoId = "";
-    if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1]?.split("?")[0];
-    else if (url.includes("youtube.com/watch?v=")) videoId = url.split("v=")[1]?.split("&")[0];
+    if (url.includes("youtu.be/"))
+      videoId = url.split("youtu.be/")[1]?.split("?")[0];
+    else if (url.includes("youtube.com/watch?v="))
+      videoId = url.split("v=")[1]?.split("&")[0];
     else return url;
     return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
   };
@@ -21,10 +29,15 @@ export function ClassEditor({ content, onChange }: { content: any; onChange: (ne
     <div className="w-full space-y-8">
       <div className="space-y-4">
         <div className="relative">
-          <Video className="absolute left-4 top-1/2 -translate-y-1/2 text-s-300" size={18} />
-          <input 
+          <Video
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-s-300"
+            size={18}
+          />
+          <input
             value={data.videoUrl || ""}
-            onChange={(e) => onChange({ ...data, videoUrl: e.target.value })}
+            onChange={(e) =>
+              onChangeAction({ ...data, videoUrl: e.target.value })
+            }
             placeholder="URL do Vídeo do Aluno"
             className="w-full pl-12 pr-4 py-4 bg-s-50 rounded-4xl outline-none font-bold text-s-700 border-2 border-transparent focus:border-s-100 transition-all"
           />
@@ -40,12 +53,14 @@ export function ClassEditor({ content, onChange }: { content: any; onChange: (ne
       <div className="space-y-4">
         <div className="flex items-center gap-2 ml-2">
           <Type size={14} className="text-s-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-s-400">Conteúdo Teórico</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-s-400">
+            Conteúdo Teórico
+          </span>
         </div>
-        <MarkdownEditor 
+        <MarkdownEditor
           id="class-theory"
           value={data.description}
-          onChange={(val) => onChange({ ...data, description: val })}
+          onChange={(val) => onChangeAction({ ...data, description: val })}
           placeholder="Escreva a teoria aqui..."
         />
       </div>

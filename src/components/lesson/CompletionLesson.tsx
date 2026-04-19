@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronRight, ChevronLeft, Check, Languages, X, RotateCcw } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  Check,
+  Languages,
+  X,
+  RotateCcw,
+} from "lucide-react";
 
 interface CompletionExercise {
   id: string;
@@ -28,29 +35,37 @@ interface CompletionLessonProps {
   lessonId?: string;
 }
 
-export function CompletionLesson({ content, onComplete, lessonId }: CompletionLessonProps) {
+export function CompletionLesson({
+  content,
+  onComplete,
+  lessonId,
+}: CompletionLessonProps) {
   const { data: session } = useSession();
   const [currentExercise, setCurrentExercise] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
-  const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
+  const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(
+    null,
+  );
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [showAnswer, setShowAnswer] = useState(false);
-  const [savedAnswers, setSavedAnswers] = useState<Map<number, SavedAnswer>>(new Map());
+  const [savedAnswers, setSavedAnswers] = useState<Map<number, SavedAnswer>>(
+    new Map(),
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const exercises = content?.exercises || [];
   const exercise = exercises[currentExercise];
+  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
-    // Carregar resposta salva se existir
     const savedAnswer = savedAnswers.get(currentExercise);
     console.log("Loading answer for exercise", currentExercise, savedAnswer);
     if (savedAnswer) {
       setUserAnswer(savedAnswer.userAnswer);
       setFeedback(savedAnswer.isCorrect ? "correct" : "incorrect");
-      setShowAnswer(true); // Mostrar a resposta se já foi respondida
+      setShowAnswer(true);
     } else {
       setUserAnswer("");
       setFeedback(null);
@@ -58,7 +73,6 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     }
   }, [currentExercise]);
 
-  // Carregar respostas salvas quando o componente montar ou quando lessonId mudar
   useEffect(() => {
     if (session?.user?.id && lessonId) {
       loadSavedAnswers();
@@ -68,9 +82,11 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
   const loadSavedAnswers = async () => {
     try {
       console.log("Loading saved answers for lesson:", lessonId);
-      const response = await fetch(`/api/exercises/answers?lessonId=${lessonId}&exerciseType=COMPLETION`);
+      const response = await fetch(
+        `/api/exercises/answers?lessonId=${lessonId}&exerciseType=COMPLETION`,
+      );
       console.log("Response status:", response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log("Loaded answers:", data);
@@ -78,7 +94,9 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
         data.answers.forEach((answer: SavedAnswer) => {
           answersMap.set(answer.exerciseIndex, answer);
           if (answer.isCorrect) {
-            setCompletedExercises(prev => new Set(prev).add(answer.exerciseIndex));
+            setCompletedExercises((prev) =>
+              new Set(prev).add(answer.exerciseIndex),
+            );
           }
         });
         setSavedAnswers(answersMap);
@@ -91,7 +109,11 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     }
   };
 
-  const saveAnswer = async (userAnswer: string, correctAnswer: string, isCorrect: boolean) => {
+  const saveAnswer = async (
+    userAnswer: string,
+    correctAnswer: string,
+    isCorrect: boolean,
+  ) => {
     if (!session?.user?.id || !lessonId) {
       console.log("Cannot save answer - missing session or lessonId");
       return;
@@ -108,7 +130,7 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
         exerciseType: "COMPLETION",
       };
       console.log("Saving answer:", payload);
-      
+
       const response = await fetch("/api/exercises/answers", {
         method: "POST",
         headers: {
@@ -118,7 +140,7 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
       });
 
       console.log("Save response status:", response.status);
-      
+
       if (response.ok) {
         const newAnswer: SavedAnswer = {
           exerciseIndex: currentExercise,
@@ -127,7 +149,7 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
           isCorrect,
         };
 
-        setSavedAnswers(prev => {
+        setSavedAnswers((prev) => {
           const newMap = new Map(prev);
           newMap.set(currentExercise, newAnswer);
           console.log("Answer saved for exercise", currentExercise, newAnswer);
@@ -135,7 +157,7 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
         });
 
         if (isCorrect) {
-          setCompletedExercises(prev => new Set(prev).add(currentExercise));
+          setCompletedExercises((prev) => new Set(prev).add(currentExercise));
         }
       } else {
         console.error("Failed to save answer:", response.statusText);
@@ -165,19 +187,20 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
   };
 
   const resetLesson = () => {
-    // Limpar todos os estados
     setCurrentExercise(0);
     setUserAnswer("");
     setFeedback(null);
     setShowAnswer(false);
     setCompletedExercises(new Set());
     setSavedAnswers(new Map());
-    
-    // Limpar respostas do banco de dados
+
     if (session?.user?.id && lessonId) {
-      fetch(`/api/exercises/answers?lessonId=${lessonId}&exerciseType=COMPLETION`, {
-        method: "DELETE"
-      }).catch(error => console.error("Error clearing answers:", error));
+      fetch(
+        `/api/exercises/answers?lessonId=${lessonId}&exerciseType=COMPLETION`,
+        {
+          method: "DELETE",
+        },
+      ).catch((error) => console.error("Error clearing answers:", error));
     }
   };
 
@@ -193,8 +216,8 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     return text
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-      .replace(/[^\w\s]/g, "") // Remove pontuação
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\w\s]/g, "")
       .trim();
   };
 
@@ -207,7 +230,6 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     if (exercise.type === "full") {
       correctAnswer = normalizeText(exercise.french);
     } else {
-      // Para tipo "blank", precisamos extrair a palavra específica
       const words = exercise.french.split(/\s+/);
       const position = exercise.blankPosition || 1;
       correctAnswer = normalizeText(words[position - 1] || "");
@@ -216,28 +238,30 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     const isCorrect = normalizedUserAnswer === correctAnswer;
 
     setFeedback(isCorrect ? "correct" : "incorrect");
-
-    // Salvar resposta no banco de dados
     saveAnswer(userAnswer, correctAnswer, isCorrect);
-
     setShowAnswer(true);
 
     if (isCorrect) {
       setCompletedExercises((prev) => new Set([...prev, currentExercise]));
 
-      // Verifica se todos os exercícios foram completados corretamente
-      const allCompleted = new Set([...completedExercises, currentExercise]).size === exercises.length;
+      const allCompleted =
+        new Set([...completedExercises, currentExercise]).size ===
+        exercises.length;
 
-      // Avança para o próximo exercício após 1.5s
+      setFeedback("correct");
+      setAttempts(0);
+
       setTimeout(() => {
         if (currentExercise < exercises.length - 1) {
           setCurrentExercise(currentExercise + 1);
         } else if (allCompleted) {
-          // Todos os exercícios concluídos corretamente - marca progresso
           markLessonAsCompleted();
           onComplete?.();
         }
       }, 1500);
+    } else {
+      setFeedback("incorrect");
+      setAttempts((prev) => prev + 1);
     }
   };
 
@@ -247,11 +271,27 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
     }
   };
 
+  const generateHint = (text: string, attempt: number) => {
+    return text
+      .split(" ")
+      .map((word) => {
+        if (word.length <= 2) return word;
+
+        if (attempt === 1) {
+          return word[0] + "_".repeat(word.length - 1);
+        }
+        if (attempt === 2) {
+          return word[0] + "_".repeat(word.length - 2) + word[word.length - 1];
+        }
+        return word;
+      })
+      .join(" ");
+  };
+
   const progress = (completedExercises.size / exercises.length) * 100;
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Languages className="text-interface-accent" size={32} />
@@ -262,17 +302,16 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
             </p>
           </div>
         </div>
-        
+
         <button
           onClick={resetLesson}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer"
         >
           <RotateCcw size={16} />
           Refazer Lição
         </button>
       </div>
 
-      {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-600 mb-2">
           <span>Progresso</span>
@@ -286,12 +325,13 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
         </div>
       </div>
 
-      {/* Exercise Card */}
       <div className="bg-white border-2 border-gray-200 rounded-xl p-8 mb-6">
         {exercise.type === "full" ? (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Traduza para francês:</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Traduza para francês:
+              </h3>
               <p className="text-xl text-gray-800">{exercise.portuguese}</p>
             </div>
 
@@ -313,14 +353,18 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
         ) : (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Referência em português:</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Referência em português:
+              </h3>
               <p className="text-xl text-gray-600 bg-gray-50 p-4 rounded-lg">
                 {exercise.portuguese}
               </p>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-2">Complete a frase em francês:</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Complete a frase em francês:
+              </h3>
               <div className="text-xl">
                 {exercise.french.split(/\s+/).map((word, index) => {
                   const position = exercise.blankPosition || 1;
@@ -335,7 +379,9 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
                               {userAnswer}
                             </span>
                           ) : (
-                            <span className="text-gray-400 select-none">ㅤㅤㅤㅤ</span>
+                            <span className="text-gray-400 select-none">
+                              ㅤㅤㅤㅤ
+                            </span>
                           )}
                         </span>
                       ) : (
@@ -364,64 +410,68 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
           </div>
         )}
 
-        {/* Feedback */}
-        {feedback && (
-          <div
-            className={`mt-6 p-4 rounded-lg flex items-center gap-3 ${feedback === "correct"
-              ? "bg-green-50 text-green-800"
-              : "bg-red-50 text-red-800"
-              }`}
-          >
-            {feedback === "correct" ? (
-              <Check size={20} className="text-green-600" />
-            ) : (
-              <X size={20} className="text-red-600" />
-            )}
-            <div>
-              <p className="font-semibold">
-                {feedback === "correct" ? "Correto!" : "Incorreto!"}
+        <div className="flex flex-col gap-4 mt-6">
+          {/* O Feedback aparece como um "balão" acima dos botões */}
+          {feedback === "incorrect" && (
+            <div className="p-4 bg-orange-50 border-l-4 border-orange-400 rounded-r-xl animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2 text-orange-800 mb-2">
+                <RotateCcw size={16} />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  Dica ({attempts}ª tentativa):
+                </span>
+              </div>
+
+              <p className="text-lg font-mono tracking-[0.2em] text-orange-900 bg-white/50 p-2 rounded">
+                {generateHint(exercise.french, attempts)}
               </p>
-              {feedback === "incorrect" && (
-                <p className="text-sm mt-1">
-                  Resposta correta: <strong>{exercise.french}</strong>
+
+              {attempts >= 3 && (
+                <p className="mt-3 text-xs text-red-600 font-medium italic border-t border-orange-200 pt-2">
+                  Resposta completa: {exercise.french}
                 </p>
               )}
             </div>
+          )}
+
+          <div className="flex gap-4">
+            {/* Botão Principal: Ele muda de cor e texto conforme o estado */}
+            <button
+              onClick={
+                feedback === "incorrect" ? () => setFeedback(null) : checkAnswer
+              }
+              disabled={!userAnswer.trim() && feedback !== "incorrect"}
+              className={`flex-1 px-6 py-4 rounded-2xl font-black uppercase text-sm transition-all shadow-lg active:scale-95 ${
+                feedback === "incorrect"
+                  ? "bg-orange-500 hover:bg-orange-600 text-white shadow-orange-200"
+                  : "bg-interface-accent hover:bg-interface-accent/90 text-white shadow-blue-200"
+              }`}
+            >
+              {feedback === "incorrect"
+                ? "Tentar Corrigir"
+                : "Verificar Resposta"}
+            </button>
+
+            {/* Botão de Pular ou Desistir (Opcional, só aparece se errar muito) */}
+            {feedback === "incorrect" && attempts >= 2 && (
+              <button
+                onClick={() => {
+                  setUserAnswer(exercise.french); // Preenche a resposta pra ele
+                  setFeedback(null);
+                }}
+                className="px-6 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase text-sm hover:bg-gray-200 transition-all"
+              >
+                Revelar
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-4 mt-6">
-          {!feedback && (
-            <button
-              onClick={checkAnswer}
-              disabled={!userAnswer.trim()}
-              className="px-6 py-3 bg-interface-accent text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-interface-accent/90 transition-colors"
-            >
-              Verificar Resposta
-            </button>
-          )}
-
-          {feedback === "incorrect" && (
-            <button
-              onClick={() => {
-                setUserAnswer("");
-                setFeedback(null);
-              }}
-              className="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition-colors"
-            >
-              Tentar Novamente
-            </button>
-          )}
         </div>
 
-        {/* Navigation */}
         <div className="flex justify-between items-center mt-5">
-          <button 
+          <button
             className={`flex gap-2 justify-between items-center p-2 rounded-md transition-colors ${
-              currentExercise === 0 
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                : "bg-interface-accent text-white hover:bg-interface-accent/90"
+              currentExercise === 0
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-interface-accent text-white hover:bg-interface-accent/90 cursor-pointer"
             }`}
             onClick={() => setCurrentExercise(currentExercise - 1)}
             disabled={currentExercise === 0}
@@ -430,21 +480,29 @@ export function CompletionLesson({ content, onComplete, lessonId }: CompletionLe
             <span>Anterior</span>
           </button>
 
-          <span>{currentExercise + 1} / {exercises.length}</span>
+          <span>
+            {currentExercise + 1} / {exercises.length}
+          </span>
 
-          <button 
+          <button
             className={`flex gap-2 justify-between items-center p-2 rounded-md transition-colors ${
               !feedback || feedback === "incorrect"
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                : "bg-interface-accent text-white hover:bg-interface-accent/90"
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-interface-accent text-white hover:bg-interface-accent/90 cursor-pointer"
             }`}
-            onClick={() => currentExercise < exercises.length - 1
-              ? setCurrentExercise(currentExercise + 1)
-              : onComplete?.()}
+            onClick={() =>
+              currentExercise < exercises.length - 1
+                ? setCurrentExercise(currentExercise + 1)
+                : onComplete?.()
+            }
             disabled={!feedback || feedback === "incorrect"}
           >
             {currentExercise === exercises.length - 1 ? "Concluir" : "Próximo"}
-            {currentExercise === exercises.length - 1 ? <Check  size={20} /> : <ChevronRight size={20} />}
+            {currentExercise === exercises.length - 1 ? (
+              <Check size={20} />
+            ) : (
+              <ChevronRight size={20} />
+            )}
           </button>
         </div>
       </div>

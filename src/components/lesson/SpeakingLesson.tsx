@@ -87,7 +87,6 @@ export function SpeakingLesson({
   };
 
   const calculateSimilarity = (text1: string, text2: string): number => {
-    // Calcula similaridade usando distância de Levenshtein simplificada
     const longer = text1.length > text2.length ? text1 : text2;
     const shorter = text1.length > text2.length ? text2 : text1;
 
@@ -159,7 +158,6 @@ export function SpeakingLesson({
     const expectedWords = normalizedExpected.split(/\s+/);
     const spokenWords = normalizedSpoken.split(/\s+/);
 
-    // Identificar palavras corretas primeiro
     const correctWordIndices = new Set<number>();
     let correctCount = 0;
 
@@ -173,40 +171,32 @@ export function SpeakingLesson({
     const accuracy = correctCount / expectedWords.length;
     const isCorrect = accuracy >= 0.5;
 
-    // Armazenar palavras corretas para highlight
     setCorrectWords(correctWordIndices);
-
-    // Salvar resposta no banco de dados
     saveAnswer(spokenText, currentExerciseData.french, isCorrect);
 
     if (isCorrect) {
       setFeedback("correct");
       setCompletedExercises((prev) => new Set([...prev, currentExercise]));
 
-      // Verifica se todos os exercícios foram completados corretamente
       const allCompleted =
         new Set([...completedExercises, currentExercise]).size ===
         content.exercises.length;
 
-      // Avança para o próximo exercício após 2s
       setTimeout(() => {
         if (currentExercise < content.exercises.length - 1) {
           setCurrentExercise(currentExercise + 1);
         } else if (allCompleted) {
-          // Todos os exercícios concluídos corretamente - marca progresso
           markLessonAsCompleted();
           onComplete?.();
         }
       }, 2000);
     } else if (accuracy > 0) {
       setFeedback("partial");
-      // Limpa o feedback após 3s, mas permite nova gravação imediatamente
       setTimeout(() => {
         setFeedback(null);
       }, 3000);
     } else {
       setFeedback("incorrect");
-      // Limpa o feedback após 3s, mas permite nova gravação imediatamente
       setTimeout(() => {
         setFeedback(null);
       }, 3000);
@@ -283,12 +273,26 @@ export function SpeakingLesson({
     }
   }, [currentExercise, exercise?.french]);
 
-  // Carregar respostas salvas quando o componente montar ou quando lessonId mudar
   useEffect(() => {
     if (session?.user?.id && lessonId) {
       loadSavedAnswers();
     }
   }, [session?.user?.id, lessonId]);
+
+  useEffect(() => {
+    const recognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (recognition) {
+      setIsSupported(true);
+    } else {
+      setIsSupported(false);
+      console.warn(
+        "Este navegador não suporta a Web Speech API. No Firefox, tente usar o Chrome ou Edge.",
+      );
+    }
+  }, []);
 
   const loadSavedAnswers = async () => {
     try {
@@ -424,7 +428,6 @@ export function SpeakingLesson({
   };
 
   const resetLesson = () => {
-    // Limpar todos os estados
     setCurrentExercise(0);
     setTranscript("");
     setFeedback(null);
@@ -434,7 +437,6 @@ export function SpeakingLesson({
     setCompletedExercises(new Set());
     setSavedAnswers(new Map());
 
-    // Limpar respostas do banco de dados
     if (session?.user?.id && lessonId) {
       fetch(
         `/api/exercises/answers?lessonId=${lessonId}&exerciseType=SPEAKING`,
@@ -486,17 +488,14 @@ export function SpeakingLesson({
   };
 
   const playAudio = (text: string) => {
-    // 1. Mata o microfone IMEDIATAMENTE antes de qualquer coisa
     if (isListening) {
       stopListening();
     }
 
     isAudioPlayingRef.current = true;
     setIsSpeaking(true);
-    // 2. Limpa qualquer áudio que já esteja tocando para não encavalar/repetir
     window.speechSynthesis.cancel();
 
-    // 3. Configura a nova frase
     const utterance = new SpeechSynthesisUtterance(text);
 
     const voices = window.speechSynthesis.getVoices();
@@ -519,7 +518,6 @@ export function SpeakingLesson({
     utterance.rate = 0.85;
     utterance.pitch = 1.1;
 
-    // 4. Bloqueio de estado
     utterance.onstart = () => {
       isAudioPlayingRef.current = true;
       setIsSpeaking(true);
@@ -567,7 +565,7 @@ export function SpeakingLesson({
             onClick={() => {
               onComplete?.();
             }}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
           >
             Pular Exercício
           </button>
@@ -578,7 +576,6 @@ export function SpeakingLesson({
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Mic className="text-interface-accent" size={32} />
@@ -592,14 +589,13 @@ export function SpeakingLesson({
 
         <button
           onClick={resetLesson}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-colors flex items-center gap-2 cursor-pointer"
         >
           <RotateCcw size={16} />
           Refazer Lição
         </button>
       </div>
 
-      {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-600 mb-2">
           <span>Progresso</span>
@@ -613,9 +609,7 @@ export function SpeakingLesson({
         </div>
       </div>
 
-      {/* Exercise Card */}
       <div className="bg-white border-2 border-gray-200 rounded-xl p-8 mb-6">
-        {/* Difficulty Badge */}
         <div className="mb-4">
           <span
             className={`px-3 py-1 rounded-full text-sm font-medium ${getDifficultyColor(exercise.difficulty)}`}
@@ -628,7 +622,6 @@ export function SpeakingLesson({
           </span>
         </div>
 
-        {/* Target Phrase */}
         <div className="flex justify-between items-start mb-6 p-6 bg-slate-50 rounded-xl border border-slate-100">
           <div>
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
@@ -645,7 +638,7 @@ export function SpeakingLesson({
           <button
             disabled={isListening || isSpeaking}
             onClick={() => playAudio(exercise.french)}
-            className={`p-3 rounded-md bg-interface-accent transition-all active:scale-95 text-white shadow-sm ${
+            className={`p-3 rounded-md bg-interface-accent transition-all active:scale-95 text-white shadow-sm cursor-pointer ${
               isListening || isSpeaking
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:opacity-80"
@@ -655,12 +648,11 @@ export function SpeakingLesson({
           </button>
         </div>
 
-        {/* Hints Section */}
         {exercise.hints.length > 0 && (
           <div className="mb-6">
             <button
               onClick={() => setShowHints(!showHints)}
-              className="text-sm text-interface-accent hover:text-interface-accent/80 font-medium"
+              className="text-sm text-interface-accent hover:text-interface-accent/80 font-medium cursor-pointer"
             >
               {showHints ? "Ocultar" : "Mostrar"} Dicas ({exercise.hints.length}
               )
@@ -680,23 +672,18 @@ export function SpeakingLesson({
 
         <div className="flex flex-col items-center justify-center py-10">
           <div className="relative flex items-center justify-center">
-            {/* Ondas Sonoras Dinâmicas com Await/Delay */}
             {isListening && (
               <>
-                {/* Onda 1: Instantânea */}
                 <div className="absolute w-24 h-24 bg-red-400/40 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
 
-                {/* Onda 2: Espera 700ms */}
                 <div className="absolute w-24 h-24 bg-red-400/30 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite_700ms]" />
 
-                {/* Onda 3: Espera 1400ms */}
                 <div className="absolute w-24 h-24 bg-red-400/20 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite_1400ms]" />
               </>
             )}
 
-            {/* Botão do Mic (Ajustado para parar o áudio se clicar) */}
             <button
-              disabled={isSpeaking} // Não deixa abrir o mic se o robô estiver falando
+              disabled={isSpeaking}
               onClick={() => {
                 if (isListening) {
                   stopListening();
@@ -704,7 +691,7 @@ export function SpeakingLesson({
                   startListening();
                 }
               }}
-              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
+              className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer ${
                 isSpeaking ? "opacity-50 cursor-not-allowed" : ""
               } ${
                 isListening
@@ -758,7 +745,6 @@ export function SpeakingLesson({
           )}
         </div>
 
-        {/* Highlighted Text */}
         {transcript && (
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-600 mb-2">
@@ -779,19 +765,17 @@ export function SpeakingLesson({
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 rounded-lg text-red-800">
             <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {/* Action Buttons */}
         {feedback && (
           <div className="flex justify-center">
             <button
               onClick={skipExercise}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
             >
               Pular
             </button>
@@ -799,7 +783,6 @@ export function SpeakingLesson({
         )}
       </div>
 
-      {/* Navigation */}
       <div className="flex justify-between items-center">
         <button
           onClick={() => {
@@ -811,7 +794,7 @@ export function SpeakingLesson({
           className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
             currentExercise === 0
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-interface-accent text-white hover:bg-interface-accent/90"
+              : "bg-interface-accent text-white hover:bg-interface-accent/90 cursor-pointer"
           }`}
         >
           <ChevronLeft size={20} className="inline mr-2" />
@@ -836,7 +819,7 @@ export function SpeakingLesson({
           className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
             !feedback || feedback === "incorrect"
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-interface-accent text-white hover:bg-interface-accent/90"
+              : "bg-interface-accent text-white hover:bg-interface-accent/90 cursor-pointer"
           }`}
         >
           {currentExercise === content.exercises.length - 1

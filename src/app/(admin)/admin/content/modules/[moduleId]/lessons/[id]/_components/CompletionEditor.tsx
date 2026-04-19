@@ -7,8 +7,8 @@ interface CompletionExercise {
   id: string;
   french: string;
   portuguese: string;
-  type: "full" | "blank"; // full = traduzir frase inteira, blank = completar espaço vazio
-  blankPosition?: number; // posição do espaço vazio (só para type "blank")
+  type: "full" | "blank";
+  blankPosition?: number;
 }
 
 interface CompletionEditorProps {
@@ -20,7 +20,7 @@ interface CompletionEditorProps {
 
 export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
   const [exercises, setExercises] = useState<CompletionExercise[]>(
-    content?.exercises || []
+    content?.exercises || [],
   );
 
   const updateExercises = (newExercises: CompletionExercise[]) => {
@@ -46,7 +46,7 @@ export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
 
   const updateExercise = (id: string, updates: Partial<CompletionExercise>) => {
     const newExercises = exercises.map((ex) =>
-      ex.id === id ? { ...ex, ...updates } : ex
+      ex.id === id ? { ...ex, ...updates } : ex,
     );
     updateExercises(newExercises);
   };
@@ -88,14 +88,14 @@ export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
                       type: e.target.value as "full" | "blank",
                     })
                   }
-                  className="px-3 py-1 border rounded-lg text-sm"
+                  className="px-3 py-1 border rounded-lg text-sm cursor-pointer"
                 >
                   <option value="full">Tradução Completa</option>
                   <option value="blank">Completar Espaço</option>
                 </select>
                 <button
                   onClick={() => removeExercise(exercise.id)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -151,11 +151,12 @@ export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-interface-accent focus:border-transparent"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Número da palavra na frase que deve ser completada (ex: 1 para
-                    primeira palavra)
+                    Número da palavra na frase que deve ser completada (ex: 1
+                    para primeira palavra)
                   </p>
                   <p className="text-xs text-blue-600 mt-2">
-                    Nota: O português servirá apenas como referência visual para o aluno
+                    Nota: O português servirá apenas como referência visual para
+                    o aluno
                   </p>
                 </div>
               )}
@@ -166,7 +167,7 @@ export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
         <button
           onClick={addExercise}
           disabled={exercises.length >= 10}
-          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-600 hover:border-interface-accent hover:text-interface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-600 hover:border-interface-accent hover:text-interface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Plus size={20} />
           Adicionar Exercício ({exercises.length}/10)
@@ -178,7 +179,10 @@ export function CompletionEditor({ content, onChange }: CompletionEditorProps) {
         <ul className="text-sm text-blue-800 space-y-1">
           <li>· Mínimo de 5 exercícios, máximo de 10</li>
           <li>· "Tradução Completa": usuário traduz a frase inteira</li>
-          <li>· "Completar Espaço": português aparece como referência, francês com espaço vazio para completar</li>
+          <li>
+            · "Completar Espaço": português aparece como referência, francês com
+            espaço vazio para completar
+          </li>
           <li>· Não precisa usar maiúsculas, acentos ou pontuação</li>
           <li>· O sistema ignora diferenças de capitalização e acentuação</li>
         </ul>

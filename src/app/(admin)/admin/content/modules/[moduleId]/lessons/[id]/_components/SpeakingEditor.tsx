@@ -20,7 +20,7 @@ interface SpeakingEditorProps {
 
 export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
   const [exercises, setExercises] = useState<SpeakingExercise[]>(
-    content?.exercises || []
+    content?.exercises || [],
   );
 
   const updateExercises = (newExercises: SpeakingExercise[]) => {
@@ -47,7 +47,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
 
   const updateExercise = (id: string, updates: Partial<SpeakingExercise>) => {
     const newExercises = exercises.map((ex) =>
-      ex.id === id ? { ...ex, ...updates } : ex
+      ex.id === id ? { ...ex, ...updates } : ex,
     );
     updateExercises(newExercises);
   };
@@ -74,7 +74,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
     if (!exercise) return;
 
     const newHints = exercise.hints.map((hint, index) =>
-      index === hintIndex ? value : hint
+      index === hintIndex ? value : hint,
     );
     updateExercise(exerciseId, { hints: newHints });
   };
@@ -128,8 +128,8 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
                       difficulty: e.target.value as "easy" | "medium" | "hard",
                     })
                   }
-                  className={`px-3 py-1 rounded-lg text-sm font-medium ${getDifficultyColor(
-                    exercise.difficulty
+                  className={`px-3 py-1 rounded-lg text-sm font-medium cursor-pointer ${getDifficultyColor(
+                    exercise.difficulty,
                   )}`}
                 >
                   <option value="easy">Fácil</option>
@@ -138,7 +138,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
                 </select>
                 <button
                   onClick={() => removeExercise(exercise.id)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -183,7 +183,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
                   </label>
                   <button
                     onClick={() => addHint(exercise.id)}
-                    className="text-sm text-interface-accent hover:text-interface-accent/80 font-medium"
+                    className="text-sm text-interface-accent hover:text-interface-accent/80 font-medium cursor-pointer"
                   >
                     + Adicionar dica
                   </button>
@@ -203,7 +203,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
                       />
                       <button
                         onClick={() => removeHint(exercise.id, hintIndex)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -225,7 +225,7 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
         <button
           onClick={addExercise}
           disabled={exercises.length >= 10}
-          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-600 hover:border-interface-accent hover:text-interface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-600 hover:border-interface-accent hover:text-interface-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Plus size={20} />
           Adicionar Exercício ({exercises.length}/10)
@@ -237,17 +237,26 @@ export function SpeakingEditor({ content, onChange }: SpeakingEditorProps) {
         <ul className="text-sm text-blue-800 space-y-1">
           <li>· Mínimo de 3 exercícios, máximo de 10</li>
           <li>· O usuário usará o microfone para falar a frase em francês</li>
-          <li>· O sistema destacará em azul as palavras corretamente reconhecidas</li>
-          <li>· A lição é completa quando mais da metade da frase é dita corretamente</li>
+          <li>
+            · O sistema destacará em azul as palavras corretamente reconhecidas
+          </li>
+          <li>
+            · A lição é completa quando mais da metade da frase é dita
+            corretamente
+          </li>
           <li>· Dicas opcionais podem ajudar com palavras difíceis</li>
           <li>· Use a Web Speech API para reconhecimento de voz</li>
         </ul>
       </div>
 
       <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-        <h4 className="font-semibold text-yellow-900 mb-2">Dicas de criação:</h4>
+        <h4 className="font-semibold text-yellow-900 mb-2">
+          Dicas de criação:
+        </h4>
         <ul className="text-sm text-yellow-800 space-y-1">
-          <li>· Comece com frases simples e aumente a dificuldade gradualmente</li>
+          <li>
+            · Comece com frases simples e aumente a dificuldade gradualmente
+          </li>
           <li>· Use vocabulário que o aluno já tenha aprendido</li>
           <li>· Evite frases muito longas (máximo 15 palavras)</li>
           <li>· Inclua expressões comuns do dia a dia</li>
