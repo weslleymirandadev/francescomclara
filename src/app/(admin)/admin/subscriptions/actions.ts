@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { invalidateAllFeaturesCache } from "@/lib/subscription";
 
 export async function getSubscriptionPlans() {
   if (!process.env.DATABASE_URL) {
@@ -83,6 +84,8 @@ export async function upsertSubscriptionPlan(data: any) {
       });
     }
 
+    // Invalidar cache de features de todos os usuários
+    invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };
   } catch (error) {
@@ -119,6 +122,8 @@ export async function deleteSubscriptionPlan(id: string) {
       where: { id },
     });
 
+    // Invalidar cache de features de todos os usuários
+    invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };
   } catch (error) {
@@ -139,6 +144,9 @@ export async function togglePlanStatus(id: string, currentStatus: boolean) {
       where: { id },
       data: { active: !currentStatus },
     });
+
+    // Invalidar cache de features de todos os usuários
+    invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };
   } catch (error) {
