@@ -40,6 +40,8 @@ model User {
   paymentMethods    PaymentMethod[]
   sessions          Session[]
   flashcards        Flashcard[]
+  supportTickets    SupportTicket[]
+  certificates      Certificate[]
   emailVerified     DateTime?
   welcomeEmailSent  Boolean          @default(false)
   notifFlashcards   Boolean          @default(true)
@@ -128,6 +130,7 @@ model Track {
   paymentItems      PaymentItem[]
   subscriptionPlans SubscriptionPlanTrack[]
   forumPosts        ForumPost[]
+  certificates      Certificate[]
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
@@ -504,6 +507,68 @@ model SiteSettings {
   welcomeMessage       String? @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura conosco.")
 
   updatedAt DateTime @updatedAt
+}
+
+model Certificate {
+  id               String   @id @default(cuid())
+  userId           String
+  trackId          String
+  certificateCode  String   @unique
+  issuedAt         DateTime @default(now())
+  completionDate   DateTime
+  pdfUrl           String?  // URL do PDF do certificado gerado
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track            Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([trackId])
+  @@index([certificateCode])
+}
+
+model SupportTicket {
+  id          String           @id @default(cuid())
+  userId      String
+  subject     String
+  message     String           @db.Text
+  priority    TicketPriority   @default(NORMAL)
+  status      TicketStatus     @default(OPEN)
+  isPriority  Boolean          @default(false)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses   SupportResponse[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([isPriority])
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+model SupportResponse {
+  id        String   @id @default(cuid())
+  ticketId  String
+  message   String   @db.Text
+  isAdmin   Boolean  @default(false)
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ticketId])
 }
 
 model PlacementTest {
