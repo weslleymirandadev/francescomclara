@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/permissions";
 import { redis } from "@/lib/redis";
+import { getUserFeatures, invalidateUserFeaturesCache } from "@/lib/subscription";
 
 const IGNORED_ROUTES = ["/api/mercado-pago", "/auth/login"];
 
@@ -108,12 +109,33 @@ export async function proxy(req: NextRequest) {
   }
 
   if (token) {
+    // Invalidar cache do usuário quando ele faz uma requisição (garante dados em tempo real)
+    if (token.sub) {
+      invalidateUserFeaturesCache(token.sub);
+    }
+
     if (pathname.startsWith("/curso/")) {
       const trackId = pathname.split("/")[2];
 
       if (trackId) {
-        const hasSubscription = await hasActiveSubscription(token.sub!);
+        const features = await getUserFeatures(token.sub!);
 
+        // Verificar acesso a flashcards
+        if (pathname.includes("/flashcards") && !features.canAccessFlashcards) {
+          return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+
+        // Verificar acesso a certificados
+        if (pathname.includes("/certificates") && !features.hasCertificate) {
+          return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+
+        // Verificar acesso a suporte
+        if (pathname.includes("/support") && !features.hasPrioritySupport) {
+          return NextResponse.redirect(new URL("/dashboard", req.url));
+        }
+
+        const hasSubscription = await hasActiveSubscription(token.sub!);
         const hasEnrollment = await hasTrackAccess(token.sub!, trackId);
 
         if (!hasSubscription && !hasEnrollment) {
@@ -122,22 +144,48 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-    if (pathname.startsWith("/flashcards") || pathname.startsWith("/forum")) {
-      const userHasAnyEnrollment = await prisma.enrollment.findFirst({
-        where: {
-          userId: token.sub,
-          OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
-        },
-      });
+    // Verificar features específicas nas APIs
+    if (pathname.startsWith("/api/")) {
+      const features = await getUserFeatures(token.sub!);
 
-      if (!userHasAnyEnrollment) {
-        return NextResponse.redirect(new URL("/assinar", req.url));
+      // API de Flashcards
+      if (pathname.startsWith("/api/flashcards") && !features.canAccessFlashcards) {
+        return NextResponse.json(
+          { error: "Flashcards não disponíveis no seu plano" },
+          { status: 403 }
+        );
+      }
+
+      // API de Certificados
+      if (pathname.startsWith("/api/certificates") && !features.hasCertificate) {
+        return NextResponse.json(
+          { error: "Certificados não disponíveis no seu plano" },
+          { status: 403 }
+        );
+      }
+
+      // API de Suporte
+      if (pathname.startsWith("/api/support") && !features.hasPrioritySupport) {
+        return NextResponse.json(
+          { error: "Suporte prioritário não disponível no seu plano" },
+          { status: 403 }
+        );
       }
     }
   }
 
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: [
+    /*
+     * Executa o proxy em todas as rotas exceto assets estáticos do Next.js.
+     * A própria função proxy já filtra /_next, arquivos com extensão, etc.
+     */
+    "/((?!_next/static|_next/image|favicon\\.ico).*)",
+  ],
+};
 
 async function hasTrackAccess(
   userId: string,

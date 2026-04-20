@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Volume2, X, Languages, Mic } from 'lucide-react';
+import { useState } from "react";
+import * as Popover from "@radix-ui/react-popover";
+import { Volume2, X } from "lucide-react";
 
 interface Sentence {
   frase: string;
@@ -14,191 +15,119 @@ interface SentenceBlockProps {
   index: number;
 }
 
-// Contexto para gerenciar qual tooltip está ativo globalmente
-const ActiveTooltipContext = createContext<{
-  activeIndex: number | null;
-  setActiveIndex: (index: number | null) => void;
-}>({
-  activeIndex: null,
-  setActiveIndex: () => {}
-});
-
-export function useActiveTooltip() {
-  return useContext(ActiveTooltipContext);
-}
-
-// Provider para envolver o componente pai
-export function ActiveTooltipProvider({ children }: { children: React.ReactNode }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  return (
-    <ActiveTooltipContext.Provider value={{ activeIndex, setActiveIndex }}>
-      {children}
-    </ActiveTooltipContext.Provider>
-  );
-}
-
 export function SentenceBlock({ sentence, index }: SentenceBlockProps) {
-  const { activeIndex, setActiveIndex } = useActiveTooltip();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMouseOverTooltip, setIsMouseOverTooltip] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Controla se este tooltip específico está visível
-  const showTooltip = activeIndex === index;
 
   const speakFrench = (text: string) => {
-    if ('speechSynthesis' in window) {
-      // Cancel any ongoing speech
+    if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
-      
+
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      
+      const voices = window.speechSynthesis.getVoices();
+
+      const femaleFrenchVoice =
+        voices.find(
+          (v) =>
+            v.lang.includes("fr") &&
+            v.name.includes("Google") &&
+            v.name.includes("Female"),
+        ) ||
+        voices.find(
+          (v) =>
+            v.lang.includes("fr") &&
+            (v.name.includes("Female") || v.name.includes("Hortense")),
+        ) ||
+        voices.find((v) => v.lang.includes("fr"));
+
+      if (femaleFrenchVoice) utterance.voice = femaleFrenchVoice;
+      utterance.lang = "fr-FR";
+      utterance.rate = 0.85;
+      utterance.pitch = 1.1;
+
       utterance.onstart = () => setIsPlaying(true);
       utterance.onend = () => setIsPlaying(false);
       utterance.onerror = () => setIsPlaying(false);
-      
+
       window.speechSynthesis.speak(utterance);
     }
   };
 
-  const handleMouseEnter = () => {
-    // Limpa qualquer timeout pendente
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    // Se este tooltip não está ativo, ativa ele
-    if (activeIndex !== index) {
-      setActiveIndex(index);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    // Se este tooltip está ativo e o mouse não está sobre o tooltip, espera meio segundo para fechar
-    if (activeIndex === index && !isMouseOverTooltip) {
-      timeoutRef.current = setTimeout(() => {
-        setActiveIndex(null);
-      }, 500);
-    }
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede a propagação para não conflitar com o clique fora
-    
-    // Se este tooltip já está ativo, desativa. Senão, ativa.
-    const newActiveIndex = activeIndex === index ? null : index;
-    setActiveIndex(newActiveIndex);
-    setIsMouseOverTooltip(false); // Reseta o estado do mouse sobre tooltip
-    
-    // Limpa qualquer timeout pendente
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  };
-
-  // Fecha o tooltip quando clicar fora (apenas se estiver ativo)
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (activeIndex === index) {
-        // Verifica se o clique foi fora do tooltip
-        const tooltipElement = document.getElementById(`tooltip-${index}`);
-        if (tooltipElement && !tooltipElement.contains(event.target as Node)) {
-          setActiveIndex(null);
-        }
-      }
-    };
-
-    if (activeIndex === index) {
-      document.addEventListener('click', handleClickOutside);
-      return () => {
-        document.removeEventListener('click', handleClickOutside);
-      };
-    }
-  }, [activeIndex, index]);
-
-  // Cleanup do timeout ao desmontar
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
   return (
-    <div className="relative group">
-      <div 
-        className="inline-block cursor-pointer p-2 rounded-lg transition-all duration-200 hover:bg-blue-50"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
-      >
-        <span className="text-lg text-slate-700 font-medium">
-          {sentence.frase}
-        </span>
-      </div>
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <div className="inline-block cursor-pointer p-2 rounded-xl transition-all duration-200 hover:bg-blue-50 focus:bg-blue-50 outline-none group border-b-2 border-transparent hover:border-blue-100">
+          <span className="text-lg text-slate-700 font-semibold tracking-tight">
+            {sentence.frase}
+          </span>
+        </div>
+      </Popover.Trigger>
 
-      {showTooltip && (
-        <div 
-          id={`tooltip-${index}`}
-          className="absolute z-50 left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 p-4 animate-in fade-in slide-in-from-top-2 duration-200"
-          onMouseEnter={() => setIsMouseOverTooltip(true)}
-          onMouseLeave={() => setIsMouseOverTooltip(false)}
+      <Popover.Portal>
+        <Popover.Content
+          side="top"
+          sideOffset={12}
+          align="start"
+          className="z-100 w-80 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 p-6 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 outline-none"
         >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   speakFrench(sentence.frase);
                 }}
-                className="w-8 h-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isPlaying}
+                className="w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 shadow-lg shadow-blue-200 cursor-pointer"
                 title="Ouvir em francês"
               >
-                <Volume2 size={16} className={isPlaying ? 'animate-pulse' : ''} />
+                <Volume2
+                  size={20}
+                  className={isPlaying ? "animate-pulse" : ""}
+                />
               </button>
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Frase {index + 1}
-              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  Exemplo {index + 1}
+                </p>
+                <p className="text-xs font-bold text-blue-600">
+                  Pronúncia Clara
+                </p>
+              </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveIndex(null);
-                setIsMouseOverTooltip(false); // Reseta o estado
-              }}
-              className="w-8 h-8 p-2 cursor-pointer hover:bg-slate-100 rounded-full flex items-center justify-center transition-colors duration-200"
-            >
-              <X size={16} className="text-slate-400" />
-            </button>
+
+            <Popover.Close className="w-8 h-8 p-2 hover:bg-slate-50 rounded-full flex items-center justify-center transition-colors text-slate-400 hover:text-slate-600 cursor-pointer">
+              <X size={18} />
+            </Popover.Close>
           </div>
-          
-          <div className="space-y-3">
-            <div>
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+
+          <div className="space-y-5">
+            <div className="relative p-4 bg-slate-50 rounded-2xl border border-slate-100/50">
+              <h4 className="absolute -top-3 left-0 px-2 bg-white text-[9px] font-black uppercase text-slate-400 tracking-widest border border-slate-200 rounded-full">
                 Tradução
               </h4>
-              <p className="text-slate-700 font-medium">
-                {sentence.traducao}
+              <p className="text-slate-900 font-bold leading-tight italic pt-1">
+                "{sentence.traducao}"
               </p>
             </div>
-            
-            <div>
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+
+            <div className="px-1">
+              <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2">
+                <div className="w-1 h-1 bg-blue-400 rounded-full" />
                 Explicação
               </h4>
-              <p className="text-slate-600 text-sm leading-relaxed">
+              <p className="text-slate-600 text-[13px] leading-relaxed font-medium">
                 {sentence.explicacao}
               </p>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+
+          <Popover.Arrow
+            className="fill-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.05)]"
+            width={16}
+            height={8}
+          />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

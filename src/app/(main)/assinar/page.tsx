@@ -44,7 +44,6 @@ function AssinarPageContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<"MONTHLY" | "YEARLY">(
     "MONTHLY",
   );
-
   const planId = searchParams.get("planId") || "default";
   const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
@@ -103,6 +102,34 @@ function AssinarPageContent() {
       void signIn(undefined, { callbackUrl: `/assinar?planId=${planId}` });
     }
   }, [status, planId, authRedirecting]);
+
+  const getFeatureLabel = (featureKey: string) => {
+    if (featureKey.startsWith("track:")) {
+      const trackId = featureKey.split(":")[1];
+      const track = tracks.find((t: any) => t.id === trackId);
+      return track ? `Trilha: ${track.name}` : "Trilha não encontrada";
+    }
+
+    if (featureKey.startsWith("family_slots:")) {
+      const slots = featureKey.split(":")[1];
+      return `Plano Família: até ${slots} acessos (você + ${Number(slots) - 1})`;
+    }
+
+    const FEATURE_LABELS: Record<string, string> = {
+      all_tracks: "Acesso a todas as trilhas",
+      flashcards: "Flashcards ilimitados",
+      forum_access: "Acesso ao fórum da Clara",
+      flashcards_access: "Acesso aos Flashcards",
+      kids_content: "Conteúdo especial Kids",
+      offline_mode: "Modo Offline",
+      certificate: "Certificado de conclusão",
+      multi_device: "Telas Simultâneas",
+      priority_support: "Suporte Prioritário",
+      specific_tracks: "Trilhas Selecionadas",
+    };
+
+    return FEATURE_LABELS[featureKey] || featureKey;
+  };
 
   if (status === "unauthenticated" || authRedirecting) {
     return (
@@ -229,6 +256,7 @@ function AssinarPageContent() {
                     monthlyPrice={p.monthlyPrice || 0}
                     yearlyPrice={p.yearlyPrice || 0}
                     features={p.features}
+                    availableTracks={p.tracks}
                     isBestValue={p.type === "FAMILY"}
                     buttonText={
                       isCurrentPlan
@@ -365,7 +393,7 @@ function AssinarPageContent() {
                     className="flex items-start gap-3 text-sm text-gray-700"
                   >
                     <Check className="w-4 h-4 text-pink-500 mt-0.5 shrink-0" />
-                    <span>{feature}</span>
+                    <span>{getFeatureLabel(feature) || feature}</span>
                   </li>
                 ))
               ) : (

@@ -19,12 +19,29 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
   const sentences = data.sentences || [];
 
   const speakFrench = (text: string) => {
-    if ('speechSynthesis' in window) {
+    if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'fr-FR';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const femaleFrenchVoice =
+        voices.find(
+          (v) =>
+            v.lang.includes("fr") &&
+            v.name.includes("Google") &&
+            v.name.includes("Female"),
+        ) ||
+        voices.find(
+          (v) =>
+            v.lang.includes("fr") &&
+            (v.name.includes("Female") || v.name.includes("Hortense")),
+        ) ||
+        voices.find((v) => v.lang.includes("fr"));
+
+      if (femaleFrenchVoice) utterance.voice = femaleFrenchVoice;
+      utterance.lang = "fr-FR";
+      utterance.rate = 0.85;
+      utterance.pitch = 1.1;
+
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -33,45 +50,53 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
     const newSentence: Sentence = {
       frase: "",
       traducao: "",
-      explicacao: ""
+      explicacao: "",
     };
     onChange({
       ...data,
-      sentences: [...sentences, newSentence]
+      sentences: [...sentences, newSentence],
     });
   };
 
-  const updateSentence = (index: number, field: keyof Sentence, value: string) => {
+  const updateSentence = (
+    index: number,
+    field: keyof Sentence,
+    value: string,
+  ) => {
     const updatedSentences = [...sentences];
     updatedSentences[index] = {
       ...updatedSentences[index],
-      [field]: value
+      [field]: value,
     };
     onChange({
       ...data,
-      sentences: updatedSentences
+      sentences: updatedSentences,
     });
   };
 
   const removeSentence = (index: number) => {
-    const updatedSentences = sentences.filter((_: any, i: number) => i !== index);
+    const updatedSentences = sentences.filter(
+      (_: any, i: number) => i !== index,
+    );
     onChange({
       ...data,
-      sentences: updatedSentences
+      sentences: updatedSentences,
     });
   };
 
-  const moveSentence = (index: number, direction: 'up' | 'down') => {
+  const moveSentence = (index: number, direction: "up" | "down") => {
     const updatedSentences = [...sentences];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+
     if (newIndex >= 0 && newIndex < sentences.length) {
-      [updatedSentences[index], updatedSentences[newIndex]] = 
-      [updatedSentences[newIndex], updatedSentences[index]];
-      
+      [updatedSentences[index], updatedSentences[newIndex]] = [
+        updatedSentences[newIndex],
+        updatedSentences[index],
+      ];
+
       onChange({
         ...data,
-        sentences: updatedSentences
+        sentences: updatedSentences,
       });
     }
   };
@@ -89,7 +114,7 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
         </div>
         <button
           onClick={addSentence}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 cursor-pointer"
         >
           <Plus size={16} />
           <span className="text-sm font-medium">Adicionar Frase</span>
@@ -101,43 +126,50 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
           <p className="text-slate-500 mb-4">Nenhuma frase adicionada ainda</p>
           <button
             onClick={addSentence}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors duration-200 cursor-pointer"
           >
             <Plus size={16} />
-            <span className="text-sm font-medium">Adicionar Primeira Frase</span>
+            <span className="text-sm font-medium">
+              Adicionar Primeira Frase
+            </span>
           </button>
         </div>
       ) : (
         <div className="space-y-4">
           {sentences.map((sentence: Sentence, index: number) => (
-            <div key={index} className="border border-slate-200 rounded-xl p-4 bg-white">
+            <div
+              key={index}
+              className="border border-slate-200 rounded-xl p-4 bg-white"
+            >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <span className="shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
                     {index + 1}
                   </span>
-                  <h4 className="font-medium text-slate-800">Frase {index + 1}</h4>
+                  <h4 className="font-medium text-slate-800">
+                    Frase {index + 1}
+                  </h4>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => moveSentence(index, 'up')}
+                    onClick={() => moveSentence(index, "up")}
                     disabled={index === 0}
-                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Mover para cima"
                   >
                     <span className="text-slate-400">↑</span>
                   </button>
                   <button
-                    onClick={() => moveSentence(index, 'down')}
+                    onClick={() => moveSentence(index, "down")}
                     disabled={index === sentences.length - 1}
-                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="p-1 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                     title="Mover para baixo"
                   >
                     <span className="text-slate-400">↓</span>
                   </button>
                   <button
                     onClick={() => removeSentence(index)}
-                    className="p-1 hover:bg-red-50 text-red-500 rounded transition-colors duration-200"
+                    className="p-1 hover:bg-red-50 text-red-500 rounded transition-colors duration-200 cursor-pointer"
                     title="Remover frase"
                   >
                     <Trash2 size={16} />
@@ -154,14 +186,16 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
                     <input
                       type="text"
                       value={sentence.frase}
-                      onChange={(e) => updateSentence(index, 'frase', e.target.value)}
+                      onChange={(e) =>
+                        updateSentence(index, "frase", e.target.value)
+                      }
                       placeholder="Ex: Bonjour à tous!"
                       className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <button
                       onClick={() => speakFrench(sentence.frase)}
                       disabled={!sentence.frase}
-                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors duration-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       title="Ouvir em francês"
                     >
                       <Volume2 size={16} />
@@ -176,7 +210,9 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
                   <input
                     type="text"
                     value={sentence.traducao}
-                    onChange={(e) => updateSentence(index, 'traducao', e.target.value)}
+                    onChange={(e) =>
+                      updateSentence(index, "traducao", e.target.value)
+                    }
                     placeholder="Ex: Bom dia a todos!"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -188,7 +224,9 @@ export function SentenceEditor({ content, onChange }: SentenceEditorProps) {
                   </label>
                   <textarea
                     value={sentence.explicacao}
-                    onChange={(e) => updateSentence(index, 'explicacao', e.target.value)}
+                    onChange={(e) =>
+                      updateSentence(index, "explicacao", e.target.value)
+                    }
                     placeholder="Ex: O 'à' aqui indica direção/destino. 'Tous' é usado para o plural geral."
                     rows={3}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

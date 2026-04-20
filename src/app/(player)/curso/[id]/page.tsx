@@ -1,27 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth"; // Adicione isso
-import { authOptions } from "@/lib/auth"; // Verifique o caminho do seu authOptions
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import CoursePlayerPage from "./CoursePlayerPage";
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    notFound(); // Ou redirecione para login
+    notFound();
   }
 
   const track = await prisma.track.findUnique({
     where: { id: id },
     include: {
       modules: {
-        orderBy: { order: 'asc' },
+        orderBy: { order: "asc" },
         include: {
-          lessons: { orderBy: { order: 'asc' } }
-        }
-      }
-    }
+          lessons: { orderBy: { order: "asc" } },
+        },
+      },
+    },
   });
 
   if (!track) {
@@ -34,20 +38,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       completed: true,
       lesson: {
         module: {
-          trackId: id
-        }
-      }
+          trackId: id,
+        },
+      },
     },
     select: {
-      lessonId: true
-    }
+      lessonId: true,
+    },
   });
 
-  const completedLessons = progress.map((p: { lessonId: string }) => p.lessonId);
+  const completedLessons = progress.map(
+    (p: { lessonId: string }) => p.lessonId,
+  );
 
   const data = {
     ...track,
-    completedLessons
+    completedLessons,
   };
 
   return <CoursePlayerPage data={data} />;

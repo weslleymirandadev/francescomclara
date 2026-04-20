@@ -114,6 +114,8 @@ const isValidExpiry = (expiry: string): boolean => {
 const cardSchema = z.object({
   holderName: z.string().min(1, "Informe o nome do titular"),
   email: z.string().email("E-mail inválido"),
+  firstName: z.string().min(2, "Obrigatório"),
+  lastName: z.string().min(2, "Obrigatório"),
   cardNumber: z
     .string()
     .min(VALIDATION_RULES.cardNumber.min, VALIDATION_RULES.cardNumber.error.min)
@@ -218,8 +220,8 @@ interface SessionData {
 interface SubscriptionFormProps {
   amount: number;
   items: CartItem[];
-  subscriptionPlanId?: string; // ID do plano de assinatura (opcional)
-  period?: "MONTHLY" | "YEARLY"; // Período da assinatura
+  subscriptionPlanId?: string;
+  period?: "MONTHLY" | "YEARLY";
 }
 
 export function SubscriptionForm({
@@ -231,6 +233,7 @@ export function SubscriptionForm({
   const { data: session } = useSession() as { data: SessionData | null };
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const {
     register,
@@ -282,13 +285,11 @@ export function SubscriptionForm({
     return v;
   }
 
-  // Format and validate card number
   const formatCardNumber = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 16);
     return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
   };
 
-  // Format and validate expiry date
   const formatExpiry = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 4);
     if (digits.length > 2) {
@@ -297,7 +298,6 @@ export function SubscriptionForm({
     return digits;
   };
 
-  // Format and validate CVV
   const formatCVV = (value: string) => {
     return value.replace(/\D/g, "").slice(0, 4);
   };
@@ -324,27 +324,29 @@ export function SubscriptionForm({
       return;
     }
 
-    // Inicializa a SDK v2 (Idealmente isso ficaria fora da função, mas mantive aqui para facilitar)
     // @ts-ignore
     const mp = new window.MercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY);
 
     setProcessing(true);
 
+    const fullName = `${data.firstName} ${data.lastName}`
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase();
+
     try {
-      // 1. LIMPEZA DE DADOS
       const cardNumberClean = data.cardNumber.replace(/\s/g, "");
       const [expiryMonth, expiryYear] = data.expiry.split("/");
       const expiryYearFull = `20${expiryYear}`;
       const cpfClean = data.document.replace(/\D/g, "");
 
-      // 2. CRIAÇÃO DO TOKEN DO CARTÃO (SDK v2)
       const tokenResponse = await mp.createCardToken({
         cardNumber: cardNumberClean,
-        cardholderName: data.holderName,
+        cardholderName: fullName,
         cardExpirationMonth: expiryMonth,
         cardExpirationYear: expiryYearFull,
         securityCode: data.cvv,
-        identificationType: data.documentType, // 'CPF' ou 'CNPJ'
+        identificationType: data.documentType,
         identificationNumber: cpfClean,
       });
 
@@ -356,21 +358,10 @@ export function SubscriptionForm({
 
       const token = tokenResponse.id;
 
-      // 3. IDENTIFICAÇÃO DO MEIO DE PAGAMENTO (Para enviar ao backend)
-      // Na v2, buscamos pelo BIN para saber se é 'visa', 'mastercard', etc.
       const bin = cardNumberClean.substring(0, 6);
       const paymentMethods = await mp.getPaymentMethods({ bin });
       const paymentMethodId = paymentMethods.results?.[0]?.id || "credit_card";
 
-      // 4. ENVIO PARA O BACKEND
-      const payerName = session.user.name || data.holderName;
-      const payerEmail = session.user.email || data.email;
-
-      if (!payerEmail) {
-        throw new Error("E-mail é obrigatório para o pagamento");
-      }
-
-      // Device ID para Antifraude
       // @ts-ignore
       const deviceId = window.MP_DEVICE_SESSION_ID || "";
 
@@ -387,10 +378,9 @@ export function SubscriptionForm({
             method: paymentMethodId,
             installments: 1,
             payer: {
-              email: payerEmail,
-              firstName: payerName.split(" ")[0] || "",
-              lastName: payerName.split(" ").slice(1).join(" ") || "",
-              name: payerName,
+              email: data.email,
+              firstName: data.firstName.trim(),
+              lastName: data.lastName.trim(),
               cpf: cpfClean,
             },
             userId: session.user.id,
@@ -406,7 +396,7 @@ export function SubscriptionForm({
             frequency: period === "YEARLY" ? 12 : 1,
             cardData: {
               lastFour: cardNumberClean.slice(-4),
-              holderName: data.holderName,
+              holderName: fullName,
               expiryMonth: expiryMonth,
               expiryYear: expiryYear,
               brand: paymentMethodId,
@@ -551,28 +541,42 @@ export function SubscriptionForm({
           </div>
         </div>
 
-        <div className="relative w-full">
-          <input
-            type="text"
-            onKeyDown={handleKeyDown}
-            {...register("holderName", {
-              onChange: (e) => {
-                e.target.value = e.target.value.toUpperCase();
-              },
-            })}
-            className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.holderName ? "border-red-400" : ""}`}
-            placeholder=" "
-          />
-          <label
-            className={`pointer-events-none line-clamp-1 text-nowrap absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all duration-200 ease-in-out peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500 ${errors.holderName ? "text-red-400" : "text-gray-300"}`}
-          >
-            Nome do titular (como no cartão)
-          </label>
-          {errors.holderName && (
-            <span className="text-xs text-red-500">
-              {errors.holderName.message}
-            </span>
-          )}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* CAMPO NOME */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              {...register("firstName")}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.firstName ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label className="pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500">
+              Nome
+            </label>
+            {errors.firstName && (
+              <span className="text-xs text-red-500">
+                {errors.firstName.message as string}
+              </span>
+            )}
+          </div>
+
+          {/* CAMPO SOBRENOME */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              {...register("lastName")}
+              className={`peer h-10 w-full rounded-md border px-3 py-5 text-sm outline-none transition-colors border-gray-300 focus:border-pink-500 focus:ring-1 focus:ring-pink-500 ${errors.lastName ? "border-red-400" : ""}`}
+              placeholder=" "
+            />
+            <label className="pointer-events-none absolute left-3 top-[-0.7rem] bg-white p-0.5 text-xs transition-all peer-placeholder-shown:top-[0.45rem] peer-placeholder-shown:text-sm peer-placeholder-shown:text-gray-400 peer-focus:top-[-0.7rem] peer-focus:text-xs peer-focus:text-pink-500">
+              Sobrenome
+            </label>
+            {errors.lastName && (
+              <span className="text-xs text-red-500">
+                {errors.lastName.message as string}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="relative w-full">
@@ -741,12 +745,42 @@ export function SubscriptionForm({
           </div>
         </div>
 
+        <div className="mt-6 flex items-start gap-3">
+          <div className="flex h-5 items-center">
+            <input
+              id="terms"
+              name="terms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-pink-500 focus:ring-pink-500 cursor-pointer"
+              required
+            />
+          </div>
+          <div className="text-xs leading-tight">
+            <label
+              htmlFor="terms"
+              className="font-medium text-gray-700 cursor-pointer"
+            >
+              Li e aceito os{" "}
+              <a href="/privacidade" className="text-pink-600 underline">
+                Termos de Uso e a Política de Privacidade
+              </a>
+              .
+            </label>
+            <p className="text-gray-400 mt-1">
+              Ao confirmar, entendes que tens 7 dias para solicitar reembolso
+              total em caso de desistência.
+            </p>
+          </div>
+        </div>
+
         <button
           type="submit"
-          disabled={processing}
-          className="mt-2 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+          disabled={processing || !acceptedTerms}
+          className="mt-4 cursor-pointer inline-flex w-full items-center justify-center rounded-md bg-linear-to-r from-clara-rose to-pink-500 px-4 py-3 text-sm font-black uppercase tracking-widest text-white transition disabled:opacity-60"
         >
-          {processing ? "Processando..." : "Assinar agora"}
+          {processing ? "Processando..." : "Confirmar Assinatura"}
         </button>
       </form>
     </section>

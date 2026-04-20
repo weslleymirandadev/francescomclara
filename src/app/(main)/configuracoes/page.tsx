@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SaveChangesBar } from "@/components/ui/savechangesbar";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { max } from "date-fns";
 
 interface FamilyMember {
   id: string;
@@ -90,7 +91,35 @@ export default function SettingsPage() {
   };
 
   const isFamilyPlan = userData?.subscription?.type === "FAMILY";
+
+  const isOwner = isFamilyPlan && !userData?.parentId;
+
+  const canManageFamily = isFamilyPlan && isOwner;
+
+  console.log("Debug Plano:", {
+    tipo: userData?.subscription?.type,
+    temPai: !!userData?.parentId,
+    isOwner,
+    isFamilyPlan,
+  });
+
   const members = userData?.family?.members || [];
+
+  const features = userData?.subscription?.features || [];
+
+  const familyFeature = features.find((f: string) =>
+    f.includes("family_slots"),
+  );
+
+  let maxMembers = 1;
+  if (familyFeature) {
+    const parts = familyFeature.split(":");
+    if (parts.length > 1) {
+      maxMembers = parseInt(parts[1], 10);
+    }
+  }
+
+  const canInviteMore = members.length < maxMembers - 1;
 
   const handleDeleteAccount = async () => {
     if (confirm("Tem a certeza? Esta ação é irreversível.")) {
@@ -103,6 +132,64 @@ export default function SettingsPage() {
         toast.success("Conta eliminada.");
         signOut({ callbackUrl: "/" });
       }
+    }
+  };
+
+  const handleInvite = async () => {
+    const email = window.prompt(
+      "Digite o e-mail do membro que deseja convidar:",
+    );
+    if (!email) return;
+
+    try {
+      const res = await fetch("/api/family/invite", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Membro convidado com sucesso!");
+        router.refresh();
+      } else {
+        toast.error(data.error || "Erro ao convidar");
+      }
+    } catch (err) {
+      toast.error("Erro na requisição");
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, name: string) => {
+    if (
+      !confirm(
+        `Tem certeza que deseja remover ${name || "este membro"} do seu plano?`,
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/family/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      });
+
+      if (res.ok) {
+        toast.success("Membro removido com sucesso!");
+        const updatedData = await fetch("/api/user/me").then((r) => r.json());
+        setUserData(updatedData);
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.error || "Erro ao remover membro");
+      }
+    } catch (err) {
+      toast.error("Erro de conexão");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -230,41 +317,105 @@ export default function SettingsPage() {
 
           {isFamilyPlan && (
             <div className="mt-10 pt-8 border-t border-slate-100">
-              <div className="flex justify-between items-center mb-6">
+              <div className="mb-6">
                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  Membros do Plano ({members.length}/3)
+                  Estrutura do Plano ({userData?.family?.members?.length + 1}/
+                  {maxMembers})
                 </h3>
               </div>
 
               <div className="space-y-3">
-                {members.map((member: FamilyMember) => (
+                <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    {userData?.family?.owner?.image ? (
+                      <img
+                        src={userData.family.owner.image}
+                        alt="Owner"
+                        className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-(--interface-accent) flex items-center justify-center text-white text-[10px] font-bold uppercase">
+                        {userData?.family?.owner?.email?.substring(0, 2)}
+                      </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-700">
+                        {userData?.family?.owner?.email}
+                      </span>
+                      <span className="text-[9px] font-black text-(--interface-accent) uppercase tracking-tighter">
+                        Titular do Plano
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {userData?.family?.members?.map((member: any) => (
                   <div
                     key={member.id}
                     className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-200" />
-                      <span className="text-sm font-bold text-slate-700">
-                        {member.email}
-                      </span>
+                      {member.image ? (
+                        <img
+                          src={member.image}
+                          alt={member.name || ""}
+                          className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase">
+                          {member.email?.substring(0, 2)}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">
+                          {member.email}{" "}
+                          {member.id === session?.user?.id && "(Você)"}
+                        </span>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      className="text-rose-500 text-[10px] font-black uppercase"
-                    >
-                      Remover
-                    </Button>
+
+                    {canManageFamily && member.id !== session?.user?.id && (
+                      <Button
+                        onClick={() =>
+                          handleRemoveMember(member.id, member.name ?? "Membro")
+                        }
+                        variant="ghost"
+                        className="text-rose-500 text-[10px] font-black uppercase cursor-pointer"
+                      >
+                        Remover
+                      </Button>
+                    )}
                   </div>
                 ))}
 
-                {members.length < 3 && (
-                  <button className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-(--interface-accent) hover:text-(--interface-accent) transition-all">
+                {Array.from({
+                  length:
+                    maxMembers - 1 - (userData?.family?.members?.length || 0),
+                }).map((_, i) => (
+                  <div
+                    key={`empty-${i}`}
+                    className="flex items-center p-4 border-2 border-dashed border-slate-100 rounded-2xl opacity-50"
+                  >
+                    <div className="w-8 h-8 rounded-full border-2 border-dashed border-slate-200" />
+                    <span className="ml-3 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                      Espaço Disponível
+                    </span>
+                  </div>
+                ))}
+
+                {canManageFamily && canInviteMore && (
+                  <button
+                    onClick={handleInvite}
+                    className="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase hover:border-(--interface-accent) hover:text-(--interface-accent) transition-all cursor-pointer mt-4"
+                  >
                     + Convidar Membro
                   </button>
                 )}
               </div>
             </div>
           )}
+
           <Card className="p-8 border-none shadow-xl bg-white rounded-[2.5rem] mt-12 border-t-4 border-t-rose-500/10">
             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">
               Zona de Perigo

@@ -133,3 +133,50 @@ export async function getPlanFeatures(userId: string) {
     user?.parent?.payments[0]?.subscriptionPlan;
   return plan?.features ? (plan.features as any) : {};
 }
+
+export async function getUserPermissions(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      payments: {
+        where: { status: { in: ["approved", "APPROVED"] } },
+        include: { subscriptionPlan: true },
+        take: 1,
+      },
+      parent: {
+        include: {
+          payments: {
+            where: {
+              status: { in: ["approved", "APPROVED"] },
+              subscriptionPlan: { type: "FAMILY" },
+            },
+            include: { subscriptionPlan: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  const plan =
+    user?.payments[0]?.subscriptionPlan ||
+    user?.parent?.payments[0]?.subscriptionPlan;
+  const features = (plan?.features as string[]) || [];
+
+  return {
+    canAccessForum: features.includes("forum_access"),
+    canAccessFlashcards: features.includes("flashcards_access"),
+    hasAllTracks: features.includes("all_tracks"),
+    planType: plan?.type || null,
+  };
+}
+
+export async function canAccessFeature(
+  userId: string,
+  feature: "forum_access" | "flashcards_access",
+) {
+  const perms = await getUserPermissions(userId);
+  return feature === "forum_access"
+    ? perms.canAccessForum
+    : perms.canAccessFlashcards;
+}

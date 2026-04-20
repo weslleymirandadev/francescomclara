@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getUserFeatures } from "@/lib/subscription";
 
 interface SimpleProgress {
   lessonId: string;
@@ -21,6 +22,13 @@ export async function GET(request: Request) {
 
     const userId = session.user.id;
     const now = new Date();
+
+    // Verificar features do usuário
+    const userFeatures = await getUserFeatures(userId);
+    
+    if (!userFeatures.canAccessFlashcards) {
+      return NextResponse.json({ error: "Flashcards não disponíveis no seu plano" }, { status: 403 });
+    }
 
     const userProgress: SimpleProgress[] = await prisma.lessonProgress.findMany({
       where: { userId, completed: true },
@@ -58,6 +66,9 @@ export async function GET(request: Request) {
       )
     );
 
+    // Limitar quantidade de flashcards para usuários sem plano ilimitado
+    const takeLimit = userFeatures.hasUnlimitedFlashcards ? 100 : 10;
+
     const flashcards = await prisma.flashcard.findMany({
       where: {
         userId,
@@ -67,7 +78,7 @@ export async function GET(request: Request) {
         lesson: { select: { title: true } }
       },
       orderBy: [{ level: 'asc' }, { nextReview: 'asc' }],
-      take: 20
+      take: takeLimit
     });
 
     return NextResponse.json(flashcards.sort(() => Math.random() - 0.5));
