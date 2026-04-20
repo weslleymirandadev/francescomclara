@@ -70,10 +70,7 @@ export function AdminSubscriptionPlanCard({
       flashcards: "Flashcards ilimitados",
       forum_access: "Acesso ao fórum da Clara",
       flashcards_access: "Acesso aos Flashcards",
-      kids_content: "Conteúdo especial Kids",
-      offline_mode: "Modo Offline",
       certificate: "Certificado de conclusão",
-      multi_device: "Telas Simultâneas",
       priority_support: "Suporte Prioritário",
       specific_tracks: "Trilhas Selecionadas",
     };
