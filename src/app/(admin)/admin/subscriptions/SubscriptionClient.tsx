@@ -62,11 +62,6 @@ const AVAILABLE_FEATURES = [
   },
   { id: "flashcards", label: "Flashcards Ilimitados", icon: "ph:cards-fill" },
   {
-    id: "offline_mode",
-    label: "Modo Offline",
-    icon: "ph:cloud-arrow-down-fill",
-  },
-  {
     id: "certificate",
     label: "Certificado de Conclusão",
     icon: "ph:certificate-fill",
@@ -81,18 +76,6 @@ const AVAILABLE_FEATURES = [
     label: "Compartilhar com até X pessoas",
     icon: "ph:users-four-fill",
     description: "Permite convidar membros para a mesma assinatura.",
-  },
-  {
-    id: "kids_content",
-    label: "Conteúdo Kids",
-    icon: "ph:baby-fill",
-    description: "Acesso a trilhas específicas para crianças.",
-  },
-  {
-    id: "multi_device",
-    label: "Telas Simultâneas",
-    icon: "ph:devices-fill",
-    description: "Acesso em vários dispositivos ao mesmo tempo.",
   },
 ];
 
