@@ -109,7 +109,8 @@ export async function proxy(req: NextRequest) {
     pathname === "/" ||
     pathname === "/manutencao" ||
     pathname.startsWith("/api/public") ||
-    pathname.startsWith("/api/webhooks");
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/support/webhooks");
 
   if (!isPublicRoute && !token) {
     const url = new URL("/auth/login", req.url);
@@ -188,7 +189,17 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.).*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api/webhooks (webhook padrão)
+     * - api/support/webhooks (seu webhook do whatsapp)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api/webhooks|api/support/webhooks|_next/static|_next/image|favicon.ico|.*\\.).*)",
+  ],
 };
 
 async function hasTrackAccess(
