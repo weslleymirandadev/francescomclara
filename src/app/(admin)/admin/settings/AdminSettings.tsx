@@ -75,6 +75,12 @@ export default function AdminSettings({
     tiktokUrl: initialSettings?.tiktokUrl || "",
     daysToNotifyExpiring: initialSettings?.daysToNotifyExpiring ?? 7,
     inactivityDays: initialSettings?.inactivityDays ?? 7,
+    supportStatus: initialSettings?.supportStatus ?? true,
+    supportAwayMessage:
+      initialSettings?.supportAwayMessage || "No momento estamos fora...",
+    supportStartTime: initialSettings?.supportStartTime || "09:00",
+    supportEndTime: initialSettings?.supportEndTime || "17:00",
+    supportDays: initialSettings?.supportDays || "1,2,3,4,5",
   });
 
   const handleChange = (field: string, value: any) => {
@@ -139,6 +145,11 @@ export default function AdminSettings({
     handleChange("interfaceIcon", "/static/franca.png");
     toast.success("Bandeira original restaurada! 🚩");
   };
+
+  const HOURS = Array.from({ length: 24 }, (_, i) =>
+    i.toString().padStart(2, "0"),
+  );
+  const MINUTES = ["00", "15", "30", "45"];
 
   if (loading) return <Loading />;
 
@@ -469,6 +480,137 @@ export default function AdminSettings({
                     </div>
                   );
                 })}
+              </div>
+            </section>
+
+            <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                  <Globe size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black uppercase tracking-tighter">
+                    Central de Suporte VIP
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+                    Controle a disponibilidade do atendimento em tempo real
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-[2rem] space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-800">
+                      Status do Atendimento
+                    </p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">
+                      {formData.supportStatus
+                        ? "🟢 Online - Alunos podem chamar"
+                        : "🔴 Offline - Bot responderá ausência"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.supportStatus}
+                    onCheckedChange={(v) => handleChange("supportStatus", v)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Mensagem de Ausência (Bot)
+                  </label>
+                  <textarea
+                    value={formData.supportAwayMessage}
+                    onChange={(e) =>
+                      handleChange("supportAwayMessage", e.target.value)
+                    }
+                    className="w-full min-h-24 p-4 bg-white border border-slate-100 rounded-2xl text-xs text-slate-600 outline-none focus:ring-1 focus:ring-emerald-400 transition-all resize-none"
+                    placeholder="Descreva o que o aluno deve fazer quando você não estiver..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 bg-slate-50/50 border border-slate-100 rounded-[2.5rem]">
+                {/* INÍCIO */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Início do Atendimento
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={formData.supportStartTime?.split(":")[0]}
+                      onChange={(e) => {
+                        const newTime = `${e.target.value}:${formData.supportStartTime?.split(":")[1] || "00"}`;
+                        setFormData({ ...formData, supportStartTime: newTime });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    >
+                      {HOURS.map((h) => (
+                        <option key={h} value={h}>
+                          {h}h
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-slate-300 font-bold">:</span>
+                    <select
+                      value={formData.supportStartTime?.split(":")[1]}
+                      onChange={(e) => {
+                        const newTime = `${formData.supportStartTime?.split(":")[0] || "09"}:${e.target.value}`;
+                        setFormData({ ...formData, supportStartTime: newTime });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    >
+                      {MINUTES.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* FIM */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                    Fim do Atendimento
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={formData.supportEndTime?.split(":")[0]}
+                      onChange={(e) => {
+                        const newTime = `${e.target.value}:${formData.supportEndTime?.split(":")[1] || "00"}`;
+                        setFormData({ ...formData, supportEndTime: newTime });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    >
+                      {HOURS.map((h) => (
+                        <option key={h} value={h}>
+                          {h}h
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-slate-300 font-bold">:</span>
+                    <select
+                      value={formData.supportEndTime?.split(":")[1]}
+                      onChange={(e) => {
+                        const newTime = `${formData.supportEndTime?.split(":")[0] || "18"}:${e.target.value}`;
+                        setFormData({ ...formData, supportEndTime: newTime });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 p-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 appearance-none cursor-pointer"
+                    >
+                      {MINUTES.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </section>
           </div>

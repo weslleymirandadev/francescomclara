@@ -11,59 +11,68 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { subject, message, priority } = body;
-
-    if (!subject || !message) {
-      return NextResponse.json({ error: "Assunto e mensagem são obrigatórios" }, { status: 400 });
-    }
-
     const userId = session.user.id;
     const userFeatures = await getUserFeatures(userId);
 
-    // Verificar se usuário tem suporte prioritário
-    const ticketPriority = userFeatures.hasPrioritySupport ? "HIGH" : (priority || "NORMAL");
+    if (!userFeatures.hasPrioritySupport) {
+      return NextResponse.json(
+        {
+          message:
+            "O suporte para o seu plano é realizado exclusivamente via e-mail. Por favor, envie sua dúvida para contato@francescomclara.com.",
+          isEmailOnly: true,
+        },
+        { status: 200 },
+      );
+    }
 
-    // Criar ticket de suporte
-    const ticket = await prisma.supportTicket.create({
-      data: {
-        userId,
-        subject,
-        message,
-        priority: ticketPriority,
-        status: "OPEN",
-        isPriority: userFeatures.hasPrioritySupport,
+    const body = await request.json();
+    const { subject, message } = body;
+
+    if (!subject || !message) {
+      return NextResponse.json(
+        { error: "Assunto e mensagem são obrigatórios" },
+        { status: 400 },
+      );
+    }
+
+    let ticket = await prisma.supportTicket.findFirst({
+      where: {
+        userId: userId,
+        status: { in: ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER"] },
       },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-          }
-        }
-      }
     });
 
-    // TODO: Enviar notificação por email para a equipe de suporte
-    // TODO: Enviar confirmação por email para o usuário
+    if (!ticket) {
+      ticket = await prisma.supportTicket.create({
+        data: {
+          userId,
+          subject,
+          message,
+          priority: "HIGH",
+          status: "OPEN",
+          isPriority: true,
+        },
+      });
+      console.log("🆕 Novo ticket criado.");
+    } else {
+      console.log("♻️ Aluno já possui ticket ativo. Nenhuma duplicata criada.");
+    }
 
-    return NextResponse.json({
-      ticket: {
-        id: ticket.id,
-        subject: ticket.subject,
-        priority: ticket.priority,
-        status: ticket.status,
-        isPriority: ticket.isPriority,
-        createdAt: ticket.createdAt,
+    return NextResponse.json(
+      {
+        ticket: {
+          id: ticket.id,
+          status: ticket.status,
+          createdAt: ticket.createdAt,
+        },
+        message:
+          "Seu atendimento prioritário está ativo. A equipe entrará em contato em até 24h.",
       },
-      message: userFeatures.hasPrioritySupport 
-        ? "Seu ticket de suporte prioritário foi criado e será respondido em até 24h."
-        : "Seu ticket de suporte foi criado e será respondido em até 72h."
-    }, { status: 201 });
-
+      { status: 201 },
+    );
   } catch (error) {
-    console.error("Erro ao criar ticket de suporte:", error);
-    return NextResponse.json({ error: "Erro ao criar ticket de suporte" }, { status: 500 });
+    console.error("Erro ao processar suporte:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
 
@@ -75,17 +84,47 @@ export async function GET(request: Request) {
     }
 
     const userId = session.user.id;
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const userFeatures = await getUserFeatures(userId);
 
-    const whereClause: any = { userId };
-    if (status) {
-      whereClause.status = status.toUpperCase();
+    if (userFeatures.hasPrioritySupport) {
+      const phone = process.env.CLARA_WHATSAPP;
+      const studentEmail = session.user.email;
+      const studentName = session.user.name || "Aluno";
+
+      const validationToken = Buffer.from(
+        `${studentEmail}-${new Date().getDay()}`,
+      )
+        .toString("base64")
+        .slice(0, 6)
+        .toUpperCase();
+
+      await prisma.supportTicket.create({
+        data: {
+          userId,
+          subject: "Atendimento via WhatsApp",
+          message: "Iniciado via Canal VIP",
+          priority: "HIGH",
+          status: "OPEN",
+          isPriority: true,
+        },
+      });
+
+      const message =
+        `[ CANAL VIP - ATENDIMENTO VERIFICADO ]\n\n` +
+        `*Aluno:* ${studentName}\n` +
+        `*E-mail:* ${studentEmail}\n` +
+        `*Token:* ${validationToken}\n\n` +
+        `---------------------------------------\n` +
+        `Olá Clara, preciso de ajuda com o seguinte:`;
+
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+      return NextResponse.json({ whatsappUrl });
     }
 
     const tickets = await prisma.supportTicket.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
+      where: { userId },
+      orderBy: { createdAt: "desc" },
       take: 50,
       select: {
         id: true,
@@ -102,15 +141,17 @@ export async function GET(request: Request) {
             isAdmin: true,
             createdAt: true,
           },
-          orderBy: { createdAt: 'asc' }
-        }
-      }
+          orderBy: { createdAt: "asc" },
+        },
+      },
     });
 
     return NextResponse.json(tickets);
-
   } catch (error) {
     console.error("Erro ao buscar tickets de suporte:", error);
-    return NextResponse.json({ error: "Erro ao buscar tickets" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao buscar tickets" },
+      { status: 500 },
+    );
   }
 }

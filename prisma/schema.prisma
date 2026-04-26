@@ -189,16 +189,16 @@ model LessonProgress {
 }
 
 model ExerciseAnswer {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String
-  exerciseIndex Int    // Índice do exercício (0-based)
-  userAnswer  String   // Resposta do usuário
+  id            String   @id @default(cuid())
+  userId        String
+  lessonId      String
+  exerciseIndex Int // Índice do exercício (0-based)
+  userAnswer    String // Resposta do usuário
   correctAnswer String // Resposta correta
-  isCorrect   Boolean  // Se a resposta está correta
-  exerciseType String  // Tipo de exercício: "COMPLETION" ou "SPEAKING"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isCorrect     Boolean // Se a resposta está correta
+  exerciseType  String // Tipo de exercício: "COMPLETION" ou "SPEAKING"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([userId, lessonId, exerciseIndex, exerciseType])
   @@index([userId, lessonId])
@@ -505,20 +505,25 @@ model SiteSettings {
   expiringMessage      String? @default("Seu plano está chegando ao fim! Não perca o acesso à sua jornada.")
   inactivityMessage    String? @default("Sentimos sua falta! Que tal retomar sua jornada de francês hoje?")
   welcomeMessage       String? @default("Bem-vindo à sua jornada de francês! Estamos felizes por começar esta aventura conosco.")
+  supportStatus        Boolean @default(true) // Online/Offline
+  supportAwayMessage   String? @db.Text
+  supportStartTime     String  @default("09:00")
+  supportEndTime       String  @default("18:00")
+  supportDays          String  @default("1,2,3,4,5") // 1-5 = Seg a Sex
 
   updatedAt DateTime @updatedAt
 }
 
 model Certificate {
-  id               String   @id @default(cuid())
-  userId           String
-  trackId          String
-  certificateCode  String   @unique
-  issuedAt         DateTime @default(now())
-  completionDate   DateTime
-  pdfUrl           String?  // URL do PDF do certificado gerado
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track            Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  userId          String
+  trackId         String
+  certificateCode String   @unique
+  issuedAt        DateTime @default(now())
+  completionDate  DateTime
+  pdfUrl          String? // URL do PDF do certificado gerado
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track           Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([trackId])
@@ -526,17 +531,17 @@ model Certificate {
 }
 
 model SupportTicket {
-  id          String           @id @default(cuid())
-  userId      String
-  subject     String
-  message     String           @db.Text
-  priority    TicketPriority   @default(NORMAL)
-  status      TicketStatus     @default(OPEN)
-  isPriority  Boolean          @default(false)
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  responses   SupportResponse[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id         String            @id @default(cuid())
+  userId     String
+  subject    String
+  message    String            @db.Text
+  priority   TicketPriority    @default(NORMAL)
+  status     TicketStatus      @default(OPEN)
+  isPriority Boolean           @default(false)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses  SupportResponse[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -560,13 +565,13 @@ enum TicketStatus {
 }
 
 model SupportResponse {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   ticketId  String
-  message   String   @db.Text
-  isAdmin   Boolean  @default(false)
+  message   String        @db.Text
+  isAdmin   Boolean       @default(false)
   ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@index([ticketId])
 }

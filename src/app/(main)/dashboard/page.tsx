@@ -8,7 +8,7 @@ import { toast } from "react-hot-toast";
 
 import { FaBookOpen, FaGraduationCap } from "react-icons/fa";
 import { CheckCircle2, ArrowRight, Play, Lock, Layers } from "lucide-react";
-import { FiMessageSquare } from "react-icons/fi";
+import { FiMessageSquare, FiAlertCircle } from "react-icons/fi";
 import Link from "next/link";
 
 import { Card } from "@/components/ui/card";
@@ -62,6 +62,10 @@ interface UserData {
   completedLessonIds: string[];
 }
 
+interface UserFeatures {
+  hasPrioritySupport: boolean;
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -74,6 +78,7 @@ export default function Dashboard() {
   const userPlanFeatures = data?.subscription?.features || [];
   const hasAllAccess = userPlanFeatures.includes("all_tracks");
   const [resumeTrack, setResumeTrack] = useState<any>(null);
+  const [features, setFeatures] = useState<UserFeatures | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -87,13 +92,17 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [resProfile, resContent] = await Promise.all([
+      const [resProfile, resContent, resFeatures] = await Promise.all([
         fetch("/api/user/me"),
         fetch("/api/user/study-content"),
+        fetch("/api/user/features"),
       ]);
 
       const profileData = await resProfile.json();
       const contentData = await resContent.json();
+      const featuresData = await resFeatures.json();
+
+      setFeatures(featuresData);
 
       setData({
         profile: profileData.user,
@@ -232,6 +241,20 @@ export default function Dashboard() {
                 </div>
               </Card>
             </Link>
+
+            {features?.hasPrioritySupport && (
+              <Link href="/support" className="md:col-span-1">
+                <Card className="p-6 h-full border-none shadow-xl bg-gradient-to-br from-amber-400 to-orange-500 rounded-[2.5rem] flex flex-col items-center justify-center group hover:scale-[1.02] transition-all text-white">
+                  <FiAlertCircle size={24} className="mb-2" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-center leading-none">
+                    Suporte Prioritário
+                  </h4>
+                  <span className="text-[8px] font-bold opacity-90 uppercase mt-1">
+                    Resposta em 4h
+                  </span>
+                </Card>
+              </Link>
+            )}
           </div>
 
           {resumeTrack && (

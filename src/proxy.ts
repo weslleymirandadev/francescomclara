@@ -3,12 +3,21 @@ import { getToken } from "next-auth/jwt";
 import prisma from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/permissions";
 import { redis } from "@/lib/redis";
-import { getUserFeatures, invalidateUserFeaturesCache } from "@/lib/subscription";
+import { getUserFeatures } from "@/lib/subscription";
 
 const IGNORED_ROUTES = ["/api/mercado-pago", "/auth/login"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.includes(".") ||
+    IGNORED_ROUTES.some((route) => pathname.startsWith(route))
+  ) {
+    return NextResponse.next();
+  }
+
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "127.0.0.1";
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
@@ -109,11 +118,6 @@ export async function proxy(req: NextRequest) {
   }
 
   if (token) {
-    // Invalidar cache do usuário quando ele faz uma requisição (garante dados em tempo real)
-    if (token.sub) {
-      invalidateUserFeaturesCache(token.sub);
-    }
-
     if (pathname.startsWith("/curso/")) {
       const trackId = pathname.split("/")[2];
 
@@ -149,18 +153,24 @@ export async function proxy(req: NextRequest) {
       const features = await getUserFeatures(token.sub!);
 
       // API de Flashcards
-      if (pathname.startsWith("/api/flashcards") && !features.canAccessFlashcards) {
+      if (
+        pathname.startsWith("/api/flashcards") &&
+        !features.canAccessFlashcards
+      ) {
         return NextResponse.json(
           { error: "Flashcards não disponíveis no seu plano" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
       // API de Certificados
-      if (pathname.startsWith("/api/certificates") && !features.hasCertificate) {
+      if (
+        pathname.startsWith("/api/certificates") &&
+        !features.hasCertificate
+      ) {
         return NextResponse.json(
           { error: "Certificados não disponíveis no seu plano" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -168,7 +178,7 @@ export async function proxy(req: NextRequest) {
       if (pathname.startsWith("/api/support") && !features.hasPrioritySupport) {
         return NextResponse.json(
           { error: "Suporte prioritário não disponível no seu plano" },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -178,13 +188,7 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Executa o proxy em todas as rotas exceto assets estáticos do Next.js.
-     * A própria função proxy já filtra /_next, arquivos com extensão, etc.
-     */
-    "/((?!_next/static|_next/image|favicon\\.ico).*)",
-  ],
+  matcher: ["/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.).*)"],
 };
 
 async function hasTrackAccess(

@@ -1,14 +1,15 @@
-"use server"
+"use server";
 
-import { prisma } from "@/lib/prisma"
-import { revalidatePath } from "next/cache"
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { redis } from "@/lib/redis";
 
 export async function getSettings() {
   try {
-    const settings = await prisma.siteSettings.findFirst()
-    return settings
+    const settings = await prisma.siteSettings.findFirst();
+    return settings;
   } catch (error) {
-    return null
+    return null;
   }
 }
 
@@ -39,6 +40,11 @@ export async function updateSettings(data: any) {
         notifyInactivity: data.notifyInactivity,
         daysToNotifyExpiring: data.daysToNotifyExpiring,
         inactivityDays: data.inactivityDays,
+        supportStatus: data.supportStatus,
+        supportAwayMessage: data.supportAwayMessage,
+        supportStartTime: data.supportStartTime,
+        supportEndTime: data.supportEndTime,
+        supportDays: data.supportDays,
       },
       create: {
         id: "settings",
@@ -64,11 +70,20 @@ export async function updateSettings(data: any) {
         notifyInactivity: data.notifyInactivity || false,
         daysToNotifyExpiring: data.daysToNotifyExpiring || 7,
         inactivityDays: data.inactivityDays || 7,
-      }
+        supportStatus: data.supportStatus ?? true,
+        supportAwayMessage:
+          data.supportAwayMessage ||
+          "No momento estamos fora do horário de atendimento. Deixe sua mensagem e responderemos em breve!",
+        supportStartTime: data.supportStartTime || "09:00",
+        supportEndTime: data.supportEndTime || "18:00",
+        supportDays: data.supportDays || "1,2,3,4,5",
+      },
     });
 
-    revalidatePath('/', 'layout');
-    
+    await redis.del("site-settings");
+
+    revalidatePath("/", "layout");
+
     return { success: true };
   } catch (error) {
     console.error("Erro ao salvar:", error);
@@ -77,12 +92,12 @@ export async function updateSettings(data: any) {
 }
 
 export async function getPublicStripeKey() {
-  const settings = await prisma.siteSettings.findUnique({ 
-    where: { id: "settings" } 
+  const settings = await prisma.siteSettings.findUnique({
+    where: { id: "settings" },
   });
 
   // Retorna a chave pública de teste ou live
-  return settings?.stripeMode 
-    ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE 
+  return settings?.stripeMode
+    ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE
     : process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST;
 }

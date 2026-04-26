@@ -24,6 +24,7 @@ export interface UserTableData {
   status: "Ativo" | "Inativo";
   date: string;
   reportCount: number;
+  whatsappStatus?: string;
 }
 
 export async function getUsers(): Promise<UserTableData[]> {
@@ -42,6 +43,11 @@ export async function getUsers(): Promise<UserTableData[]> {
             select: { reports: true },
           },
         },
+      },
+      supportTickets: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -64,6 +70,7 @@ export async function getUsers(): Promise<UserTableData[]> {
       status: lastPayment?.status === "PAID" ? "Ativo" : "Inativo",
       date: new Date(user.createdAt).toLocaleDateString("pt-BR"),
       reportCount: reportCount,
+      whatsappStatus: user.supportTickets?.[0]?.status || "NONE",
     };
   });
 }
@@ -96,6 +103,19 @@ export async function banUser(userId: string, reason: string) {
       status: "BANNED",
       banReason: reason,
       bannedAt: new Date(),
+    },
+  });
+}
+
+export async function closeTicket(userId: string) {
+  return await prisma.supportTicket.updateMany({
+    where: {
+      userId: userId,
+      status: "IN_PROGRESS",
+    },
+    data: {
+      status: "CLOSED",
+      updatedAt: new Date(),
     },
   });
 }

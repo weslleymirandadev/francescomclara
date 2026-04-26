@@ -1,10 +1,14 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "./prisma";
+import { Redis } from "@upstash/redis";
 
-// Cache simples para features (em produção, usar Redis)
-const featuresCache = new Map<string, { features: UserFeatures; expires: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+const CACHE_TTL = 5 * 60;
 
 export interface UserFeatures {
   canAccessAllTracks: boolean;
@@ -20,158 +24,120 @@ export interface UserFeatures {
   specificTracks: string[];
 }
 
-// Função para invalidar cache de um usuário específico
-export function invalidateUserFeaturesCache(userId: string) {
-  featuresCache.delete(userId);
-}
-
-// Função para invalidar todo o cache (quando planos são atualizados no admin)
-export function invalidateAllFeaturesCache() {
-  featuresCache.clear();
-}
+const INITIAL_FEATURES: UserFeatures = {
+  canAccessAllTracks: false,
+  canAccessSpecificTracks: false,
+  canAccessForum: false,
+  canAccessFlashcards: false,
+  hasUnlimitedFlashcards: false,
+  hasOfflineMode: false,
+  hasCertificate: false,
+  hasPrioritySupport: false,
+  hasFamilySlots: false,
+  specificTracks: [],
+};
 
 export async function getUserFeatures(userId?: string): Promise<UserFeatures> {
   const session = userId ? null : await getServerSession(authOptions);
   const currentUserId = userId || session?.user?.id;
 
-  if (!currentUserId) {
-    return {
-      canAccessAllTracks: false,
-      canAccessSpecificTracks: false,
-      canAccessForum: false,
-      canAccessFlashcards: false,
-      hasUnlimitedFlashcards: false,
-      hasOfflineMode: false,
-      hasCertificate: false,
-      hasPrioritySupport: false,
-      hasFamilySlots: false,
-      specificTracks: [],
-    };
-  }
+  if (!currentUserId) return INITIAL_FEATURES;
 
-  // Verificar cache
-  const cached = featuresCache.get(currentUserId);
-  if (cached && cached.expires > Date.now()) {
-    return cached.features;
+  try {
+    const cached = await redis.get<UserFeatures>(
+      `user_features:${currentUserId}`,
+    );
+    if (cached) return cached;
+  } catch (e) {
+    console.error("Redis error:", e);
   }
 
   try {
-    // Buscar inscrição ATIVA do usuário (verificação em tempo real)
     const enrollment = await prisma.enrollment.findFirst({
       where: {
         userId: currentUserId,
-        plan: {
-          active: true // Garante que o plano está ativo
-        },
-        OR: [
-          { endDate: { gte: new Date() } },
-          { endDate: null }
-        ]
+        plan: { active: true },
+        OR: [{ endDate: { gte: new Date() } }, { endDate: null }],
       },
       include: {
         plan: {
           include: {
-            // Incluir relação com trilhas para verificar acesso específico
-            tracks: {
-              include: {
-                track: true
-              }
-            }
-          }
-        }
-      }
+            tracks: { include: { track: true } },
+          },
+        },
+      },
     });
 
-    if (!enrollment || !enrollment.plan.active) {
-      const defaultFeatures: UserFeatures = {
-        canAccessAllTracks: false,
-        canAccessSpecificTracks: false,
-        canAccessForum: false,
-        canAccessFlashcards: false,
-        hasUnlimitedFlashcards: false,
-        hasOfflineMode: false,
-        hasCertificate: false,
-        hasPrioritySupport: false,
-        hasFamilySlots: false,
-        specificTracks: [],
-      };
-
-      // Salvar no cache
-      featuresCache.set(currentUserId, {
-        features: defaultFeatures,
-        expires: Date.now() + CACHE_TTL
+    if (!enrollment) {
+      await redis.set(`user_features:${currentUserId}`, INITIAL_FEATURES, {
+        ex: CACHE_TTL,
       });
-
-      return defaultFeatures;
+      return INITIAL_FEATURES;
     }
 
-    const features = enrollment.plan.features as string[] || [];
-    const specificTracks = features.filter(f => f.startsWith('track:')).map(f => f.split(':')[1]);
-    
-    // Adicionar trilhas específicas do plano
-    const planTracks = enrollment.plan.tracks?.map((pt: any) => pt.track?.id).filter(Boolean) || [];
-    const allSpecificTracks = [...new Set([...specificTracks, ...planTracks])];
+    const features = (enrollment.plan.features as string[]) || [];
 
-    const familySlotsFeature = features.find(f => f.startsWith('family_slots:'));
-    const familySlotsCount = familySlotsFeature ? parseInt(familySlotsFeature.split(':')[1]) : 0;
+    const specificTracksIds = features
+      .filter((f) => f.startsWith("track:"))
+      .map((f) => f.split(":")[1]);
+
+    const planTracks =
+      enrollment.plan.tracks?.map((pt: any) => pt.track?.id).filter(Boolean) ||
+      [];
+    const allSpecificTracks = [
+      ...new Set([...specificTracksIds, ...planTracks]),
+    ];
+
+    const familySlotsFeature = features.find((f) =>
+      f.startsWith("family_slots:"),
+    );
+    const familySlotsCount = familySlotsFeature
+      ? parseInt(familySlotsFeature.split(":")[1])
+      : 0;
 
     const userFeatures: UserFeatures = {
-      canAccessAllTracks: features.includes('all_tracks'),
-      canAccessSpecificTracks: features.includes('specific_tracks'),
-      canAccessForum: features.includes('forum_access'),
-      canAccessFlashcards: features.includes('flashcards_access'),
-      hasUnlimitedFlashcards: features.includes('flashcards'),
-      hasOfflineMode: features.includes('offline_mode'),
-      hasCertificate: features.includes('certificate'),
-      hasPrioritySupport: features.includes('priority_support'),
-      hasFamilySlots: features.includes('family_slots'),
+      canAccessAllTracks: features.includes("all_tracks"),
+      canAccessSpecificTracks: features.includes("specific_tracks"),
+      canAccessForum: features.includes("forum_access"),
+      canAccessFlashcards: features.includes("flashcards_access"),
+      hasUnlimitedFlashcards: features.includes("flashcards"),
+      hasOfflineMode: features.includes("offline_mode"),
+      hasCertificate: features.includes("certificate"),
+      hasPrioritySupport: features.includes("priority_support"),
+      hasFamilySlots: features.includes("family_slots"),
       familySlotsCount,
       specificTracks: allSpecificTracks,
     };
 
-    // Salvar no cache
-    featuresCache.set(currentUserId, {
-      features: userFeatures,
-      expires: Date.now() + CACHE_TTL
+    await redis.set(`user_features:${currentUserId}`, userFeatures, {
+      ex: CACHE_TTL,
     });
 
     return userFeatures;
   } catch (error) {
-    console.error('Erro ao buscar features do usuário:', error);
-    const errorFeatures = {
-      canAccessAllTracks: false,
-      canAccessSpecificTracks: false,
-      canAccessForum: false,
-      canAccessFlashcards: false,
-      hasUnlimitedFlashcards: false,
-      hasOfflineMode: false,
-      hasCertificate: false,
-      hasPrioritySupport: false,
-      hasFamilySlots: false,
-      specificTracks: [],
-    };
-
-    // Salvar features de erro no cache por menos tempo
-    featuresCache.set(currentUserId, {
-      features: errorFeatures,
-      expires: Date.now() + (60 * 1000) // 1 minuto apenas
-    });
-
-    return errorFeatures;
+    console.error("Erro ao buscar features do usuário:", error);
+    return INITIAL_FEATURES;
   }
 }
 
-export async function requireFeature(feature: keyof UserFeatures, userId?: string): Promise<boolean> {
-  const features = await getUserFeatures(userId);
-  return Boolean(features[feature]);
+export async function invalidateUserFeaturesCache(userId: string) {
+  try {
+    await redis.del(`user_features:${userId}`);
+  } catch (error) {
+    console.error("Erro ao invalidar cache no Redis:", error);
+  }
 }
 
-export async function requireAnyFeature(features: (keyof UserFeatures)[], userId?: string): Promise<boolean> {
-  const userFeatures = await getUserFeatures(userId);
-  return features.some(feature => Boolean(userFeatures[feature]));
-}
-
-export async function requireAllFeatures(features: (keyof UserFeatures)[], userId?: string): Promise<boolean> {
-  const userFeatures = await getUserFeatures(userId);
-  return features.every(feature => Boolean(userFeatures[feature]));
+/**
+ * Invalida todo o cache de features (útil para mudanças globais no admin).
+ */
+export async function invalidateAllFeaturesCache() {
+  try {
+    const keys = await redis.keys("user_features:*");
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+  } catch (error) {
+    console.error("Erro ao invalidar todo o cache no Redis:", error);
+  }
 }

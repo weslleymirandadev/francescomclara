@@ -4,11 +4,11 @@ import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { FiSearch } from "react-icons/fi";
 import { LuUserCheck, LuUsers } from "react-icons/lu";
-import { FiAlertCircle } from "react-icons/fi";
+import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import { Loading } from "@/components/ui/loading";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { getUserReports } from "./actions";
+import { getUserReports, banUser, closeTicket } from "./actions";
 import { UserReportsModal } from "./_components/UserReportsModal";
 
 interface User {
@@ -20,6 +20,7 @@ interface User {
   date: string;
   role: "USER" | "MODERATOR" | "ADMIN";
   reportCount: number;
+  whatsappStatus?: string;
 }
 
 export default function UserListClient({ users = [] }: { users: User[] }) {
@@ -87,6 +88,37 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
       }
     } catch (error) {
       toast.error("Erro de conexão.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBanUser = async (userId: string, reason: string) => {
+    if (!confirm("Tem certeza que deseja BANIR este usuário?")) return;
+
+    setLoading(true);
+    try {
+      const res = await banUser(userId, reason);
+      if (res) {
+        toast.success("Usuário banido com sucesso!");
+        router.refresh();
+      }
+    } catch (error) {
+      toast.error("Erro ao banir usuário.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseTicket = async (userId: string) => {
+    setLoading(true);
+    try {
+      await closeTicket(userId);
+      toast.success("Atendimento finalizado com sucesso!");
+      router.refresh();
+    } catch (error) {
+      toast.error("Erro ao finalizar ticket.");
     } finally {
       setLoading(false);
     }
@@ -196,6 +228,13 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                             Alto Risco
                           </span>
                         )}
+                        {(user.whatsappStatus === "IN_PROGRESS" ||
+                          user.whatsappStatus === "OPEN") && (
+                          <span className="ml-2 inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter animate-pulse border border-emerald-200">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                            Em Atendimento No Whatsapp
+                          </span>
+                        )}
                       </span>
                       <span className="text-[10px] text-slate-400 truncate mt-0.5">
                         {user.email ?? "Sem Email"}
@@ -210,6 +249,20 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors animate-pulse cursor-pointer"
                       >
                         <FiAlertCircle size={20} />
+                      </button>
+                    )}
+
+                    {(user.whatsappStatus === "IN_PROGRESS" ||
+                      user.whatsappStatus === "OPEN") && (
+                      <button
+                        onClick={() => handleCloseTicket(user.id)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all border border-emerald-100 group"
+                        title="Finalizar Ticket"
+                      >
+                        <FiCheckCircle size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-tight">
+                          Finalizar Ticket
+                        </span>
                       </button>
                     )}
 
@@ -237,6 +290,19 @@ export default function UserListClient({ users = [] }: { users: User[] }) {
                       <option value="MODERATOR">Moderador</option>
                       <option value="ADMIN">Admin</option>
                     </select>
+
+                    <button
+                      onClick={() => {
+                        const reason = window.prompt("Motivo do banimento:");
+                        if (reason) {
+                          handleBanUser(user.id, reason);
+                        }
+                      }}
+                      className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all border border-rose-100 cursor-pointer"
+                      title="Banir Usuário"
+                    >
+                      <FiAlertCircle size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
