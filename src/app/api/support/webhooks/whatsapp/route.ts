@@ -13,14 +13,19 @@ interface SiteSettings {
 
 export async function POST(req: Request) {
   const headers = req.headers;
-  const apiKey = headers.get("apikey")?.trim();
+  const { searchParams } = new URL(req.url);
 
-  const expectedKey = process.env.EVOLUTION_API_KEY?.trim();
+  const apiKey =
+    headers.get("apikey") ||
+    headers.get("x-api-key") ||
+    headers.get("Authorization")?.replace("Bearer ", "") ||
+    searchParams.get("token");
 
-  if (!apiKey || apiKey !== expectedKey) {
-    console.error("--- FALHA DE AUTENTICAÇÃO ---");
-    console.log("Recebido:", apiKey);
-    console.log("Esperado:", expectedKey);
+  const isGlobalKey = apiKey === "HWCZcOdhYsaOoLmaBxLfXwXckoGa50cZll8Rd3fX44k=";
+  const isInstanceKey = apiKey === "3FB34BDE77A2-49B2-87C3-A34CC67DE56A";
+
+  if (!apiKey || (!isGlobalKey && !isInstanceKey)) {
+    console.error("❌ Bloqueado! Chave recebida:", apiKey);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
