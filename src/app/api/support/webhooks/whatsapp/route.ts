@@ -13,9 +13,14 @@ interface SiteSettings {
 
 export async function POST(req: Request) {
   const headers = req.headers;
-  const apiKey = headers.get("apikey");
+  const apiKey = headers.get("apikey")?.trim();
 
-  if (apiKey !== process.env.EVOLUTION_API_KEY) {
+  const expectedKey = process.env.EVOLUTION_API_KEY?.trim();
+
+  if (!apiKey || apiKey !== expectedKey) {
+    console.error("--- FALHA DE AUTENTICAÇÃO ---");
+    console.log("Recebido:", apiKey);
+    console.log("Esperado:", expectedKey);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -102,9 +107,6 @@ export async function POST(req: Request) {
 
 async function sendMessage(remoteJid: string, text: string) {
   const url = `${process.env.NEXT_PUBLIC_EVOLUTION_URL}/message/sendText/${process.env.NEXT_PUBLIC_EVOLUTION_INSTANCE}`;
-
-  console.log("DEBUG KEY - Recebida:", apiKey);
-  console.log("DEBUG KEY - No Servidor:", process.env.EVOLUTION_API_KEY);
 
   try {
     await fetch(url, {
