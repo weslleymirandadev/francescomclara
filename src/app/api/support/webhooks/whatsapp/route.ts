@@ -23,6 +23,11 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
+
+  if (body.data?.key?.fromMe === true) {
+    return NextResponse.json({ ok: true });
+  }
+
   console.log("✅ Webhook recebido:", body.event);
 
   const cachedSettings = await redis.get("site-settings");
