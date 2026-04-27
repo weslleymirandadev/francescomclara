@@ -113,11 +113,16 @@ async function sendMessage(remoteJid: string, text: string) {
       },
       body: JSON.stringify({
         number: remoteJid,
-        options: { delay: 1000, presence: "composing" },
-        textMessage: { text: text },
+        text: text,
+        options: {
+          delay: 1200,
+          presence: "composing",
+          linkPreview: false,
+        },
       }),
     });
+    console.log(`✅ Resposta enviada para ${remoteJid}`);
   } catch (err) {
-    console.error("Erro Evolution API:", err);
+    console.error("❌ Erro ao enviar mensagem via Evolution:", err);
   }
 }
