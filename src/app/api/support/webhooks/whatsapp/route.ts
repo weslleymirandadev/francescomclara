@@ -14,7 +14,6 @@ interface SiteSettings {
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
-
   const expectedToken = process.env.EVOLUTION_API_KEY;
 
   if (!token || token !== expectedToken) {
@@ -28,7 +27,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  console.log("✅ Webhook recebido:", body.event);
+  console.log("✅ Webhook recebido de:", body.data?.key?.remoteJid);
 
   const cachedSettings = await redis.get("site-settings");
   let settings: SiteSettings | null = null;
@@ -48,8 +47,16 @@ export async function POST(req: Request) {
 
   if (settings && !isSupportOpen(settings)) {
     const remoteJid = body.data?.key?.remoteJid;
-    if (!body.data?.key?.fromMe && remoteJid) {
-      await sendMessage(remoteJid, settings.supportAwayMessage);
+
+    if (remoteJid) {
+      const lockKey = `away-msg:${remoteJid}`;
+      const alreadySent = await redis.get(lockKey);
+
+      if (!alreadySent) {
+        await sendMessage(remoteJid, settings.supportAwayMessage);
+
+        await redis.set(lockKey, "sent", { ex: 28800 });
+      }
     }
     return NextResponse.json({ ok: true });
   }
@@ -128,6 +135,6 @@ async function sendMessage(remoteJid: string, text: string) {
     });
     console.log(`✅ Resposta enviada para ${remoteJid}`);
   } catch (err) {
-    console.error("❌ Erro ao enviar mensagem via Evolution:", err);
+    console.error("❌ Erro Evolution API:", err);
   }
 }
