@@ -12,27 +12,21 @@ interface SiteSettings {
 }
 
 export async function POST(req: Request) {
-  const headers = req.headers;
   const { searchParams } = new URL(req.url);
+  const token = searchParams.get("token");
 
-  const apiKey =
-    headers.get("apikey") ||
-    headers.get("x-api-key") ||
-    headers.get("Authorization")?.replace("Bearer ", "") ||
-    searchParams.get("token");
+  const expectedToken = process.env.EVOLUTION_API_KEY;
 
-  const isGlobalKey = apiKey === "HWCZcOdhYsaOoLmaBxLfXwXckoGa50cZll8Rd3fX44k=";
-  const isInstanceKey = apiKey === "3FB34BDE77A2-49B2-87C3-A34CC67DE56A";
-
-  if (!apiKey || (!isGlobalKey && !isInstanceKey)) {
-    console.error("❌ Bloqueado! Chave recebida:", apiKey);
+  if (!token || token !== expectedToken) {
+    console.error("❌ Acesso negado! Token inválido ou ausente na URL.");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await req.json();
+  console.log("✅ Webhook recebido:", body.event);
+
   const cachedSettings = await redis.get("site-settings");
   let settings: SiteSettings | null = null;
-
-  const body = await req.json();
 
   if (!cachedSettings) {
     const dbSettings = await prisma.siteSettings.findFirst();
@@ -64,15 +58,15 @@ export async function POST(req: Request) {
   const tokenMatch = messageText.match(/\*Token:\*\s*([A-Z0-9]{6})/i);
 
   if (emailMatch && tokenMatch) {
-    const email = emailMatch[1];
+    const email = emailMatch[1].trim();
     const receivedToken = tokenMatch[1];
 
-    const expectedToken = Buffer.from(`${email}-${new Date().getDay()}`)
+    const generatedToken = Buffer.from(`${email}-${new Date().getDay()}`)
       .toString("base64")
       .slice(0, 6)
       .toUpperCase();
 
-    if (receivedToken !== expectedToken) {
+    if (receivedToken !== generatedToken) {
       return NextResponse.json({ ok: true });
     }
 
@@ -89,6 +83,7 @@ export async function POST(req: Request) {
 
     if (user?.hasPrioritySupport && user.supportTickets.length > 0) {
       const ticketId = user.supportTickets[0].id;
+      const remoteJid = body.data?.key?.remoteJid;
 
       await prisma.supportTicket.update({
         where: { id: ticketId },
@@ -98,12 +93,8 @@ export async function POST(req: Request) {
         },
       });
 
-      const remoteJid = body.data?.key?.remoteJid;
       const msgSucesso = `Olá, ${user.name.split(" ")[0]}! Seu ticket foi recebido com sucesso.\n\nA Clara já foi notificada e em breve você receberá uma resposta por aqui! 🇫🇷`;
-
       await sendMessage(remoteJid, msgSucesso);
-    } else if (!user?.hasPrioritySupport) {
-      console.log(`Tentativa de acesso não-VIP: ${email}`);
     }
   }
 
