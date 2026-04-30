@@ -369,6 +369,8 @@ export async function saveContentBulkAction(
       for (const [tIndex, track] of localTracks.entries()) {
         if (new Set(itemsToDelete.tracks || []).has(track.id)) continue;
 
+        if (objectiveIdsToDelete.has(track.objectiveId)) continue;
+
         const finalObjectiveId =
           objIdMap.get(track.objectiveId) || track.objectiveId;
 
@@ -385,6 +387,11 @@ export async function saveContentBulkAction(
         if (String(track.id).startsWith("temp-")) {
           savedTrack = await tx.track.create({ data: trackData });
         } else {
+          const existingTrack = await tx.track.findUnique({
+            where: { id: track.id },
+          });
+          if (!existingTrack) continue;
+
           savedTrack = await tx.track.update({
             where: { id: track.id },
             data: trackData,
