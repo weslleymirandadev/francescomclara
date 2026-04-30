@@ -143,50 +143,60 @@ export default function ContentList({
     setHasChanges(true);
   };
 
-  const handleCreateModuleLocal = (trackId: string) => {
-    const tempId = `temp-${Date.now()}`;
-    const newModule = {
-      id: tempId,
-      title: "Novo Módulo",
-      lessons: [],
-      trackId: trackId,
-      isTemp: true,
-    };
-
-    setLocalTracks((prev) =>
-      prev.map((t) => {
-        if (t.id === trackId) {
-          return { ...t, modules: [...(t.modules || []), newModule] };
-        }
-        return t;
-      }),
-    );
-
-    setHasChanges(true);
-    return newModule;
+  const handleCreateModuleLocal = async (trackId: string) => {
+    setLoading(true);
+    try {
+      const newModule = await actions.createModuleAction(trackId);
+      if (newModule) {
+        setLocalTracks((prev) =>
+          prev.map((t) => {
+            if (t.id === trackId) {
+              return { ...t, modules: [...(t.modules || []), newModule] };
+            }
+            return t;
+          }),
+        );
+        router.refresh();
+        setExpandedModule(newModule.id);
+      }
+      setLoading(false);
+    } catch (error) {
+      toast.error("Falha ao criar módulo. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateLessonLocal = (moduleId: string) => {
-    const tempId = `temp-lesson-${Date.now()}`;
-    const newLesson = {
-      id: tempId,
-      title: "Nova Aula (Rascunho)",
-      isPremium: false,
-      isTemp: true,
-    };
+  const handleCreateLessonLocal = async (moduleId: string) => {
+    setLoading(true);
+    try {
+      const newLesson = await actions.createLessonAction(moduleId);
 
-    setLocalTracks((prev) =>
-      prev.map((t) => ({
-        ...t,
-        modules: t.modules?.map((m: any) => {
-          if (m.id === moduleId) {
-            return { ...m, lessons: [...(m.lessons || []), newLesson] };
-          }
-          return m;
-        }),
-      })),
-    );
-    setHasChanges(true);
+      if (newLesson) {
+        setLocalTracks((prev) =>
+          prev.map((track) => ({
+            ...track,
+            modules: track.modules?.map((mod: any) => {
+              if (mod.id === moduleId) {
+                return {
+                  ...mod,
+                  lessons: [...(mod.lessons || []), newLesson],
+                };
+              }
+              return mod;
+            }),
+          })),
+        );
+
+        router.refresh();
+        toast.success("Aula criada!");
+      }
+    } catch (error) {
+      console.error("Erro ao criar aula:", error);
+      toast.error("Não foi possível criar a aula no banco.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const markForDeletion = (
@@ -283,15 +293,21 @@ export default function ContentList({
     }
   };
 
-  const handleAddObjective = () => {
+  const handleAddObjective = async () => {
     const name = prompt("Nome do novo objetivo:");
     if (name) {
-      const tempId = `temp-${Date.now()}`;
-      const newObj = { id: tempId, name: name };
-
-      setLocalObjectives((prev) => [...prev, newObj]);
-      setActiveObjectiveId(tempId);
-      setHasChanges(true);
+      setLoading(true);
+      try {
+        const newObj = await actions.createObjectiveAction(name);
+        if (newObj) {
+          setLocalObjectives((prev) => [...prev, newObj]);
+          setActiveObjectiveId(newObj.id);
+        }
+      } catch (error) {
+        toast.error("Erro ao criar objetivo");
+      } finally {
+        setLoading(true);
+      }
     }
   };
 
@@ -529,23 +545,24 @@ export default function ContentList({
           </nav>
 
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!activeObjectiveId)
                 return alert("⚠️ Selecione um Objetivo primeiro.");
-              const tempId = `temp-track-${Date.now()}`;
-              const newTrack = {
-                id: tempId,
-                name: "Nova Trilha",
-                description: "",
-                active: false,
-                objectiveId: activeObjectiveId,
-                modules: [],
-                subscriptionPlans: [],
-                isTemp: true,
-              };
-              setLocalTracks((prev) => [newTrack, ...prev]);
-              setHasChanges(true);
-              window.scrollTo({ top: 0, behavior: "smooth" });
+
+              setLoading(true);
+              try {
+                const newTrack =
+                  await actions.createTrackAction(activeObjectiveId);
+                if (newTrack) {
+                  setLocalTracks((prev) => [newTrack, ...prev]);
+                  router.refresh();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              } catch (error) {
+                toast.error("Erro ao criar trilha");
+              } finally {
+                setLoading(false);
+              }
             }}
             className={`md:w-auto md:min-w-[250px] bg-s-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 cursor-pointer ${
               !activeObjectiveId
@@ -592,6 +609,9 @@ export default function ContentList({
                       setLocalTracks={setLocalTracks}
                       setHasChanges={setHasChanges}
                       markForDeletion={markForDeletion}
+                      isMarkedForDeletion={itemsToDelete?.tracks?.includes(
+                        track.id,
+                      )}
                       handleCreateModuleLocal={handleCreateModuleLocal}
                       setExpandedModule={setExpandedModule}
                       handleTrackNameChange={handleTrackNameChange}
@@ -626,6 +646,10 @@ export default function ContentList({
                                   expandedModule={expandedModule}
                                   setExpandedModule={setExpandedModule}
                                   markForDeletion={markForDeletion}
+                                  isMarkedForDeletion={itemsToDelete.modules.includes(
+                                    module.id,
+                                  )}
+                                  itemsToDelete={itemsToDelete}
                                   handleUpdateModuleName={
                                     handleModuleTitleChange
                                   }

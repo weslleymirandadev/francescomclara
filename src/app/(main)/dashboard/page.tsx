@@ -244,7 +244,7 @@ export default function Dashboard() {
 
             {features?.hasPrioritySupport && (
               <Link href="/support" className="md:col-span-1">
-                <Card className="p-6 h-full border-none shadow-xl bg-gradient-to-br from-amber-400 to-orange-500 rounded-[2.5rem] flex flex-col items-center justify-center group hover:scale-[1.02] transition-all text-white">
+                <Card className="p-6 h-full border-none shadow-xl bg-linear-to-br from-amber-400 to-orange-500 rounded-[2.5rem] flex flex-col items-center justify-center group hover:scale-[1.02] transition-all text-white">
                   <FiAlertCircle size={24} className="mb-2" />
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-center leading-none">
                     Suporte Prioritário

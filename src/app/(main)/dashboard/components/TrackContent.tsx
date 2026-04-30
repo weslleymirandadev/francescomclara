@@ -20,17 +20,22 @@ interface TrackContentProps {
 export function TrackContent({ track, completedIds }: TrackContentProps) {
   const totalLessons =
     track.modules?.reduce(
-      (acc: number, m: any) => acc + (m.lessons?.length || 0),
+      (acc: number, m: any) =>
+        acc +
+        (m.lessons?.filter((l: any) => l.type !== "FLASHCARD").length || 0),
       0,
     ) || 0;
+
   const completedInTrack =
     track.modules?.reduce(
       (acc: number, m: any) =>
         acc +
-        (m.lessons?.filter((l: any) => completedIds.includes(l.id)).length ||
-          0),
+        (m.lessons?.filter(
+          (l: any) => l.type !== "FLASHCARD" && completedIds.includes(l.id),
+        ).length || 0),
       0,
     ) || 0;
+
   const progressPercent =
     totalLessons > 0 ? Math.round((completedInTrack / totalLessons) * 100) : 0;
 
