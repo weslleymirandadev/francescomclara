@@ -37,6 +37,7 @@ export default function PostDetailPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [viewingUser, setViewingUser] = useState<any>(null);
   const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   const removeAttachment = (index: number) => {
     setPreviews((prev) => prev.filter((_, i) => i !== index));
@@ -383,7 +384,12 @@ export default function PostDetailPage() {
               ) : (
                 <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter wrap-break-word max-w-2xl">
                   {post.title}
-                </h1>
+                  </h1>
+                  {post.author?.role === "ADMIN" && (
+                        <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">
+                          ADMIN
+                        </span>
+                      )}
               )}
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
                 POR <span className="text-slate-800">{post.author?.name}</span>{" "}

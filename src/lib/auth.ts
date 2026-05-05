@@ -104,6 +104,43 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
+  events: {
+    async signIn({ user }) {
+      if (!user?.email) return;
+
+      try {
+        // 1. Buscamos o usuário e as configurações do site (onde está sua mensagem)
+        const [dbUser, settings] = await Promise.all([
+          prisma.user.findUnique({
+            where: { email: user.email },
+            select: { id: true, welcomeEmailSent: true },
+          }),
+          prisma.siteSettings.findUnique({ where: { id: "settings" } }),
+        ]);
+
+        if (settings?.welcomeMessage && !dbUser?.welcomeEmailSent) {
+          const success = await sendAutomationEmail(
+            user.email,
+            `Bem-vindo(a) ao ${settings.siteName || "Francês com Clara"}!`,
+            settings.welcomeMessage,
+          );
+
+          if (success) {
+            await prisma.user.update({
+              where: { id: dbUser?.id },
+              data: { welcomeEmailSent: true },
+            });
+            console.log(
+              `[MAIL] Sucesso: Mensagem do banco enviada para ${user.email}`,
+            );
+          }
+        }
+      } catch (error) {
+        console.error("[AUTH_EVENT_ERROR]:", error);
+      }
+    },
+  },
+
   callbacks: {
     // Antes de criar sessão, trata login social (Google / GitHub)
     async signIn({ user, account, profile }) {
@@ -129,7 +166,6 @@ export const authOptions: NextAuthOptions = {
           undefined;
 
         if (!email) throw new Error("Login social não retornou e-mail.");
-
         // Se login via GitHub e for o ADMIN_EMAIL, registra/atualiza role ADMIN
         if (email === process.env.ADMIN_EMAIL) {
           await prisma.roleEmail.upsert({
