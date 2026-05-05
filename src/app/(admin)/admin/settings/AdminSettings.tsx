@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Palette, CreditCard, Bell, Globe, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { updateSettings } from "./actions";
@@ -53,9 +52,6 @@ export default function AdminSettings({
     siteDescription:
       initialSettings?.siteDescription ||
       "Transformando sua jornada no idioma francês com método prático, contexto cultural e tecnologia.",
-    seoDescription:
-      initialSettings?.seoDescription ||
-      "Aprenda francês de forma prática e cultural com a Clara.",
     siteNameFirstPart: initialSettings?.siteNameFirstPart || "Francês com",
     siteNameHighlight: initialSettings?.siteNameHighlight || "Clara",
     siteIcon: initialSettings?.siteIcon || "/static/flower.svg",
@@ -319,34 +315,6 @@ export default function AdminSettings({
                       }
                       className="w-full min-h-20 p-4 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm resize-none focus:ring-2 focus:ring-rose-100 transition-all outline-none"
                       placeholder="Texto que aparece abaixo da logo no rodapé..."
-                    />
-                  </div>
-
-                  <div className="space-y-2 md:col-span-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        SEO Description (Google)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleChange(
-                            "seoDescription",
-                            "Aprenda francês de forma prática e cultural com a Clara.",
-                          )
-                        }
-                        className="text-[9px] font-bold text-rose-400 uppercase hover:underline"
-                      >
-                        Original
-                      </button>
-                    </div>
-                    <Input
-                      value={formData.seoDescription}
-                      onChange={(e) =>
-                        handleChange("seoDescription", e.target.value)
-                      }
-                      className="h-12 rounded-xl bg-slate-50 border-none font-medium text-slate-600 text-sm"
-                      placeholder="Descrição para motores de busca..."
                     />
                   </div>
                 </div>

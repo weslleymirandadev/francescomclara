@@ -45,6 +45,11 @@ export async function updateSettings(data: any) {
         supportStartTime: data.supportStartTime,
         supportEndTime: data.supportEndTime,
         supportDays: data.supportDays,
+        welcomeMessage: data.welcomeMessage,
+        welcomeBackMessage: data.welcomeBackMessage,
+        expiringMessage: data.expiringMessage,
+        inactivityMessage: data.inactivityMessage,
+        siteDescription: data.siteDescription,
       },
       create: {
         id: "settings",
@@ -77,6 +82,11 @@ export async function updateSettings(data: any) {
         supportStartTime: data.supportStartTime || "09:00",
         supportEndTime: data.supportEndTime || "18:00",
         supportDays: data.supportDays || "1,2,3,4,5",
+        welcomeMessage: data.welcomeMessage || "Bem-vindo!",
+        welcomeBackMessage: data.welcomeBackMessage ?? true,
+        expiringMessage: data.expiringMessage || "Seu plano está vencendo...",
+        inactivityMessage: data.inactivityMessage || "Sentimos sua falta!",
+        siteDescription: data.siteDescription,
       },
     });
 
