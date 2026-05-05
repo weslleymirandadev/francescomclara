@@ -382,14 +382,16 @@ export default function PostDetailPage() {
                   />
                 </div>
               ) : (
-                <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter wrap-break-word max-w-2xl">
-                  {post.title}
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter wrap-break-word max-w-2xl">
+                    {post.title}
                   </h1>
-                  {post.author?.role === "ADMIN" && (
-                        <span className="bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">
-                          ADMIN
-                        </span>
-                      )}
+                  {isAdmin && (
+                    <span className="bg-slate-900 text-white text-xs font-black px-2 py-1 rounded-md uppercase tracking-widest shadow-sm">
+                      ADMIN
+                    </span>
+                  )}
+                </div>
               )}
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">
                 POR <span className="text-slate-800">{post.author?.name}</span>{" "}
@@ -541,7 +543,7 @@ export default function PostDetailPage() {
             </button>
           </div>
 
-          {session?.user?.id === post.authorId && (
+          {(session?.user?.id === post.authorId || isAdmin) && (
             <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
               {isEditing ? (
                 <>
@@ -565,19 +567,25 @@ export default function PostDetailPage() {
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-2 h-12 px-8 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-black tracking-widest uppercase"
-                  >
-                    <FiEdit3 size={16} /> Editar Post
-                  </Button>
+                  {session?.user?.id === post.authorId && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2 h-12 px-8 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] font-black tracking-widest uppercase"
+                    >
+                      <FiEdit3 size={16} /> Editar Post
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     onClick={() => handleDeletePost(post.id)}
                     className="text-red-500 hover:bg-red-50 h-12 px-8 text-[11px] font-black tracking-widest uppercase gap-2"
                   >
-                    <FiTrash2 size={16} /> Excluir
+                    <FiTrash2 size={16} />
+                    {isAdmin && session?.user?.id !== post.authorId
+                      ? "MODERAR POST"
+                      : "Excluir"}
                   </Button>
                 </>
               )}
@@ -671,7 +679,7 @@ export default function PostDetailPage() {
                       </span>
                     </button>
 
-                    {session?.user?.id === comment.authorId ? (
+                    {session?.user?.id === comment.authorId || isAdmin ? (
                       <button
                         onClick={() => handleDeleteComment(comment.id)}
                         className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all shadow-sm text-[11px] font-black italic tracking-tighter uppercase cursor-pointer"
@@ -685,6 +693,12 @@ export default function PostDetailPage() {
                       >
                         <FiAlertTriangle size={16} /> Denunciar
                       </button>
+                    )}
+
+                    {isAdmin && (
+                      <span className="text-[9px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl uppercase tracking-tighter shadow-md">
+                        ADMINISTRADOR
+                      </span>
                     )}
 
                     {comment.authorId === post.authorId && (

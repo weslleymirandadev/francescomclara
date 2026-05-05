@@ -9,12 +9,14 @@ import {
   FiSearch,
   FiEdit3,
   FiStar,
+  FiTrash2,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ForumPost } from "@prisma/client";
 import { Loading } from "@/components/ui/loading";
+import { toast } from "react-hot-toast";
 
 export default function ForumPage() {
   const [search, setSearch] = useState("");
@@ -22,6 +24,7 @@ export default function ForumPage() {
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [content, setContent] = useState<{ tracks: any[] }>({ tracks: [] });
   const { data: session, update } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
 
   useEffect(() => {
     fetch("/api/public/content")
@@ -54,6 +57,22 @@ export default function ForumPage() {
     if (filter === "mine") return post.authorId === session?.user?.id;
     return true;
   });
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Deseja realmente excluir este post?")) return;
+
+    try {
+      const res = await fetch(`/api/forum/posts/${postId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+        toast.success("Post removido com sucesso!");
+      }
+    } catch (error) {
+      toast.error("Erro ao excluir o post.");
+    }
+  };
 
   if (loading) return <Loading />;
 
@@ -202,6 +221,11 @@ export default function ForumPage() {
                             <span className="text-slate-900 font-black underline decoration-(--clara-rose)/30">
                               {post.author?.name || "Usuário"}
                             </span>
+                            {isAdmin && (
+                              <span className="bg-slate-900 text-white text-[7px] px-2 py-0.5 rounded-full font-black tracking-widest shadow-sm">
+                                ADMIN
+                              </span>
+                            )}
                             <span className="opacity-60 text-[8px]">
                               @{post.author?.username || "anonimo"}
                             </span>
@@ -327,6 +351,20 @@ export default function ForumPage() {
                                 </Button>
                               </Link>
                             </div>
+                          )}
+
+                          {(post.authorId === session?.user?.id || isAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeletePost(post.id)}
+                              className="rounded-xl text-red-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                            >
+                              <FiTrash2 className="mr-2" />
+                              {isAdmin && post.authorId !== session?.user?.id
+                                ? "MODERAR"
+                                : "Excluir"}
+                            </Button>
                           )}
                         </div>
                       </div>
