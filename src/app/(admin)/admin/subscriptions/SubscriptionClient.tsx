@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Check, X, Loader2 } from "lucide-react";
+import { Plus, Trash2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -120,26 +120,6 @@ export default function SubscriptionClient({
     setIsModalOpen(true);
   };
 
-  const handleFeatureChange = (index: number, value: string) => {
-    if (!editingPlan) return;
-    const newFeatures = [...editingPlan.features];
-    newFeatures[index] = value;
-    setEditingPlan({ ...editingPlan, features: newFeatures });
-  };
-
-  const addFeature = () => {
-    if (!editingPlan) return;
-    setEditingPlan({ ...editingPlan, features: [...editingPlan.features, ""] });
-  };
-
-  const removeFeature = (index: number) => {
-    if (!editingPlan) return;
-    setEditingPlan({
-      ...editingPlan,
-      features: editingPlan.features.filter((_, i) => i !== index),
-    });
-  };
-
   const handleSave = async () => {
     if (
       !editingPlan?.name ||
@@ -165,6 +145,7 @@ export default function SubscriptionClient({
 
     if (res.success) {
       toast.success("Plano salvo com sucesso! 🌸");
+
       setIsModalOpen(false);
       window.location.reload();
     } else {

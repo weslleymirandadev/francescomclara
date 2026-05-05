@@ -84,7 +84,6 @@ export async function upsertSubscriptionPlan(data: any) {
       });
     }
 
-    // Invalidar cache de features de todos os usuários
     invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };
@@ -122,7 +121,6 @@ export async function deleteSubscriptionPlan(id: string) {
       where: { id },
     });
 
-    // Invalidar cache de features de todos os usuários
     invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };
@@ -145,7 +143,6 @@ export async function togglePlanStatus(id: string, currentStatus: boolean) {
       data: { active: !currentStatus },
     });
 
-    // Invalidar cache de features de todos os usuários
     invalidateAllFeaturesCache();
     revalidatePath("/admin/subscriptions");
     return { success: true };

@@ -54,6 +54,10 @@ export default function ProfilePage() {
     }
   };
 
+  const joinYear = dbUserData?.createdAt
+    ? new Date(dbUserData.createdAt).getFullYear()
+    : "Carregando...";
+
   useEffect(() => {
     fetchFreshProfile();
   }, []);
@@ -307,7 +311,7 @@ export default function ProfilePage() {
                   @{formData.username}
                 </span>
                 <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                  <FiCalendar className="mb-0.5" /> Aluno desde 2024
+                  <FiCalendar className="mb-0.5" /> Aluno desde {joinYear}
                 </span>
               </div>
             </div>

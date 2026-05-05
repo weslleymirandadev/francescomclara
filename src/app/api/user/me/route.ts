@@ -100,6 +100,7 @@ export async function GET() {
       level: user?.level,
       image: user?.image,
       bio: user?.bio,
+      createdAt: user?.createdAt,
     },
     parentId: user?.parentId,
     posts: formattedPosts,
