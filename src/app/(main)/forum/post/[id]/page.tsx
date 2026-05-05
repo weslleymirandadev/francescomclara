@@ -620,7 +620,7 @@ export default function PostDetailPage() {
                 key={comment.id}
                 className="group/comment relative bg-white border border-slate-100 rounded-[2.5rem] p-2 transition-all hover:shadow-xl hover:shadow-slate-200/50 flex gap-4 items-start"
               >
-                <div className="flex-1 p-8">
+                <div className="flex-1 p-4 md:p-8">
                   <div className="flex items-center gap-3 mb-4">
                     <div
                       onClick={() => setViewingUser(comment.author)}
@@ -657,55 +657,62 @@ export default function PostDetailPage() {
                       : comment.content}
                   </p>
 
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => handleLikeComment(comment.id)}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl transition-all border cursor-pointer ${
-                        comment.likes?.some(
-                          (l: any) => l.userId === session?.user?.id,
-                        )
-                          ? "bg-red-50 border-red-100 text-red-500 shadow-sm"
-                          : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      <FiStar
-                        size={16}
-                        className={
-                          comment.likes?.length > 0 ? "fill-current" : ""
-                        }
-                      />
-                      <span className="text-[11px] font-black italic tracking-tighter">
-                        {comment._count?.likes || 0} LIKES
-                      </span>
-                    </button>
-
-                    {session?.user?.id === comment.authorId || isAdmin ? (
+                  <div className="md:flex items-center gap-3">
+                    <div className="flex gap-3">
                       <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all shadow-sm text-[11px] font-black italic tracking-tighter uppercase cursor-pointer"
+                        onClick={() => handleLikeComment(comment.id)}
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl transition-all border cursor-pointer ${
+                          comment.likes?.some(
+                            (l: any) => l.userId === session?.user?.id,
+                          )
+                            ? "bg-red-50 border-red-100 text-red-500 shadow-sm"
+                            : "bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        }`}
                       >
-                        <FiTrash2 size={16} /> Excluir
+                        <FiStar
+                          size={16}
+                          className={
+                            comment.likes?.length > 0 ? "fill-current" : ""
+                          }
+                        />
+                        <span className="text-[11px] font-black italic tracking-tighter">
+                          {comment._count?.likes || 0} LIKES
+                        </span>
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => handleReportComment(comment.id)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-orange-50 border border-orange-100 text-orange-500 hover:bg-orange-100 transition-all shadow-sm text-[11px] font-black italic tracking-tighter uppercase cursor-pointer"
-                      >
-                        <FiAlertTriangle size={16} /> Denunciar
-                      </button>
-                    )}
 
-                    {isAdmin && (
-                      <span className="text-[9px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl uppercase tracking-tighter shadow-md">
-                        ADMINISTRADOR
-                      </span>
-                    )}
+                      {session?.user?.id === comment.authorId || isAdmin ? (
+                        <button
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all shadow-sm text-[11px] font-black italic tracking-tighter uppercase cursor-pointer"
+                        >
+                          <FiTrash2 size={16} /> Excluir
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReportComment(comment.id)}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-orange-50 border border-orange-100 text-orange-500 hover:bg-orange-100 transition-all shadow-sm text-[11px] font-black italic tracking-tighter uppercase cursor-pointer"
+                        >
+                          <FiAlertTriangle size={16} /> Denunciar
+                        </button>
+                      )}
+                    </div>
 
-                    {comment.authorId === post.authorId && (
-                      <span className="text-[9px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl uppercase tracking-tighter shadow-md">
-                        OP / Autor
-                      </span>
-                    )}
+                    <div className="flex gap-3 pt-4 justify-end md:pt-0">
+                      <div>
+                        {isAdmin && (
+                          <span className="text-[9px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl uppercase tracking-tighter shadow-md">
+                            ADMINISTRADOR
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        {comment.authorId === post.authorId && (
+                          <span className="text-[9px] font-black bg-slate-900 text-white px-4 py-2 rounded-xl uppercase tracking-tighter shadow-md">
+                            OP / Autor
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
